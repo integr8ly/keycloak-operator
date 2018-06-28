@@ -1,0 +1,4 @@
+apiVersion: "areogear.org/v1alpha1"
+kind: "KeycloakRealm"
+metadata:
+  name: "example"

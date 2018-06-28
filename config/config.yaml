@@ -1,0 +1,3 @@
+apiVersion: areogear.org/v1alpha1
+kind: KeycloakRealm
+projectName: keycloak-operator

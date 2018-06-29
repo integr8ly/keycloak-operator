@@ -1,0 +1,7 @@
+apiVersion: "areogear.org/v1alpha1"
+kind: "KeycloakClient"
+metadata:
+  name: "SomeKeycloakclient"
+spec:
+  type: "public"
+  credentialsSecret: "asecret"

@@ -1,0 +1,82 @@
+apiVersion: app.coreos.com/v1alpha1
+kind: ClusterServiceVersion-v1
+metadata:
+  name: keycloakrealm.v0.0.1
+  namespace: placeholder
+spec:
+  install:
+    strategy: deployment
+    spec:
+      permissions:
+      - serviceAccountName: keycloak-operator
+        rules:
+        - apiGroups:
+          - areogear.org
+          resources:
+          - "*"
+          verbs:
+          - "*"
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          - configmaps
+          - secrets
+          verbs:
+          - "*"
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - "*"
+      deployments:
+      - name: keycloak-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: keycloak-operator
+          template:
+            metadata:
+              labels:
+                app: keycloak-operator
+            spec:
+              containers:
+                - name: keycloak-operator-olm-owned
+                  image: docker.io/maleck13/keycloak-operator
+                  command:
+                  - keycloak-operator
+                  imagePullPolicy: Always
+                  env:
+                  - name: MY_POD_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+                  - name: MY_POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.name
+              restartPolicy: Always
+              terminationGracePeriodSeconds: 5
+              serviceAccountName: keycloak-operator
+              serviceAccount: keycloak-operator
+  customresourcedefinitions:
+    owned:
+      - description: Represents an instance of a KeycloakRealm application
+        displayName: KeycloakRealm Application
+        kind: KeycloakRealm
+        name: keycloakrealms.areogear.org
+        version: 0.0.1
+  version: 0.0.1
+  displayName: KeycloakRealm
+  labels:
+    olm-owner-enterprise-app: keycloak-operator
+    olm-status-descriptors: keycloakrealm.v0.0.1

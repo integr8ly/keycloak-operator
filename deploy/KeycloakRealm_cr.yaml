@@ -2,3 +2,7 @@ apiVersion: "areogear.org/v1alpha1"
 kind: "KeycloakRealm"
 metadata:
   name: "example"
+spec:
+  realmName: "test"
+  user: "test@example.com"
+  keycloakID: "SomeKeycloak"

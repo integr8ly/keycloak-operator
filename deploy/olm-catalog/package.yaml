@@ -1,0 +1,4 @@
+packageName: keycloakrealm
+channels:
+- name: alpha
+  currentCSV: keycloakrealm.v0.0.1

@@ -13,4 +13,12 @@ set up a realm and user in the referenced Keycloak. It will then store the crede
 for this realm in a new secret named after the realm
 - KeycloakClient: represents a keycloak client. When created the operator will
 setup a client of the given type in the specified realm and store the result in a secret
-named after the realm-client 
+named after the realm-client
+
+
+#Install the CRDs
+
+```
+oc create -f Keycloak_crd.yaml,KeycloakRealm_crd.yaml,KeycloakClient_crd.yaml,KeycloakClientSync_crd.yaml
+
+```

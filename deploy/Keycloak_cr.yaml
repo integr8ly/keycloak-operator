@@ -1,7 +1,7 @@
 apiVersion: "areogear.org/v1alpha1"
 kind: "Keycloak"
 metadata:
-  name: "SomeKeycloak"
+  name: "keycloak1"
 spec:
   url: "https://keycloak.com"
-  credentialsSecret: "asecret"
+  credentialsSecret: "keycloak"

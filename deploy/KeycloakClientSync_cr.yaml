@@ -1,0 +1,8 @@
+apiVersion: "areogear.org/v1alpha1"
+kind: "KeycloakClientSync"
+metadata:
+  name: "example"
+spec:
+  realmName: "test"
+  keycloakID: "SomeKeycloak"
+  clientType: "public"

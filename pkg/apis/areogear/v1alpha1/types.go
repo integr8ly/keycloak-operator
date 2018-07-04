@@ -17,17 +17,14 @@ type KeycloakRealmList struct {
 type KeycloakRealm struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
-	Spec              KeycloakRealmSpec   `json:"spec"`
-	Status            KeycloakRealmStatus `json:"status,omitempty"`
+	Spec              KeycloakRealmSpec `json:"spec"`
+	Status            GenericStatus     `json:"status,omitempty"`
 }
 
 type KeycloakRealmSpec struct {
 	RealmName  string `json:"realmName"`
 	KeycloakID string `json:"keycloakID"`
 	User       string `json:"user"`
-}
-type KeycloakRealmStatus struct {
-	Ready bool `json:"ready"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -43,16 +40,22 @@ type KeycloakList struct {
 type Keycloak struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
-	Spec              KeycloakSpec   `json:"spec"`
-	Status            KeycloakStatus `json:"status,omitempty"`
+	Spec              KeycloakSpec  `json:"spec"`
+	Status            GenericStatus `json:"status,omitempty"`
 }
 
 type KeycloakSpec struct {
 	URL               string `json:"url"`
 	CredentialsSecret string `json:"credentialsSecret"`
+	Token             string `json:"token"` //todo review should it be in the secret
 }
-type KeycloakStatus struct {
-	Ready bool `json:"ready"`
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type KeycloakClientList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []KeycloakClient `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -60,8 +63,8 @@ type KeycloakStatus struct {
 type KeycloakClient struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
-	Spec              KeycloakClientSpec   `json:"spec"`
-	Status            KeycloakClientStatus `json:"status,omitempty"`
+	Spec              KeycloakClientSpec `json:"spec"`
+	Status            GenericStatus      `json:"status,omitempty"`
 }
 
 type KeycloakClientSpec struct {
@@ -70,6 +73,41 @@ type KeycloakClientSpec struct {
 	Realm             string `json:"realm"`
 	CredentialsSecret string `json:"credentialsSecret"`
 }
-type KeycloakClientStatus struct {
-	Ready bool `json:"ready"`
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type KeycloakClientSyncList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []KeycloakClientSync `json:"items"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type KeycloakClientSync struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              KeycloakClientSyncSpec `json:"spec"`
+	Status            GenericStatus          `json:"status,omitempty"`
+}
+
+type KeycloakClientSyncSpec struct {
+	KeycloakID string `json:"keycloakID"`
+	ClientType string `json:"type"`
+	Realm      string `json:"realm"`
+}
+
+type GenericStatus struct {
+	Phase    StatusPhase `json:"phase"`
+	Message  string      `json:"message"`
+	Attempts int         `json:"attempts"`
+}
+
+type StatusPhase string
+
+var (
+	PhaseAccepted   StatusPhase = "accepted"
+	PhaseComplete   StatusPhase = "complete"
+	PhaseFailed     StatusPhase = "failed"
+	PhaseAuthFailed StatusPhase = "authfailed"
+)

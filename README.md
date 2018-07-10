@@ -1,6 +1,6 @@
 # Keycloak Operator
 
-**Status** proof of concept
+**Status** early proof of concept not currently doing much
 
 
 This is a kubernets operator based on the Operator pattern and uses the operator sdk.

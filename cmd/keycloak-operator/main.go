@@ -4,11 +4,16 @@ import (
 	"context"
 	"runtime"
 
-	stub "github.com/aerogear/keycloak-operator/pkg/keycloak"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 
+	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/aerogear/keycloak-operator/pkg/dispatch"
+	"github.com/aerogear/keycloak-operator/pkg/keycloak"
+	"github.com/aerogear/keycloak-operator/pkg/shared"
+	sc "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
+	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,16 +26,39 @@ func printVersion() {
 func main() {
 	printVersion()
 
-	resource := "areogear.org/v1alpha1"
-	keycloakkind := "Keycloak"
-	//namespace, err := k8sutil.GetWatchNamespace()
-	//if err != nil {
-	//	logrus.Fatalf("Failed to get watch namespace: %v", err)
-	//}
-	namespace := ""
+	resource := v1alpha1.Group + "/" + v1alpha1.Version
+	namespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		logrus.Fatalf("Failed to get watch namespace: %v", err)
+	}
+	cfg := k8sclient.GetKubeConfig()
+	svcClient, err := sc.NewForConfig(cfg)
+	if err != nil {
+		logrus.Fatal("failed to set up service catalog client ", err)
+	}
+	//set namespace to empty to watch all namespaces
+	//namespace := ""
 	resyncPeriod := 5
-	sdk.Watch(resource, keycloakkind, namespace, resyncPeriod)
+	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, resyncPeriod)
+	sdk.Watch(resource, v1alpha1.SharedServiceActionKind, namespace, resyncPeriod)
+	sdk.Watch(resource, v1alpha1.SharedServiceKind, namespace, resyncPeriod)
+	sdk.Watch(resource, v1alpha1.SharedServiceInstanceKind, namespace, resyncPeriod)
+	sdk.Watch(resource, v1alpha1.SharedServicePlanKind, namespace, resyncPeriod)
 	k8Client := k8sclient.GetKubeClient()
-	sdk.Handle(stub.NewHandler(k8Client))
+	dh := dispatch.NewHandler(k8Client, svcClient)
+	dispatcher := dh.(*dispatch.Handler)
+	// Handle keycloak resource reconcile
+	dispatcher.AddHandler(keycloak.NewHandler())
+	// Handle sharedserviceaction reconcile
+	dispatcher.AddHandler(shared.NewServiceActionHandler())
+	// Handle sharedservice reconcile
+	dispatcher.AddHandler(shared.NewServiceHandler())
+	// Handle sharedserviceinstance reconcile
+	dispatcher.AddHandler(shared.NewServiceInstanceHandler())
+	// Handle sharedserviceslice reconcile
+	dispatcher.AddHandler(shared.NewServiceSliceHandler())
+
+	// main dispatch of resources
+	sdk.Handle(dispatcher)
 	sdk.Run(context.TODO())
 }

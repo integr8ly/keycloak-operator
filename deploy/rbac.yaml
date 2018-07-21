@@ -4,7 +4,7 @@ metadata:
   name: keycloak-operator
 rules:
 - apiGroups:
-  - areogear.org
+  - aerogear.org
   resources:
   - "*"
   verbs:

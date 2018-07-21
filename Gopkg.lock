@@ -156,6 +156,22 @@
   version = "1.0.1"
 
 [[projects]]
+  name = "github.com/kubernetes-incubator/service-catalog"
+  packages = [
+    "pkg/apis/servicecatalog",
+    "pkg/apis/servicecatalog/v1beta1",
+    "pkg/apis/settings",
+    "pkg/apis/settings/v1alpha1",
+    "pkg/client/clientset_generated/clientset",
+    "pkg/client/clientset_generated/clientset/scheme",
+    "pkg/client/clientset_generated/clientset/typed/servicecatalog/v1beta1",
+    "pkg/client/clientset_generated/clientset/typed/settings/v1alpha1",
+    "pkg/filter"
+  ]
+  revision = "3019df28499d3b318e16c5a78b4cef7c8391774a"
+  version = "v0.1.26"
+
+[[projects]]
   branch = "master"
   name = "github.com/mailru/easyjson"
   packages = [
@@ -205,6 +221,12 @@
   packages = ["."]
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/prometheus/client_golang"
@@ -514,6 +536,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "87e34335c6bb5f58c88a9a78a9c0550b42d8f9216443fe535a492fa0d84f9aea"
+  inputs-digest = "acb5aa42d5bbdd2fb58be49a696417f3d64f67c938b45e8745b0945c678d3bac"
   solver-name = "gps-cdcl"
   solver-version = 1

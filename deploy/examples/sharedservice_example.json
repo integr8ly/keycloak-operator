@@ -1,0 +1,13 @@
+{
+  "apiVersion": "aerogear.org/v1alpha1",
+  "kind": "SharedService",
+  "metadata": {
+    "name": "example"
+  },
+  "spec": {
+    "serviceType":"keycloak",
+    "maxSlices":3,
+    "maxInstances":3,
+    "minInstances":1
+  }
+}

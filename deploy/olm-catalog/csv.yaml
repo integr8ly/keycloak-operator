@@ -11,7 +11,7 @@ spec:
       - serviceAccountName: keycloak-operator
         rules:
         - apiGroups:
-          - areogear.org
+          - aerogear.org
           resources:
           - "*"
           verbs:
@@ -73,7 +73,7 @@ spec:
       - description: Represents an instance of a KeycloakRealm application
         displayName: KeycloakRealm Application
         kind: KeycloakRealm
-        name: keycloakrealms.areogear.org
+        name: keycloakrealms.aerogear.org
         version: 0.0.1
   version: 0.0.1
   displayName: KeycloakRealm

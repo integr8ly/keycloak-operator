@@ -1,0 +1,4 @@
+            NAME                   DESCRIPTION         
++--------------------------+--------------------------+
+  user-provided-service      A user provided service   
+  another-provided-service   Another provided service  

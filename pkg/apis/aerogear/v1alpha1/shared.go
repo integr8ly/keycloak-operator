@@ -1,6 +1,9 @@
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+)
 
 const (
 	SharedServiceKind         = "SharedService"
@@ -51,8 +54,8 @@ type SharedServiceSlice struct {
 }
 
 type SharedServiceSliceSpec struct {
-	ProvidedParams map[string]interface{} `json:"providedParams"`
-	ServiceType    string                 `json:"serviceType"`
+	ProvidedParams *runtime.RawExtension `json:"providedParams"`
+	ServiceType    string                `json:"serviceType"`
 }
 
 type SharedServiceSliceStatus struct {
@@ -126,8 +129,8 @@ type SharedServiceAction struct {
 }
 
 type SharedServiceActionSpec struct {
-	ProvidedParams map[string]interface{} `json:"providedParams"`
-	ServiceType    string                 `json:"serviceType"`
+	ProvidedParams *runtime.RawExtension `json:"providedParams"`
+	ServiceType    string                `json:"serviceType"`
 }
 
 type SharedServiceActionStatus struct {

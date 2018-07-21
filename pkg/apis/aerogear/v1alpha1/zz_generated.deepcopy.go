@@ -292,14 +292,8 @@ func (in *SharedServiceActionSpec) DeepCopyInto(out *SharedServiceActionSpec) {
 	*out = *in
 	if in.ProvidedParams != nil {
 		in, out := &in.ProvidedParams, &out.ProvidedParams
-		*out = make(map[string]interface{}, len(*in))
-		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = val.DeepCopyinterface{}()
-			}
-		}
+		*out = new(runtime.RawExtension)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -618,14 +612,8 @@ func (in *SharedServiceSliceSpec) DeepCopyInto(out *SharedServiceSliceSpec) {
 	*out = *in
 	if in.ProvidedParams != nil {
 		in, out := &in.ProvidedParams, &out.ProvidedParams
-		*out = make(map[string]interface{}, len(*in))
-		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = val.DeepCopyinterface{}()
-			}
-		}
+		*out = new(runtime.RawExtension)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }

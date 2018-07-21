@@ -16,7 +16,7 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
-	fmt.Print("handling object ", event.Object.GetObjectKind().GroupVersionKind().String())
+	fmt.Println("handling object ", event.Object.GetObjectKind().GroupVersionKind().String())
 	return nil
 }
 

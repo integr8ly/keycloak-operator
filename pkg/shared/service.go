@@ -2,6 +2,7 @@ package shared
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
@@ -16,6 +17,7 @@ func NewServiceHandler() *ServiceHandler {
 }
 
 func (sh *ServiceHandler) Handle(ctx context.Context, event sdk.Event) error {
+	fmt.Println("handling object ", event.Object.GetObjectKind().GroupVersionKind().String())
 	return nil
 }
 

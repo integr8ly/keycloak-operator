@@ -17,6 +17,6 @@ spec:
         spec:
           properties:
             maxSlices:
-              type: int
+              type: number
             currentSlices:
-              type: int
+              type: number

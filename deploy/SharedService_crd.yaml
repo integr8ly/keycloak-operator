@@ -17,10 +17,10 @@ spec:
         spec:
           properties:
             maxSlices:
-              type: int
+              type: number
             minInstances:
-              type: int
+              type: number
             maxInstances:
-              type: int
+              type: number
             serviceType:
               type: string

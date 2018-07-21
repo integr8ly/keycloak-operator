@@ -44,6 +44,8 @@ func main() {
 	sdk.Watch(resource, v1alpha1.SharedServiceKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServiceInstanceKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServicePlanKind, namespace, resyncPeriod)
+	sdk.Watch(resource, v1alpha1.SharedServiceSliceKind, namespace, resyncPeriod)
+
 	k8Client := k8sclient.GetKubeClient()
 	dh := dispatch.NewHandler(k8Client, svcClient)
 	dispatcher := dh.(*dispatch.Handler)

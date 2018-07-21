@@ -1,0 +1,11 @@
+{
+  "apiVersion": "aerogear.org/v1alpha1",
+  "kind": "SharedServiceInstance",
+  "metadata": {
+    "name": "example"
+  },
+  "spec": {
+    "maxSlices":3,
+    "currentSlices":0
+  }
+}

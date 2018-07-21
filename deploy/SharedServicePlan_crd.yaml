@@ -14,3 +14,9 @@ spec:
   validation:
     openAPIV3Schema:
       properties:
+        spec:
+          properties:
+            serviceType:
+              type: string
+            params:
+              type: object

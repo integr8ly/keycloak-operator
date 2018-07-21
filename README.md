@@ -16,7 +16,7 @@ Note you will need a kubernetes or OpenShift cluster
 - clone this repo to ```$GOPATH/src/github.com/aerogear/keycloak-operator```
 - run ```make setup install run```
 
-Note you only need to run setup the first time
+Note you only need to run setup the first time. After the first time you can just run ```make run```
 
 You should see something like:
 
@@ -38,3 +38,7 @@ handling object  aerogear.org/v1alpha1, Kind=SharedServiceAction
 handling object  aerogear.org/v1alpha1, Kind=SharedServiceSlice
 handling object  aerogear.org/v1alpha1, Kind=SharedService
 ```
+
+# Tear it down
+
+``` make uninstall```

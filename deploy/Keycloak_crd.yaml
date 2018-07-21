@@ -16,9 +16,51 @@ spec:
       properties:
         spec:
           properties:
-            url:
+            version:
               type: string
-            credentialsSecret:
+            adminCredentials:
               type: string
-            token:
-              type: string
+            realms:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  authTypes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        provider:
+                          type: string
+                        clientID:
+                          type: string
+                        outputSecret:
+                          type: string
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        username:
+                          type: string
+                        outputSecret:
+                          type: string
+                        roles:
+                          type: array
+                          items:
+                            type: string
+                  clients:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        clientType:
+                          type: string
+                        config:
+                          type: object
+                        outputSecret:
+                          type: string

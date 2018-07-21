@@ -6,29 +6,6 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type KeycloakRealmList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-	Items           []KeycloakRealm `json:"items"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type KeycloakRealm struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              KeycloakRealmSpec `json:"spec"`
-	Status            GenericStatus     `json:"status,omitempty"`
-}
-
-type KeycloakRealmSpec struct {
-	RealmName  string `json:"realmName"`
-	KeycloakID string `json:"keycloakID"`
-	User       string `json:"user"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type KeycloakList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
@@ -36,7 +13,7 @@ type KeycloakList struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
+// crd:gen:Kind=Keycloak:Group=aerogear.org
 type Keycloak struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
@@ -45,56 +22,35 @@ type Keycloak struct {
 }
 
 type KeycloakSpec struct {
-	URL               string `json:"url"`
-	CredentialsSecret string `json:"credentialsSecret"`
-	Token             string `json:"token"` //todo review should it be in the secret
+	Version          string          `json:"version"`
+	AdminCredentials string          `json:"adminCredentials"`
+	Realms           []KeycloakRealm `json:"realms"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type KeycloakClientList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-	Items           []KeycloakClient `json:"items"`
+type KeycloakRealm struct {
+	Name      string      `json:"name"`
+	AuthTypes []AuthTypes `json:"authTypes"`
+	Users     []Users     `json:"users"`
+	Clients   []Client    `json:"clients"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type KeycloakClient struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              KeycloakClientSpec `json:"spec"`
-	Status            GenericStatus      `json:"status,omitempty"`
+type AuthTypes struct {
+	Provider     string `json:"provider"`
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"clientSecret"`
 }
 
-type KeycloakClientSpec struct {
-	KeycloakID        string `json:"keycloakID"`
-	Type              string `json:"type"`
-	Realm             string `json:"realm"`
-	CredentialsSecret string `json:"credentialsSecret"`
+type Users struct {
+	UserName     string   `json:"userName"`
+	Roles        []string `json:"roles"`
+	OutputSecret string   `json:"outputSecret"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type KeycloakClientSyncList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-	Items           []KeycloakClientSync `json:"items"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type KeycloakClientSync struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              KeycloakClientSyncSpec `json:"spec"`
-	Status            GenericStatus          `json:"status,omitempty"`
-}
-
-type KeycloakClientSyncSpec struct {
-	KeycloakID string `json:"keycloakID"`
-	ClientType string `json:"type"`
-	Realm      string `json:"realm"`
+type Client struct {
+	Name         string            `json:"name"`
+	ClientType   string            `json:"clientType"`
+	Config       map[string]string `json:"config"`
+	OutputSecret string            `json:"outputSecret"`
 }
 
 type GenericStatus struct {
@@ -106,8 +62,7 @@ type GenericStatus struct {
 type StatusPhase string
 
 var (
-	PhaseAccepted   StatusPhase = "accepted"
-	PhaseComplete   StatusPhase = "complete"
-	PhaseFailed     StatusPhase = "failed"
-	PhaseAuthFailed StatusPhase = "authfailed"
+	PhaseAccepted StatusPhase = "accepted"
+	PhaseComplete StatusPhase = "complete"
+	PhaseFailed   StatusPhase = "failed"
 )

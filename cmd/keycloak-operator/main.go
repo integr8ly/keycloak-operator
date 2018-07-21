@@ -22,9 +22,6 @@ func main() {
 	printVersion()
 
 	resource := "areogear.org/v1alpha1"
-	realmkind := "KeycloakRealm"
-	clientkind := "KeycloakClient"
-	clientsynckind := "KeycloakClientSync"
 	keycloakkind := "Keycloak"
 	//namespace, err := k8sutil.GetWatchNamespace()
 	//if err != nil {
@@ -32,9 +29,6 @@ func main() {
 	//}
 	namespace := ""
 	resyncPeriod := 5
-	sdk.Watch(resource, realmkind, namespace, resyncPeriod)
-	sdk.Watch(resource, clientkind, namespace, resyncPeriod)
-	sdk.Watch(resource, clientsynckind, namespace, resyncPeriod)
 	sdk.Watch(resource, keycloakkind, namespace, resyncPeriod)
 	k8Client := k8sclient.GetKubeClient()
 	sdk.Handle(stub.NewHandler(k8Client))

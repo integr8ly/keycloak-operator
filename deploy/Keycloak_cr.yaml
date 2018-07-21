@@ -1,7 +1,31 @@
 apiVersion: "areogear.org/v1alpha1"
 kind: "Keycloak"
 metadata:
-  name: "keycloak1"
+  name: "example"
+  annotations:
+    aerogear.org/keycloak-realm-sync: true
 spec:
-  url: "https://keycloak.com"
-  credentialsSecret: "keycloak"
+  version: 4.1.0
+  adminCredentials: adminCredentialSecret # only needed for a dedicated instance
+  realms:
+    - name: arealm
+      authMethods:
+        - provider: github
+          clientID: someclientID,
+          clientSecret: somek8ssecret
+      users:
+      - username: test@example.com #password will be generated
+        outputSecret: test-user
+        roles:
+          - somerole
+      clients:
+      - name: mobile
+        clientType: public
+        config:
+          webOrigins: '*'
+        outputSecret: mobile
+      - name: server
+        type: bearer
+        config:
+          baseURL: https://keycloak.com
+        outputSecret: server

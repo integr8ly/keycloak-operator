@@ -1,0 +1,13 @@
+{
+  "apiVersion": "aerogear.org/v1alpha1",
+  "kind": "SharedServiceAction",
+  "metadata": {
+    "name": "example"
+  },
+  "spec": {
+    "serviceType":"keycloak",
+    "providedParams":{
+      "realm":"example"
+    }
+  }
+}

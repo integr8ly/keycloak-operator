@@ -68,3 +68,12 @@ uninstall:
 	-kubectl delete crd sharedserviceactions.aerogear.org
 	-kubectl delete crd sharedserviceslices.aerogear.org
 	-kubectl delete namespace $(NAMESPACE)
+
+
+.PHONY: create-examples
+create-examples:
+		-kubectl create -f deploy/examples/sharedservice.json -n $(NAMESPACE)
+		-kubectl create -f deploy/examples/sharedserviceinstance.json -n $(NAMESPACE)
+		-kubectl create -f deploy/examples/sharedserviceslice.json -n $(NAMESPACE)
+		-kubectl create -f deploy/examples/sharedserviceaction.json -n $(NAMESPACE)
+		-kubectl create -f deploy/examples/keycloak.json -n $(NAMESPACE)

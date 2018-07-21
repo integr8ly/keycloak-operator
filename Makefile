@@ -2,10 +2,9 @@ ORG=aerogear
 NAMESPACE=shared
 PROJECT=keycloak-operator
 SHELL = /bin/bash
-TAG = 0.0.1
+TAG = 0.0.2
 PKG = github.com/aerogear/keycloak-operator
 TEST_DIRS     ?= $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
-
 
 .PHONY: check-gofmt
 check-gofmt:
@@ -38,7 +37,7 @@ run:
 	operator-sdk up local --namespace=${NAMESPACE}
 
 compile:
-	go build ${LDFLAGS} -o=keycloak-operator ./cmd/keycloak-operator
+	go build -o=keycloak-operator ./cmd/keycloak-operator
 
 .PHONY: check
 check: check-gofmt test-unit

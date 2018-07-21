@@ -51,10 +51,16 @@ install:
 	-kubectl create namespace $(NAMESPACE)
 	-kubectl create -f deploy/rbac.yaml -n $(NAMESPACE)
 	-kubectl create -f deploy/Keycloak_crd.yaml
+	-kubectl create -f deploy/SharedService_crd.yaml
+	-kubectl create -f deploy/SharedServiceInstance_crd.yaml
+	-kubectl create -f deploy/SharedServicePlan_crd.yaml
 
 .PHONY: uninstall
 uninstall:
 	-kubectl delete role keycloak-operator -n $(NAMESPACE)
 	-kubectl delete rolebinding default-account-keycloak-operator -n $(NAMESPACE)
 	-kubectl delete crd keycloaks.areogear.org
+	-kubectl delete crd sharedserviceinstances.areogear.org
+	-kubectl delete crd sharedserviceplans.areogear.org
+	-kubectl delete crd sharedservices.areogear.org
 	-kubectl delete namespace $(NAMESPACE)

@@ -1,0 +1,16 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: sharedserviceinstances.areogear.org
+spec:
+  group: areogear.org
+  names:
+    kind: SharedServiceInstance
+    listKind: SharedServiceInstanceList
+    plural: sharedserviceinstances
+    singular: sharedserviceinstance
+  scope: Namespaced
+  version: v1alpha1
+  validation:
+    openAPIV3Schema:
+      properties:

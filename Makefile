@@ -45,3 +45,16 @@ check: check-gofmt test-unit
 	@errcheck -ignoretests $$(go list ./...)
 	@echo go vet
 	@go vet ./...
+
+.PHONY: install
+install:
+	-kubectl create namespace $(NAMESPACE)
+	-kubectl create -f deploy/rbac.yaml -n $(NAMESPACE)
+	-kubectl create -f deploy/Keycloak_crd.yaml
+
+.PHONY: uninstall
+uninstall:
+	-kubectl delete role keycloak-operator -n $(NAMESPACE)
+	-kubectl delete rolebinding default-account-keycloak-operator -n $(NAMESPACE)
+	-kubectl delete crd keycloaks.areogear.org
+	-kubectl delete namespace $(NAMESPACE)

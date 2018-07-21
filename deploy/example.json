@@ -2,10 +2,7 @@
   "apiVersion": "areogear.org/v1alpha1",
   "kind": "Keycloak",
   "metadata": {
-    "name": "example",
-    "annotations": {
-      "aerogear.org/keycloak-realm-sync": true
-    }
+    "name": "example"
   },
   "spec": {
     "version": "4.1.0",

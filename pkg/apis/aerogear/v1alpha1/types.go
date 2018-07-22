@@ -76,4 +76,5 @@ var (
 	PhaseAccepted StatusPhase = "accepted"
 	PhaseComplete StatusPhase = "complete"
 	PhaseFailed   StatusPhase = "failed"
+	PhaseModified StatusPhase = "modified"
 )

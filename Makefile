@@ -34,7 +34,7 @@ build-image:
 
 .PHONY: run
 run:
-	operator-sdk up local --namespace=${NAMESPACE}
+	operator-sdk up local --namespace=${NAMESPACE} --operator-flags="--resync=8"
 
 compile:
 	go build -o=keycloak-operator ./cmd/keycloak-operator

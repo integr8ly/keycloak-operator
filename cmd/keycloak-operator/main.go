@@ -7,6 +7,8 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 
+	"flag"
+
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/aerogear/keycloak-operator/pkg/dispatch"
 	"github.com/aerogear/keycloak-operator/pkg/keycloak"
@@ -23,9 +25,17 @@ func printVersion() {
 	logrus.Infof("operator-sdk Version: %v", sdkVersion.Version)
 }
 
+var (
+	resyncFlag *int = new(int)
+)
+
+func setFlags() {
+	flag.IntVar(resyncFlag, "resync", 7, "change the resync period")
+}
+
 func main() {
 	printVersion()
-
+	setFlags()
 	resource := v1alpha1.Group + "/" + v1alpha1.Version
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
@@ -38,7 +48,7 @@ func main() {
 	}
 	//set namespace to empty to watch all namespaces
 	//namespace := ""
-	resyncPeriod := 5
+	resyncPeriod := *resyncFlag
 	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServiceActionKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServiceKind, namespace, resyncPeriod)

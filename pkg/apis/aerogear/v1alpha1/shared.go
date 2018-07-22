@@ -59,6 +59,8 @@ type SharedServiceSliceSpec struct {
 
 type SharedServiceSliceStatus struct {
 	CommonStatus
+	// ServiceResource is a name reference to the resource representing the service providing the slice
+	ServiceResource string `json:"serviceResource"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -1,0 +1,12 @@
+{
+  "apiVersion": "aerogear.org/v1alpha1",
+  "kind": "Keycloak",
+  "metadata": {
+    "name": "minexample"
+  },
+  "spec": {
+    "version": "4.1.0",
+    "adminCredentials": "adminCredentialSecret",
+    "realms": []
+  }
+}

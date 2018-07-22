@@ -33,7 +33,6 @@ In the original terminal you should see output like:
 
 ```
 handling object  aerogear.org/v1alpha1, Kind=Keycloak
-handling object  aerogear.org/v1alpha1, Kind=SharedServiceInstance
 handling object  aerogear.org/v1alpha1, Kind=SharedServiceAction
 handling object  aerogear.org/v1alpha1, Kind=SharedServiceSlice
 handling object  aerogear.org/v1alpha1, Kind=SharedService

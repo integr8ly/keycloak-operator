@@ -65,6 +65,11 @@ type GenericStatus struct {
 	Attempts int         `json:"attempts"`
 }
 
+type KeycloakStatus struct {
+	GenericStatus
+	SharedConfig StatusSharedConfig `json:"sharedConfig"`
+}
+
 type StatusPhase string
 
 var (

@@ -36,6 +36,10 @@ build-image:
 run:
 	operator-sdk up local --namespace=${NAMESPACE} --operator-flags="--resync=8"
 
+.PHONY: generate
+generate:
+	operator-sdk generate k8s
+
 compile:
 	go build -o=keycloak-operator ./cmd/keycloak-operator
 

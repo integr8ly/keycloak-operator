@@ -81,6 +81,9 @@ type SharedServicePlan struct {
 }
 
 type SharedServicePlanSpec struct {
+	ServiceType    string                `json:"serviceType"`
+	InstanceParams *runtime.RawExtension `json:"instanceParams"`
+	BindParams     *runtime.RawExtension `json:"bindParams"`
 }
 type SharedServicePlanStatus struct {
 	CommonStatus

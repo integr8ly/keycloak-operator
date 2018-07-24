@@ -54,7 +54,6 @@ func main() {
 	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServiceActionKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServiceKind, namespace, resyncPeriod)
-	sdk.Watch(resource, v1alpha1.SharedServicePlanKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServiceSliceKind, namespace, resyncPeriod)
 
 	dh := dispatch.NewHandler(k8Client, svcClient)

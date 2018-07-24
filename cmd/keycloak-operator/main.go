@@ -46,6 +46,8 @@ func main() {
 	if err != nil {
 		logrus.Fatal("failed to set up service catalog client ", err)
 	}
+	k8Client := k8sclient.GetKubeClient()
+	kcFactory := &keycloak.KeycloakFactory{}
 	//set namespace to empty to watch all namespaces
 	//namespace := ""
 	resyncPeriod := *resyncFlag
@@ -55,11 +57,10 @@ func main() {
 	sdk.Watch(resource, v1alpha1.SharedServicePlanKind, namespace, resyncPeriod)
 	sdk.Watch(resource, v1alpha1.SharedServiceSliceKind, namespace, resyncPeriod)
 
-	k8Client := k8sclient.GetKubeClient()
 	dh := dispatch.NewHandler(k8Client, svcClient)
 	dispatcher := dh.(*dispatch.Handler)
 	// Handle keycloak resource reconcile
-	dispatcher.AddHandler(keycloak.NewHandler())
+	dispatcher.AddHandler(keycloak.NewHandler(kcFactory))
 	// Handle sharedserviceaction reconcile
 	dispatcher.AddHandler(shared.NewServiceActionHandler())
 	// Handle sharedservice reconcile

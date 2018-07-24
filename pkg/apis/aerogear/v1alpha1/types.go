@@ -27,6 +27,10 @@ type Keycloak struct {
 	Status            GenericStatus `json:"status,omitempty"`
 }
 
+func (k *Keycloak) Defaults() {
+
+}
+
 type KeycloakSpec struct {
 	Version          string          `json:"version"`
 	AdminCredentials string          `json:"adminCredentials"`
@@ -34,10 +38,10 @@ type KeycloakSpec struct {
 }
 
 type KeycloakRealm struct {
-	Name      string      `json:"name"`
-	AuthTypes []AuthTypes `json:"authTypes"`
-	Users     []Users     `json:"users"`
-	Clients   []Client    `json:"clients"`
+	Name      string           `json:"name"`
+	AuthTypes []AuthTypes      `json:"authMethods"`
+	Users     []KeycloakUser   `json:"users"`
+	Clients   []KeycloakClient `json:"clients"`
 }
 
 type AuthTypes struct {
@@ -46,13 +50,13 @@ type AuthTypes struct {
 	ClientSecret string `json:"clientSecret"`
 }
 
-type Users struct {
+type KeycloakUser struct {
 	UserName     string   `json:"userName"`
 	Roles        []string `json:"roles"`
 	OutputSecret string   `json:"outputSecret"`
 }
 
-type Client struct {
+type KeycloakClient struct {
 	Name         string            `json:"name"`
 	ClientType   string            `json:"clientType"`
 	Config       map[string]string `json:"config"`
@@ -63,6 +67,8 @@ type GenericStatus struct {
 	Phase    StatusPhase `json:"phase"`
 	Message  string      `json:"message"`
 	Attempts int         `json:"attempts"`
+	// marked as true when all work is done on it
+	Ready bool `json:"ready"`
 }
 
 type KeycloakStatus struct {

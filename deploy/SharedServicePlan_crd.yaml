@@ -18,5 +18,7 @@ spec:
           properties:
             serviceType:
               type: string
-            params:
+            instanceParams:
+              type: object
+            bindParams:
               type: object

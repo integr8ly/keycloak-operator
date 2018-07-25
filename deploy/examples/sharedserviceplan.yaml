@@ -1,0 +1,33 @@
+apiVersion: "aerogear.org/v1alpha1"
+kind: "SharedServicePlan"
+metadata:
+  name: "keycloak-slice-plan"
+spec:
+  service: keycloak
+  name: keycloak slice
+  id: keycloak-default-slice
+  description: Slice of shared Keycloak service
+  free: true
+  bind_params:
+    $schema: http://json-schema.org/draft-04/schema#
+    type: object
+    properties:
+      Username: 
+        title: User name
+        type: string
+        required: true
+        description: The keycloak admin user name 
+      ClientType:
+        title: Client Type
+        type: string
+        required: false
+        description: The keycloak clientType
+  provision_params:
+    $schema: http://json-schema.org/draft-04/schema#
+    type: object
+    properties:
+      CUSTOM_REALM_NAME:
+        title: Realm Name
+        type: string
+        required: true
+        description: The name of the realm to create in keycloak.

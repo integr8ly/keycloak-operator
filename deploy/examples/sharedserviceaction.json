@@ -5,8 +5,8 @@
     "name": "example"
   },
   "spec": {
-    "serviceType":"keycloak",
-    "providedParams":{
+    "service_type":"keycloak",
+    "params":{
       "realm":"example"
     }
   }

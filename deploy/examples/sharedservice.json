@@ -5,9 +5,10 @@
     "name": "example"
   },
   "spec": {
-    "serviceType":"keycloak",
-    "maxSlices":3,
-    "maxInstances":3,
-    "minInstances":1
+    "service_type":"keycloak",
+    "slices_per_instance":3,
+    "maximum_instances":3,
+    "minimum_instances":1,
+    "required_instances": 1
   }
 }

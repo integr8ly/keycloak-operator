@@ -3,7 +3,7 @@ kind: "SharedServicePlan"
 metadata:
   name: "keycloak-slice-plan"
 spec:
-  service: keycloak
+  service_type: keycloak
   name: keycloak slice
   id: keycloak-default-slice
   description: Slice of shared Keycloak service

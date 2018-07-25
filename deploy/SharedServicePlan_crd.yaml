@@ -16,7 +16,7 @@ spec:
       properties:
         spec:
           properties:
-            service:
+            service_type:
               type: string
             name:
               type: string

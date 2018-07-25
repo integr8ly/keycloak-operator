@@ -16,11 +16,13 @@ spec:
       properties:
         spec:
           properties:
-            maxSlices:
+            slices_per_instance:
               type: number
-            minInstances:
+            minimum_instances:
               type: number
-            maxInstances:
+            maximum_instances:
               type: number
-            serviceType:
+            service_type:
               type: string
+            required_instances: 
+              type: number

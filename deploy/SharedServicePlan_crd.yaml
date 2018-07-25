@@ -6,7 +6,7 @@ spec:
   group: aerogear.org
   names:
     kind: SharedServicePlan
-    listKind: SharedServicePlans
+    listKind: SharedServicePlanList
     plural: sharedserviceplans
     singular: sharedserviceplan
   scope: Namespaced
@@ -16,9 +16,17 @@ spec:
       properties:
         spec:
           properties:
-            serviceType:
+            service:
               type: string
-            instanceParams:
+            name:
+              type: string
+            id: 
+              type: string
+            description:
+              type: string
+            free:
+              type: boolean
+            bind_params:
               type: object
-            bindParams:
+            provision_params:
               type: object

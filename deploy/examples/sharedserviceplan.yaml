@@ -13,7 +13,7 @@ spec:
     type: object
     properties:
       Username: 
-        title: User name
+        title: User Name
         type: string
         required: true
         description: The keycloak admin user name 
@@ -21,7 +21,7 @@ spec:
         title: Client Type
         type: string
         required: false
-        description: The keycloak clientType
+        description: The keycloak Client Type
   provision_params:
     $schema: http://json-schema.org/draft-04/schema#
     type: object
@@ -29,5 +29,5 @@ spec:
       CUSTOM_REALM_NAME:
         title: Realm Name
         type: string
-        required: true
-        description: The name of the realm to create in keycloak.
+        required: false
+        description: The name of the realm to create in keycloak (defaults to your namespace).

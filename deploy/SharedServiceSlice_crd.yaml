@@ -20,3 +20,5 @@ spec:
               type: object
             service_type:
               type: string
+            slice_namespace:
+              type: string

@@ -52,48 +52,68 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	}
 
 	if kc.Status.Phase == v1alpha1.PhaseAccepted {
+		if kc.Spec.AdminCredentials == "" {
+			adminPwd, err := h.generatePassword()
+			if err != nil {
+				return err
+			}
+
+			adminCredRef, err := h.createAdminCredentials(namespace, "admin", adminPwd)
+			if err != nil {
+				return err
+			}
+
+			kcCopy.Spec.AdminCredentials = adminCredRef.GetName()
+			kcCopy.Status.Phase = v1alpha1.PhaseCredentialsPending
+		}
+	}
+
+	if kc.Status.Phase == v1alpha1.PhaseCredentialsPending {
+		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrap(err, "Failed to get the secret for the admin credentials")
+		}
+		if adminCreds != nil {
+			kcCopy.Status.Phase = v1alpha1.PhaseCredentialsCreated
+		}
+	}
+
+	if kc.Status.Phase == v1alpha1.PhaseCredentialsCreated {
 		sc, err := h.getServiceClass()
 		if err != nil {
 			return err
 		}
 
-		if kc.Spec.AdminCredentials == "" {
-			adminCredRef, err := h.createAdminCredentials(namespace)
-			if err != nil {
-				return err
-			}
-
-			kcCopy.Spec.AdminCredentials = adminCredRef
-		} else {
-			adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
-			if err != nil {
-				return errors.Wrap(err, "Failed to get the secret for the admin credentials")
-			}
-
-			decodedParams := map[string]string{}
-			for k, v := range adminCreds.Data {
-				decodedParams[k] = string(v)
-			}
-
-			parameters, err := json.Marshal(decodedParams)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			si := h.createServiceInstance(namespace, parameters, *sc)
-			serviceInstance, err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Create(&si)
-			if err != nil {
-				return errors.Wrap(err, "Failed to create service instance")
-			}
-
-			kcCopy.Spec.InstanceID = serviceInstance.GetName()
-			kcCopy.Status.Phase = v1alpha1.PhaseProvisioning
+		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrap(err, "Failed to get the secret for the admin credentials")
 		}
+
+		decodedParams := map[string]string{}
+		for k, v := range adminCreds.Data {
+			decodedParams[k] = string(v)
+		}
+
+		parameters, err := json.Marshal(decodedParams)
+		if err != nil {
+			return errors.Wrap(err, "Failed to marshal decoded parameters")
+		}
+
+		si := h.createServiceInstance(namespace, parameters, *sc)
+		serviceInstance, err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Create(&si)
+		if err != nil {
+			kcCopy.Status.Phase = v1alpha1.PhaseFailed
+			kcCopy.Status.Message = fmt.Sprintf("Failed to create service instance %v", err)
+		}
+
+		kcCopy.Spec.InstanceID = serviceInstance.GetName()
+		kcCopy.Status.Phase = v1alpha1.PhaseProvisioning
 	}
 
 	if kc.Status.Phase == v1alpha1.PhaseProvisioning {
 		if kc.Spec.InstanceID == "" {
-			return errors.New("Instance ID is not defined")
+			kcCopy.Status.Phase = v1alpha1.PhaseFailed
+			kcCopy.Status.Message = "Instance ID is not defined"
 		} else {
 			si, err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Get(kc.Spec.InstanceID, metav1.GetOptions{})
 			if err != nil {
@@ -107,12 +127,13 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 			siCondition := si.Status.Conditions[0]
 			if siCondition.Type == "Ready" && siCondition.Status == "True" {
 				kcCopy.Status.Phase = v1alpha1.PhaseComplete
+				kcCopy.Status.Ready = true
 			}
 		}
 	}
 
-	if kc.Status.Phase == v1alpha1.PhaseComplete {
-		kcCopy.Status.Ready = true
+	if kc.Status.Phase == v1alpha1.PhaseFailed {
+		return errors.New(fmt.Sprintf("Failed to provision Keycloak %v", kc.Status.Message))
 	}
 
 	// set up authenticated client
@@ -177,7 +198,7 @@ func (h *Handler) getServiceClass() (*v1beta1.ClusterServiceClass, error) {
 	return nil, errors.Wrap(err, "Failed to find service class")
 }
 
-func (h *Handler) createAdminCredentials(namespace string) (string, error) {
+func (h *Handler) createAdminCredentials(namespace, username, password string) (*corev1.Secret, error) {
 	adminCredentialsSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -188,17 +209,17 @@ func (h *Handler) createAdminCredentials(namespace string) (string, error) {
 			GenerateName: "keycloak-admin-cred-",
 		},
 		StringData: map[string]string{
-			"ADMIN_USERNAME": "admin",
-			"ADMIN_PASSWORD": h.generatePassword(),
+			"ADMIN_USERNAME": username,
+			"ADMIN_PASSWORD": password,
 		},
 		Type: "Opaque",
 	}
 
 	if err := sdk.Create(adminCredentialsSecret); err != nil {
-		return "", errors.Wrap(err, "Failed to create secret for the admin credentials")
+		return nil, errors.Wrap(err, "Failed to create secret for the admin credentials")
 	}
 
-	return adminCredentialsSecret.GetName(), nil
+	return adminCredentialsSecret, nil
 }
 
 func (h *Handler) createServiceInstance(namespace string, parameters []byte, sc v1beta1.ClusterServiceClass) v1beta1.ServiceInstance {
@@ -219,21 +240,20 @@ func (h *Handler) createServiceInstance(namespace string, parameters []byte, sc 
 				Name: sc.Name,
 			},
 			ClusterServicePlanRef: &v1beta1.ClusterObjectReference{
-				Name: "default",
+				Name: "default", // TODO: Change plan to use the shared-instance plan in the keycloak apb
 			},
 			Parameters: &runtime.RawExtension{Raw: parameters},
 		},
 	}
 }
 
-func (h *Handler) generatePassword() string {
+func (h *Handler) generatePassword() (string, error) {
 	generatedPassword, err := uuid.NewRandom()
 	if err != nil {
-		fmt.Println("Error generating password, setting to default value", err)
-		return "admin"
+		return "", errors.Wrap(err, "Error generating password")
 	}
 
-	return generatedPassword.String()
+	return generatedPassword.String(), nil
 }
 
 func (h *Handler) reconcileRealm(ctx context.Context, realm v1alpha1.KeycloakRealm, authenticatedClient KeycloakInterface) error {

@@ -82,10 +82,12 @@ type KeycloakStatus struct {
 type StatusPhase string
 
 var (
-	NoPhase           StatusPhase = ""
-	PhaseAccepted     StatusPhase = "accepted"
-	PhaseComplete     StatusPhase = "complete"
-	PhaseFailed       StatusPhase = "failed"
-	PhaseModified     StatusPhase = "modified"
-	PhaseProvisioning StatusPhase = "provisioning"
+	NoPhase                 StatusPhase = ""
+	PhaseAccepted           StatusPhase = "accepted"
+	PhaseComplete           StatusPhase = "complete"
+	PhaseFailed             StatusPhase = "failed"
+	PhaseModified           StatusPhase = "modified"
+	PhaseProvisioning       StatusPhase = "provisioning"
+	PhaseCredentialsPending StatusPhase = "credentialsPending"
+	PhaseCredentialsCreated StatusPhase = "credentialsCreated"
 )

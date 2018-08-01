@@ -30,7 +30,7 @@ setup:
 
 .PHONY: build
 build-image:
-	operator-sdk build quay.io/${ORG}/${PROJECT}:${TAG}
+	operator-sdk build docker.io/${ORG}/${PROJECT}:${TAG}
 
 .PHONY: run
 run:
@@ -51,14 +51,18 @@ check: check-gofmt test-unit
 	@go vet ./...
 
 .PHONY: install
-install:
+install: install_crds
 	-kubectl create namespace $(NAMESPACE)
 	-kubectl create -f deploy/rbac.yaml -n $(NAMESPACE)
+
+.PHONY: install_crds
+install_crds:
 	-kubectl create -f deploy/Keycloak_crd.yaml
 	-kubectl create -f deploy/SharedService_crd.yaml
 	-kubectl create -f deploy/SharedServicePlan_crd.yaml
 	-kubectl create -f deploy/SharedServiceAction_crd.yaml
 	-kubectl create -f deploy/SharedServiceSlice_crd.yaml
+
 
 .PHONY: uninstall
 uninstall:

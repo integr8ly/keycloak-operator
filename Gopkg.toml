@@ -41,3 +41,6 @@ required = [
 [[constraint]]
   name = "github.com/kubernetes-incubator/service-catalog"
   version = "v0.1.18"
+[[constraint]]
+  name = "github.com/google/uuid"
+  version = "0.2.0"

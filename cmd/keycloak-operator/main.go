@@ -69,7 +69,7 @@ func main() {
 	dh := dispatch.NewHandler(k8Client, svcClient)
 	dispatcher := dh.(*dispatch.Handler)
 	// Handle keycloak resource reconcile
-	dispatcher.AddHandler(keycloak.NewHandler(kcFactory))
+	dispatcher.AddHandler(keycloak.NewHandler(kcFactory, svcClient, k8Client))
 	// Handle sharedserviceaction reconcile
 	dispatcher.AddHandler(shared.NewServiceActionHandler())
 	// Handle sharedservice reconcile

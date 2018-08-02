@@ -88,6 +88,9 @@ var (
 	PhaseFailed             StatusPhase = "failed"
 	PhaseModified           StatusPhase = "modified"
 	PhaseProvisioning       StatusPhase = "provisioning"
+	PhaseDeprovisioning     StatusPhase = "deprovisioning"
+	PhaseDeprovisioned      StatusPhase = "deprovisioned"
+	PhaseDeprovisionFailed  StatusPhase = "deprovisionFailed"
 	PhaseCredentialsPending StatusPhase = "credentialsPending"
 	PhaseCredentialsCreated StatusPhase = "credentialsCreated"
 )

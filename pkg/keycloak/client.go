@@ -12,8 +12,6 @@ import (
 
 	"time"
 
-	"crypto/tls"
-
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"strconv"
 	"bytes"
@@ -28,12 +26,12 @@ func NewKeycloakResourceClient() {
 
 }
 
-type requester interface {
+type Requester interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
 type Client struct {
-	Requester requester
+	requester Requester
 	URL       string
 	token     string
 }
@@ -249,9 +247,102 @@ func (c *Client) login(user, pass string) error {
 	return nil
 }
 
-func defaultRequester() requester {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	c := &http.Client{Timeout: time.Second * 10}
+func (c *Client) GetClient(clientId string, realmName string) (v1alpha1.Client, error) {
+	u, err := url.ParseRequestURI(c.URL)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse request URI: %s", c.URL))
+	}
+
+	u.Path = fmt.Sprintf("/auth/admin/realms/%s/clients/%s", realmName, clientId)
+	urlStr := u.String()
+	form := url.Values{}
+	req, err := http.NewRequest("GET", urlStr, strings.NewReader(form.Encode()))
+	req.Header.Add("Authorization", fmt.Sprintf("%s %s", c.token.TokenType, c.token.AccessToken))
+
+	resp, err := c.requester.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to get response from %s", urlStr))
+	}
+
+	defer resp.Body.Close()
+	
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get response body"))
+	}
+
+	client := v1alpha1.Client{}
+	if err := json.Unmarshal(body, &client); err != nil {
+		return errors.Wrap(err, "failed to unmarshal client")
+	}
+
+	return client, nil
+}
+
+func (c *Client) DeleteClient(clientId string, realmName string) error {
+	u, err := url.ParseRequestURI(c.URL)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to parse request URI: %s", c.URL))
+	}
+
+	u.Path = fmt.Sprintf("/auth/admin/realms/%s/clients/%s", realmName, clientId)
+	urlStr := u.String()
+	form := url.Values{}
+	req, err := http.NewRequest("DELETE", urlStr, strings.NewReader(form.Encode()))
+	req.Header.Add("Authorization", fmt.Sprintf("%s %s", c.token.TokenType, c.token.AccessToken))
+
+	resp, err := c.requester.Do(req)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get response from %s", urlStr))
+	}
+
+	if resp.StatusCode != 204 {
+		return errors.Wrap(err,  fmt.Sprintf("unable to delete client with id: %s", clientId))
+	}
+
+	// do we still need this?
+	// defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) ListClients(realmName string) ([]v1alpha1.Client, error) {
+	u, err := url.ParseRequestURI(c.URL)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse request URI: %s", c.URL))
+	}
+
+	u.Path = fmt.Sprintf("/auth/admin/realms/%s/clients", realmName)
+	urlStr := u.String()
+	form := url.Values{}
+	req, err := http.NewRequest("GET", urlStr, strings.NewReader(form.Encode()))
+	req.Header.Add("Authorization", fmt.Sprintf("%s %s", c.token.TokenType, c.token.AccessToken))
+
+	resp, err := c.requester.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to get response from %s", urlStr))
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get response body"))
+	}
+
+	clients := []v1alpha1.Client{}
+	if err := json.Unmarshal(body, &clients); err != nil {
+		return errors.Wrap(err, "failed to unmarshal clients list")
+	}
+
+	return clients, nil
+}
+
+func defaultRequester() Requester {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c := &http.Client{Transport: transport, Timeout: time.Second * 10}
 	return c
 }
 
@@ -260,6 +351,11 @@ type KeycloakInterface interface {
 	GetRealm(realmName string) (*v1alpha1.KeycloakRealm, error)
 	CreateRealm(realm *v1alpha1.KeycloakRealm) error
 	UpdateRealm(realm *v1alpha1.KeycloakRealm) error
+	DeleteRealm(realmName string) error
+	
+	GetClient(clientId string, realmName string) (v1alpha1.Client, error)
+	DeleteClient(clientId string, realmName string) error
+	ListClients(realmName string) ([]v1alpha1.Client, error)
 }
 
 type KeycloakClientFactory interface {

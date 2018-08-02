@@ -9,6 +9,6 @@
     "slicesPerInstance":3,
     "maxInstances":3,
     "minInstances":1,
-    "requiredInstances": 0
+    "requiredInstances": 2
   }
 }

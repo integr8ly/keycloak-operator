@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	sc "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
 )
 
 type Handler struct {
@@ -33,9 +34,15 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get authenticated client for keycloak")
 	}
+
 	if event.Deleted {
-		return h.deleteKeycloak(kcCopy)
+		return nil
 	}
+
+	if kcCopy.GetDeletionTimestamp() != nil {
+		return h.finalizeKeycloak(kcCopy)
+	}
+
 	if kc.Status.Phase == v1alpha1.PhaseAccepted {
 		logrus.Info("not doing anything as this resource is already being worked on")
 		return nil
@@ -80,6 +87,16 @@ func (h *Handler) reconcileUser(ctx context.Context, wg *sync.WaitGroup, userDef
 }
 
 func (h *Handler) deleteKeycloak(kc *v1alpha1.Keycloak) error {
+	return nil
+}
+
+func (sh *Handler) finalizeKeycloak(kc *v1alpha1.Keycloak) error {
+	sc.RemoveFinalizer(kc, v1alpha1.KeycloakFinalizer)
+	err := sdk.Update(kc)
+	if err != nil {
+		logrus.Errorf("error updating resource finalizer: %v", err)
+		return err
+	}
 	return nil
 }
 

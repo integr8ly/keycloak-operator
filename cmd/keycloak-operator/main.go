@@ -17,6 +17,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
 func printVersion() {
@@ -27,15 +28,24 @@ func printVersion() {
 
 var (
 	resyncFlag *int = new(int)
+	logLevel *string = new(string)
 )
 
-func setFlags() {
-	flag.IntVar(resyncFlag, "resync", 7, "change the resync period")
+func init() {
+	flagset := flag.CommandLine
+	flagset.IntVar(resyncFlag, "resync", 7, "change the resync period")
+	flagset.StringVar(logLevel, "log-level", logrus.Level.String(logrus.InfoLevel), "Log level to use. Possible values: panic, fatal, error, warn, info, debug")
+	flagset.Parse(os.Args[1:])
 }
 
 func main() {
+	logLevel, err := logrus.ParseLevel(*logLevel)
+	if err != nil {
+		logrus.Errorf("Failed to parse log level: %v", err)
+	} else {
+		logrus.SetLevel(logLevel)
+	}
 	printVersion()
-	setFlags()
 	resource := v1alpha1.Group + "/" + v1alpha1.Version
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {

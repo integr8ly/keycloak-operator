@@ -8,6 +8,8 @@ const (
 	Group        = "aerogear.org"
 	Version      = "v1alpha1"
 	KeycloakKind = "Keycloak"
+	KeycloakVersion = "4.1.0"
+	KeycloakFinalizer = "finalizer.org.aerogrear.keycloak"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -24,7 +26,7 @@ type Keycloak struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              KeycloakSpec  `json:"spec"`
-	Status            GenericStatus `json:"status,omitempty"`
+	Status            KeycloakStatus `json:"status,omitempty"`
 }
 
 func (k *Keycloak) Defaults() {

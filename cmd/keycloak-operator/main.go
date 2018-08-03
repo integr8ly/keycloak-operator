@@ -28,15 +28,23 @@ func printVersion() {
 
 var (
 	resyncFlag *int = new(int)
+	logLevel *string = new(string)
 )
 
 func init() {
 	flagset := flag.CommandLine
 	flagset.IntVar(resyncFlag, "resync", 7, "change the resync period")
+	flagset.StringVar(logLevel, "log-level", logrus.Level.String(logrus.InfoLevel), "Log level to use. Possible values: panic, fatal, error, warn, info, debug")
 	flagset.Parse(os.Args[1:])
 }
 
 func main() {
+	logLevel, err := logrus.ParseLevel(*logLevel)
+	if err != nil {
+		logrus.Errorf("Failed to parse log level: %v", err)
+	} else {
+		logrus.SetLevel(logLevel)
+	}
 	printVersion()
 	resource := v1alpha1.Group + "/" + v1alpha1.Version
 	namespace, err := k8sutil.GetWatchNamespace()

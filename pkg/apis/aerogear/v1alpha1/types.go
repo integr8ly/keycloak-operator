@@ -35,6 +35,7 @@ func (k *Keycloak) Defaults() {
 
 type KeycloakSpec struct {
 	Version          string          `json:"version"`
+	InstanceID       string          `json:"instanceID"`
 	AdminCredentials string          `json:"adminCredentials"`
 	Realms           []KeycloakRealm `json:"realms"`
 }
@@ -81,8 +82,15 @@ type KeycloakStatus struct {
 type StatusPhase string
 
 var (
-	PhaseAccepted StatusPhase = "accepted"
-	PhaseComplete StatusPhase = "complete"
-	PhaseFailed   StatusPhase = "failed"
-	PhaseModified StatusPhase = "modified"
+	NoPhase                 StatusPhase = ""
+	PhaseAccepted           StatusPhase = "accepted"
+	PhaseComplete           StatusPhase = "complete"
+	PhaseFailed             StatusPhase = "failed"
+	PhaseModified           StatusPhase = "modified"
+	PhaseProvisioning       StatusPhase = "provisioning"
+	PhaseDeprovisioning     StatusPhase = "deprovisioning"
+	PhaseDeprovisioned      StatusPhase = "deprovisioned"
+	PhaseDeprovisionFailed  StatusPhase = "deprovisionFailed"
+	PhaseCredentialsPending StatusPhase = "credentialsPending"
+	PhaseCredentialsCreated StatusPhase = "credentialsCreated"
 )

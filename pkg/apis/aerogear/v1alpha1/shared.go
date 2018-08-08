@@ -16,10 +16,10 @@ const (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedService struct {
-	metav1.TypeMeta            `json:",inline"`
-	metav1.ObjectMeta          `json:"metadata"`
-	Spec   SharedServiceSpec   `json:"spec"`
-	Status SharedServiceStatus `json:"status"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              SharedServiceSpec   `json:"spec"`
+	Status            SharedServiceStatus `json:"status"`
 }
 
 type SharedServiceStatus struct {
@@ -34,7 +34,7 @@ type CommonStatus struct {
 type SharedServiceSpec struct {
 	MaxInstances      int    `json:"maxInstances"`
 	MinInstances      int    `json:"minInstances"`
-	MaxSlices         int    `json:"maxSlices"`
+	SlicesPerInstance int    `json:"slicesPerInstance"`
 	RequiredInstances int    `json:"requiredInstances"`
 	ServiceType       string `json:"serviceType"`
 }
@@ -42,46 +42,49 @@ type SharedServiceSpec struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedServiceList struct {
-	metav1.TypeMeta       `json:",inline"`
-	metav1.ListMeta       `json:"metadata"`
-	Items []SharedService `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []SharedService `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedServiceSlice struct {
-	metav1.TypeMeta                 `json:",inline"`
-	metav1.ObjectMeta               `json:"metadata"`
-	Spec   SharedServiceSliceSpec   `json:"spec"`
-	Status SharedServiceSliceStatus `json:"status"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              SharedServiceSliceSpec   `json:"spec"`
+	Status            SharedServiceSliceStatus `json:"status"`
 }
 
 type SharedServiceSliceSpec struct {
 	ProvidedParams *runtime.RawExtension `json:"providedParams"`
 	ServiceType    string                `json:"serviceType"`
+	SliceNamespace string                `json:"sliceNamespace"`
 }
 
 type SharedServiceSliceStatus struct {
 	CommonStatus
-	// ServiceResource is a name reference to the resource representing the service providing the slice
-	ServiceResource string `json:"serviceResource"`
+	// the ServiceInstanceID that represents the slice
+	SliceServiceInstance string `json:"sliceServiceInstance"`
+	// the ServiceInstanceID that represents the parent shared service
+	SharedServiceInstance string `json:"sharedServiceInstance"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedServiceSliceList struct {
-	metav1.TypeMeta            `json:",inline"`
-	metav1.ListMeta            `json:"metadata"`
-	Items []SharedServiceSlice `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []SharedServiceSlice `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedServicePlan struct {
-	metav1.TypeMeta                `json:",inline"`
-	metav1.ObjectMeta              `json:"metadata"`
-	Spec   SharedServicePlanSpec   `json:"spec"`
-	Status SharedServicePlanStatus `json:"status"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              SharedServicePlanSpec   `json:"spec"`
+	Status            SharedServicePlanStatus `json:"status"`
 }
 
 type SharedServicePlanSpec struct {
@@ -96,18 +99,18 @@ type SharedServicePlanStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedServicePlanList struct {
-	metav1.TypeMeta           `json:",inline"`
-	metav1.ListMeta           `json:"metadata"`
-	Items []SharedServicePlan `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []SharedServicePlan `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedServiceAction struct {
-	metav1.TypeMeta                  `json:",inline"`
-	metav1.ObjectMeta                `json:"metadata"`
-	Spec   SharedServiceActionSpec   `json:"spec"`
-	Status SharedServiceActionStatus `json:"status"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              SharedServiceActionSpec   `json:"spec"`
+	Status            SharedServiceActionStatus `json:"status"`
 }
 
 type SharedServiceActionSpec struct {
@@ -122,15 +125,15 @@ type SharedServiceActionStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type SharedServiceActionList struct {
-	metav1.TypeMeta             `json:",inline"`
-	metav1.ListMeta             `json:"metadata"`
-	Items []SharedServiceAction `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []SharedServiceAction `json:"items"`
 }
 
 // StatusSharedConfig manages the capacity of a shared service
 type StatusSharedConfig struct {
-	MaxSlices     int `json:"maxSlices"`
-	CurrentSlices int `json:"currentSlices"`
+	SlicesPerInstance int `json:"slicesPerInstance"`
+	CurrentSlices     int `json:"currentSlices"`
 }
 
 type SharedServiceStatusPhase string

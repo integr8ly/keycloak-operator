@@ -18,7 +18,7 @@ spec:
           properties:
             params:
               type: object
-            service_type:
+            serviceType:
               type: string
-            slice_namespace:
+            sliceNamespace:
               type: string

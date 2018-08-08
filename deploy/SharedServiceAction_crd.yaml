@@ -18,5 +18,5 @@ spec:
           properties:
             params:
               type: object
-            service_type:
+            serviceType:
               type: string

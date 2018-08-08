@@ -2,13 +2,14 @@ package shared
 
 import (
 	"context"
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
-	"github.com/operator-framework/operator-sdk/pkg/sdk"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
-	"github.com/sirupsen/logrus"
+
+	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
+	"github.com/operator-framework/operator-sdk/pkg/sdk"
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type ServiceHandler struct {
@@ -116,7 +117,7 @@ func newKeycloak(sharedService *v1alpha1.SharedService) *v1alpha1.Keycloak {
 				}),
 			},
 			Finalizers: []string{v1alpha1.KeycloakFinalizer},
-			Labels: labels,
+			Labels:     labels,
 		},
 		Spec: v1alpha1.KeycloakSpec{
 			Version:          v1alpha1.KeycloakVersion,
@@ -125,8 +126,8 @@ func newKeycloak(sharedService *v1alpha1.SharedService) *v1alpha1.Keycloak {
 		},
 		Status: v1alpha1.KeycloakStatus{
 			SharedConfig: v1alpha1.StatusSharedConfig{
-				MaxSlices:     sharedService.Spec.MaxSlices,
-				CurrentSlices: 0,
+				SlicesPerInstance: sharedService.Spec.SlicesPerInstance,
+				CurrentSlices:     0,
 			},
 		},
 	}

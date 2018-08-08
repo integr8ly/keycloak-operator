@@ -6,7 +6,7 @@
   },
   "spec": {
     "serviceType":"keycloak",
-    "maxSlices":3,
+    "slicesPerInstance":3,
     "maxInstances":3,
     "minInstances":1,
     "requiredInstances": 0

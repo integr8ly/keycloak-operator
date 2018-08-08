@@ -9,6 +9,8 @@ import (
 
 	"flag"
 
+	"os"
+
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/aerogear/keycloak-operator/pkg/dispatch"
 	"github.com/aerogear/keycloak-operator/pkg/keycloak"
@@ -17,7 +19,6 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
-	"os"
 )
 
 func printVersion() {
@@ -27,8 +28,8 @@ func printVersion() {
 }
 
 var (
-	resyncFlag *int = new(int)
-	logLevel *string = new(string)
+	resyncFlag *int    = new(int)
+	logLevel   *string = new(string)
 )
 
 func init() {
@@ -58,6 +59,7 @@ func main() {
 	}
 	k8Client := k8sclient.GetKubeClient()
 	kcFactory := &keycloak.KeycloakFactory{}
+
 	//set namespace to empty to watch all namespaces
 	//namespace := ""
 	resyncPeriod := *resyncFlag

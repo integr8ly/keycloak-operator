@@ -28,6 +28,11 @@ const (
 	KEYCLOAK_PLAN_NAME    = "sharedInstance"
 )
 
+type KeycloakRealmPair struct {
+	KcRealm  *v1alpha1.KeycloakRealm
+	ObjRealm *v1alpha1.KeycloakRealm
+}
+
 type Handler struct {
 	k8sClient            kubernetes.Interface
 	kcClientFactory      KeycloakClientFactory
@@ -57,6 +62,8 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 
 		return sdk.Update(kcCopy)
 	}
+
+	logrus.Infof("phase: %v\n", kc.Status.Phase)
 
 	switch kc.Status.Phase {
 	case v1alpha1.NoPhase:
@@ -210,23 +217,25 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 }
 
 func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
+	logrus.Infof("reconciling resources")
 	adminCreds, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to get the admin credentials")
 	}
+	user := string(adminCreds.Data["ADMIN_USERNAME"])
+	pass := string(adminCreds.Data["ADMIN_PASSWORD"])
+	url := string(adminCreds.Data["ADMIN_URL"])
+	logrus.Infof("getting authenticated client for (user: %s, pass: %s, url: %s", user, pass, url)
+	kcClient, err := h.kcClientFactory.AuthenticatedClient(*kc, user, pass, url)
+	if err != nil {
+		return errors.Wrap(err, "failed to get authenticated client for keycloak")
+	}
 
-	fmt.Printf("admin creds:\n")
-	for k, _ := range adminCreds.Data {
-		fmt.Printf("%v = %v\n", k, string(adminCreds.Data[k]))
+	err = h.reconcileRealms(kc, kcClient)
+	if err != nil {
+		return errors.Wrap(err, "error reconciling realms")
 	}
-	// set up authenticated client
-	// _, err := h.kcClientFactory.AuthenticatedClient(*kc, adminCreds)
-	// if err != nil {
-	// 	return errors.Wrap(err, "failed to get authenticated client for keycloak")
-	// }
-	for _, realm := range kc.Spec.Realms {
-		fmt.Printf("Realm: %+v\n", realm)
-	}
+
 	return nil
 }
 
@@ -334,16 +343,39 @@ func (h *Handler) deleteKeycloak(kc *v1alpha1.Keycloak) error {
 	return nil
 }
 
-func (h *Handler) reconcileRealm(ctx context.Context, realm v1alpha1.KeycloakRealm, authenticatedClient KeycloakInterface) error {
-	rc := realm.DeepCopy()
-	// check does realm exist
-	exists, err := authenticatedClient.DoesRealmExist(rc.Name)
+func (h *Handler) reconcileRealms(kc *v1alpha1.Keycloak, kcClient KeycloakInterface) error {
+	RealmPairsList := map[string]*KeycloakRealmPair{}
+
+	kcRealms, err := kcClient.ListRealms()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error retrieving realms from keycloak")
 	}
-	if !exists {
-		// create realm
+
+	for _, realm := range kc.Spec.Realms {
+		RealmPairsList[realm.Name] = &KeycloakRealmPair{
+			ObjRealm: &realm,
+			KcRealm:  kcRealms[realm.Name],
+		}
+		delete(kcRealms, realm.Name)
 	}
+
+	for _, realm := range kcRealms {
+		RealmPairsList[realm.Name] = &KeycloakRealmPair{
+			KcRealm:  realm,
+			ObjRealm: nil,
+		}
+	}
+
+	for name, realmPair := range RealmPairsList {
+		err = h.reconcileRealm(realmPair.KcRealm, realmPair.ObjRealm, kcClient)
+		if err != nil {
+			return errors.Wrap(err, "error reconciling realm "+name)
+		}
+	}
+	return nil
+}
+
+func (h *Handler) reconcileRealm(kcRealm, objRealm *v1alpha1.KeycloakRealm, kcClient KeycloakInterface) error {
 
 	return nil
 }

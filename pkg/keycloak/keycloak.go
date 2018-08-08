@@ -171,20 +171,7 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		kcCopy.Status.Phase = v1alpha1.PhaseDeprovisioned
 
 	case v1alpha1.PhaseDeprovisioned:
-		newFinalizers := []string{}
-		for _, finalizer := range kcCopy.Finalizers {
-			if finalizer != "finalizers.aerogear.keycloak.org" {
-				newFinalizers = append(newFinalizers, finalizer)
-			}
-		}
-		kcCopy.Finalizers = newFinalizers
-	}
-
-	// Only update the Keycloak custom resource if there was a change
-	if !reflect.DeepEqual(kc, kcCopy) {
-		if err := sdk.Update(kcCopy); err != nil {
-			return errors.Wrap(err, "failed to update the keycloak resource")
-		}
+		return h.finalizeKeycloak(kcCopy)
 	}
 
 	// set up authenticated client
@@ -197,14 +184,6 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		if err := h.reconcileRealm(ctx, r, authenticatedClient); err != nil {
 			return errors.Wrap(err, "failed to reconcile realm "+r.Name)
 		}
-	}
-
-	if kcCopy.GetDeletionTimestamp() != nil {
-		return h.finalizeKeycloak(kcCopy)
-	}
-
-	if kc.Status.Phase == v1alpha1.PhaseAccepted {
-		return nil
 	}
 
 	// Only update the Keycloak custom resource if there was a change

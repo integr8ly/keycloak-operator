@@ -35,7 +35,8 @@ func (k *Keycloak) Defaults() {
 
 type KeycloakSpec struct {
 	Version          string          `json:"version"`
-	InstanceID       string          `json:"instanceID"`
+	InstanceName     string          `json:"instanceName"`
+	InstanceUID      string          `json:"instanceUID"`
 	AdminCredentials string          `json:"adminCredentials"`
 	Realms           []KeycloakRealm `json:"realms"`
 }

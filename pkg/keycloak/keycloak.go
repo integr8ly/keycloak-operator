@@ -123,11 +123,12 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 			return errors.Wrap(err, "failed to create service instance")
 		}
 
-		kcCopy.Spec.InstanceID = serviceInstance.GetName()
+		kcCopy.Spec.InstanceName = serviceInstance.GetName()
+		kcCopy.Spec.InstanceUID = serviceInstance.Spec.ExternalID
 		kcCopy.Status.Phase = v1alpha1.PhaseProvisioning
 
 	case v1alpha1.PhaseProvisioning:
-		if kc.Spec.InstanceID == "" {
+		if kc.Spec.InstanceUID == "" {
 			kcCopy.Status.Phase = v1alpha1.PhaseFailed
 			kcCopy.Status.Message = "instance ID is not defined"
 
@@ -138,7 +139,7 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 
 			return errors.New("instance ID is not defined")
 		} else {
-			si, err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Get(kc.Spec.InstanceID, metav1.GetOptions{})
+			si, err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Get(kc.Spec.InstanceName, metav1.GetOptions{})
 			if err != nil {
 				return errors.Wrap(err, "failed to get service instance")
 			}
@@ -147,12 +148,36 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 				return nil
 			}
 
+			labelSelector := fmt.Sprintf("serviceInstanceID=%s,serviceType=%s", kc.Spec.InstanceUID, "keycloak")
+			secretList, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
+			if err != nil || len(secretList.Items) == 0 {
+				return errors.Wrap(err, "error reading admin credentials")
+			}
+
+			adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
+			if err != nil {
+				return errors.Wrap(err, "failed to get the secret for the admin credentials")
+			}
+
+			adminCreds.StringData = map[string]string{}
+			adminCreds.StringData["ADMIN_USERNAME"] = string(secretList.Items[0].Data["user_name"])
+			adminCreds.StringData["ADMIN_PASSWORD"] = string(secretList.Items[0].Data["user_passwd"])
+			adminCreds.StringData["ADMIN_URL"] = string(secretList.Items[0].Data["route_url"])
+
+			_, err = h.k8sClient.CoreV1().Secrets(kc.Namespace).Update(adminCreds)
+			if err != nil {
+				return errors.Wrap(err, "could not update admin credentials")
+			}
+
 			siCondition := si.Status.Conditions[0]
 			if siCondition.Type == "Ready" && siCondition.Status == "True" {
 				kcCopy.Status.Phase = v1alpha1.PhaseComplete
 				kcCopy.Status.Ready = true
 			}
 		}
+
+	case v1alpha1.PhaseComplete:
+		return h.reconcileResources(kcCopy)
 
 	case v1alpha1.PhaseDeprovisioning:
 		err := h.deleteKeycloak(kcCopy)
@@ -174,18 +199,6 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		return h.finalizeKeycloak(kcCopy)
 	}
 
-	// set up authenticated client
-	authenticatedClient, err := h.kcClientFactory.AuthenticatedClient(*kcCopy)
-	if err != nil {
-		return errors.Wrap(err, "failed to get authenticated client for keycloak")
-	}
-	// hand of each realm to reconcile realm may want to make async to avoid blocking
-	for _, r := range kcCopy.Spec.Realms {
-		if err := h.reconcileRealm(ctx, r, authenticatedClient); err != nil {
-			return errors.Wrap(err, "failed to reconcile realm "+r.Name)
-		}
-	}
-
 	// Only update the Keycloak custom resource if there was a change
 	if !reflect.DeepEqual(kc, kcCopy) {
 		if err := sdk.Update(kcCopy); err != nil {
@@ -193,6 +206,27 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		}
 	}
 
+	return nil
+}
+
+func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
+	adminCreds, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to get the admin credentials")
+	}
+
+	fmt.Printf("admin creds:\n")
+	for k, _ := range adminCreds.Data {
+		fmt.Printf("%v = %v\n", k, string(adminCreds.Data[k]))
+	}
+	// set up authenticated client
+	// _, err := h.kcClientFactory.AuthenticatedClient(*kc, adminCreds)
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to get authenticated client for keycloak")
+	// }
+	for _, realm := range kc.Spec.Realms {
+		fmt.Printf("Realm: %+v\n", realm)
+	}
 	return nil
 }
 
@@ -286,7 +320,7 @@ func (h *Handler) deleteKeycloak(kc *v1alpha1.Keycloak) error {
 	namespace := kc.ObjectMeta.Namespace
 
 	// Delete keycloak instance
-	err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Delete(kc.Spec.InstanceID, &metav1.DeleteOptions{})
+	err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Delete(kc.Spec.InstanceUID, &metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return errors.Wrap(err, "failed to delete service instance")
 	}

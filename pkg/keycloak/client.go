@@ -24,6 +24,9 @@ type requester interface {
 
 type Client struct {
 	Requester requester
+	URL       string
+	username  string
+	password  string
 }
 
 func (c *Client) DoesRealmExist(realmName string) (bool, error) {
@@ -41,12 +44,13 @@ type KeycloakInterface interface {
 }
 
 type KeycloakClientFactory interface {
-	AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error)
+	AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error)
 }
 
 type KeycloakFactory struct {
 }
 
-func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error) {
+func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error) {
+
 	return &Client{}, nil
 }

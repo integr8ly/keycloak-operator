@@ -16,7 +16,7 @@ spec:
       properties:
         spec:
           properties:
-            service_type:
+            serviceType:
               type: string
             name:
               type: string
@@ -26,7 +26,7 @@ spec:
               type: string
             free:
               type: boolean
-            bind_params:
+            bindParams:
               type: object
-            provision_params:
+            provisionParams:
               type: object

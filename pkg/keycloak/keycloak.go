@@ -153,48 +153,47 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 			}
 
 			return errors.New("instance ID is not defined")
-		} else {
+		}
 
-			si, err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(kc.Spec.InstanceName, metav1.GetOptions{})
-			if err != nil {
-				return errors.Wrap(err, "failed to get service instance")
-			}
+		si, err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(kc.Spec.InstanceName, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrap(err, "failed to get service instance")
+		}
 
-			if len(si.Status.Conditions) == 0 {
-				return nil
-			}
+		if len(si.Status.Conditions) == 0 {
+			return nil
+		}
 
-			labelSelector := fmt.Sprintf("serviceInstanceID=%s,serviceType=%s", kc.Spec.InstanceUID, "keycloak")
-			secretList, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
-			if err != nil {
-				return errors.Wrap(err, "error reading admin credentials")
-			}
+		labelSelector := fmt.Sprintf("serviceInstanceID=%s,serviceType=%s", kc.Spec.InstanceUID, "keycloak")
+		secretList, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			return errors.Wrap(err, "error reading admin credentials")
+		}
 
-			if len(secretList.Items) == 0 {
-				logrus.Debug("keycloak service credentials not found")
-				return nil
-			}
+		if len(secretList.Items) == 0 {
+			logrus.Debug("keycloak service credentials not found")
+			return nil
+		}
 
-			adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
-			if err != nil {
-				return errors.Wrap(err, "failed to get the secret for the admin credentials")
-			}
+		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrap(err, "failed to get the secret for the admin credentials")
+		}
 
-			adminCreds.StringData = map[string]string{}
-			adminCreds.StringData["ADMIN_USERNAME"] = string(secretList.Items[0].Data["user_name"])
-			adminCreds.StringData["ADMIN_PASSWORD"] = string(secretList.Items[0].Data["user_passwd"])
-			adminCreds.StringData["ADMIN_URL"] = string(secretList.Items[0].Data["route_url"])
+		adminCreds.StringData = map[string]string{}
+		adminCreds.StringData["ADMIN_USERNAME"] = string(secretList.Items[0].Data["user_name"])
+		adminCreds.StringData["ADMIN_PASSWORD"] = string(secretList.Items[0].Data["user_passwd"])
+		adminCreds.StringData["ADMIN_URL"] = string(secretList.Items[0].Data["route_url"])
 
-			_, err = h.k8sClient.CoreV1().Secrets(kc.Namespace).Update(adminCreds)
-			if err != nil {
-				return errors.Wrap(err, "could not update admin credentials")
-			}
+		_, err = h.k8sClient.CoreV1().Secrets(kc.Namespace).Update(adminCreds)
+		if err != nil {
+			return errors.Wrap(err, "could not update admin credentials")
+		}
 
-			siCondition := si.Status.Conditions[0]
-			if siCondition.Type == "Ready" && siCondition.Status == "True" {
-				kcCopy.Status.Phase = v1alpha1.PhaseComplete
-				kcCopy.Status.Ready = true
-			}
+		siCondition := si.Status.Conditions[0]
+		if siCondition.Type == "Ready" && siCondition.Status == "True" {
+			kcCopy.Status.Phase = v1alpha1.PhaseComplete
+			kcCopy.Status.Ready = true
 		}
 
 	case v1alpha1.PhaseComplete:
@@ -231,29 +230,73 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 }
 
 func (h *Handler) reconcileClients(kc *v1alpha1.Keycloak, kcClient KeycloakInterface) error {
+	logrus.Info("reconciling clients")
+
 	// TODO replace dummy realms with phil's work
-	kcRealms := map[string]*v1alpha1.KeycloakRealm{}
+	kcRealms := map[string]*v1alpha1.KeycloakRealm{
+		"master": &v1alpha1.KeycloakRealm{
+			Name:    "master",
+			Clients: map[string]*v1alpha1.Client{},
+		},
+	}
 
 	for _, realm := range kcRealms {
-		kcClients := kcClient.ListClients(realm.Name)
-		clientPairsList := map[string]*ClientPair{}
-
-		for _, client := range kcRealms[realm.Name].Clients {
-			clientPairsList[client.Name] = &ClientPair{
-				ObjClient: client,
-				KcClient:  kcClients[client.Name],
-			}
-			delete(kcClients, client.Name)
+		kcClients, err := kcClient.ListClients(realm.Name)
+		if err != nil {
+			return err
 		}
+
+		// TODO replace dummy realms with phil's work
+		dummyClients := make(map[string]*v1alpha1.Client)
+		for id, client := range kcClients {
+			dummyClients[id] = client
+		}
+		kcRealms["master"].Clients = dummyClients
+
+		// Add test client that will need to be created in keycloak
+		publicClient := v1alpha1.Client{
+			ID:           uuid.New().String(),
+			ClientID:     "my-public-client",
+			Name:         "Dimitras public client",
+			RedirectUris: []string{"http://localhost:*"},
+			WebOrigins:   []string{"http://localhost:8100"},
+			PublicClient: true,
+			Enabled:      true,
+		}
+		bearerClient := v1alpha1.Client{
+			ID:         uuid.New().String(),
+			ClientID:   "new-bearer-client",
+			Name:       "Vitalis bearer client",
+			BearerOnly: true,
+			Enabled:    true,
+		}
+		kcRealms["master"].Clients[publicClient.ClientID] = &publicClient
+		kcRealms["master"].Clients[bearerClient.ClientID] = &bearerClient
+
+		// Change some config
+		kcRealms["master"].Clients["my-public-client"].Enabled = false
+
+		clientPairsList := map[string]*v1alpha1.ClientPair{}
+		for _, client := range kcRealms["master"].Clients {
+			clientPairsList[client.ClientID] = &v1alpha1.ClientPair{
+				ObjClient: client,
+				KcClient:  kcClients[client.ClientID],
+			}
+			delete(kcClients, client.ClientID)
+		}
+
 		for _, client := range kcClients {
-			clientPairsList[client.Name] = &ClientPair{
+			clientPairsList[client.ClientID] = &v1alpha1.ClientPair{
 				KcClient:  client,
 				ObjClient: nil,
 			}
 		}
 
-		for name, clientPair := range clientPairsList {
-			h.reconcileClient(clientPair.KcClient, clientPair.ObjClient, realm.Name, kcClient)
+		for _, clientPair := range clientPairsList {
+			err := h.reconcileClient(clientPair.KcClient, clientPair.ObjClient, realm.Name, kcClient)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -280,10 +323,10 @@ func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
 		return errors.Wrap(err, "error reconciling clients")
 	}
 
-	err = h.reconcileRealms(kc, kcClient)
-	if err != nil {
-		return errors.Wrap(err, "error reconciling realms")
-	}
+	// err = h.reconcileRealms(kc, kcClient)
+	// if err != nil {
+	// 	return errors.Wrap(err, "error reconciling realms")
+	// }
 
 	return nil
 }
@@ -451,20 +494,27 @@ func (h *Handler) reconcileRealm(kcRealm, objRealm *v1alpha1.KeycloakRealm, kcCl
 	return nil
 }
 
-func (h *Handler) reconcileClient(kcClient, objClient v1alpha1.Client, realmName string, authenticatedClient KeycloakInterface) error {
+func (h *Handler) reconcileClient(kcClient, objClient *v1alpha1.Client, realmName string, authenticatedClient KeycloakInterface) error {
 	if objClient == nil {
-		// delete kcClient
-		err := authenticatedClient.DeleteClient(kcClient.Id, realmName)
+		logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
+		err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
 		if err != nil {
 			return err
 		}
 	} else if kcClient == nil {
-		logrus.Info("Need to create client in keycloak")
-		// create objClient in keycloak
-		// err, client = authenticatedClient.CreateClient()
+		logrus.Debugf("Creating client %s in realm: %s", objClient.ClientID, realmName)
+		err := authenticatedClient.CreateClient(*objClient, realmName)
+		if err != nil {
+			return err
+		}
 	} else {
-		logrus.Info("Need to make sure clients match")
-		// make sure kcClient and objClient match
+		if !reflect.DeepEqual(kcClient, objClient) {
+			logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
+			err := authenticatedClient.UpdateClient(*kcClient, *objClient, realmName)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

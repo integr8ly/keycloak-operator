@@ -1,6 +1,8 @@
 package keycloak
 
 import (
+	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -12,10 +14,11 @@ import (
 
 	"time"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
-	"strconv"
 	"bytes"
 	"fmt"
+	"strconv"
+
+	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 )
 
 var (
@@ -49,7 +52,6 @@ type TokenResponse struct {
 }
 
 func (c *Client) ListRealms() ([]*v1alpha1.KeycloakRealm, error) {
-
 	req, err := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s/auth/admin/realms", c.URL),
@@ -58,7 +60,7 @@ func (c *Client) ListRealms() ([]*v1alpha1.KeycloakRealm, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Authorization", "Bearer " + c.token)
+	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.Requester.Do(req)
 	logrus.Debugf("response:", res)
 	if err != nil {
@@ -105,7 +107,7 @@ func (c *Client) CreateRealm(realm *v1alpha1.KeycloakRealm) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer " + c.token)
+	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.Requester.Do(req)
 
 	if err != nil {
@@ -133,7 +135,7 @@ func (c *Client) GetRealm(name string) (*v1alpha1.KeycloakRealm, error) {
 		logrus.Errorf("error creating request %+v", err)
 		return nil, err
 	}
-	req.Header.Add("Authorization", "Bearer " + c.token)
+	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.Requester.Do(req)
 
 	if err != nil {
@@ -162,7 +164,6 @@ func (c *Client) GetRealm(name string) (*v1alpha1.KeycloakRealm, error) {
 	}
 	logrus.Debugf("realm = %#v", realm)
 
-
 	return realm, nil
 }
 
@@ -184,7 +185,7 @@ func (c *Client) UpdateRealm(realm *v1alpha1.KeycloakRealm) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer " + c.token)
+	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.Requester.Do(req)
 
 	if err != nil {
@@ -219,7 +220,7 @@ func (c *Client) login(user, pass string) error {
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	res, err := c.Requester.Do(req)
+	res, err := c.requester.Do(req)
 
 	if err != nil {
 		logrus.Errorf("error on request %+v", err)
@@ -230,7 +231,7 @@ func (c *Client) login(user, pass string) error {
 		logrus.Errorf("error reading response %+v", err)
 		return errors.Wrap(err, "error reading token response")
 	}
-	tokenRes := &TokenResponse{}
+	tokenRes := &v1alpha1.TokenResponse{}
 
 	err = json.Unmarshal(body, tokenRes)
 	if err != nil {
@@ -247,95 +248,152 @@ func (c *Client) login(user, pass string) error {
 	return nil
 }
 
-func (c *Client) GetClient(clientId string, realmName string) (v1alpha1.Client, error) {
-	u, err := url.ParseRequestURI(c.URL)
+func (c *Client) GetClient(clientId string, realmName string) (*v1alpha1.Client, error) {
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientId),
+		nil,
+	)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse request URI: %s", c.URL))
+		return nil, err
 	}
 
-	u.Path = fmt.Sprintf("/auth/admin/realms/%s/clients/%s", realmName, clientId)
-	urlStr := u.String()
-	form := url.Values{}
-	req, err := http.NewRequest("GET", urlStr, strings.NewReader(form.Encode()))
-	req.Header.Add("Authorization", fmt.Sprintf("%s %s", c.token.TokenType, c.token.AccessToken))
-
-	resp, err := c.requester.Do(req)
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to get response from %s", urlStr))
+		logrus.Infof("error on request %+v", err)
+		return nil, errors.Wrap(err, "error performing create client request")
 	}
 
-	defer resp.Body.Close()
-	
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get response body"))
+	if res.StatusCode != 200 {
+		return nil, errors.New("failed to get client: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
 	}
 
-	client := v1alpha1.Client{}
-	if err := json.Unmarshal(body, &client); err != nil {
-		return errors.Wrap(err, "failed to unmarshal client")
-	}
-
-	return client, nil
+	return nil, nil
 }
 
-func (c *Client) DeleteClient(clientId string, realmName string) error {
-	u, err := url.ParseRequestURI(c.URL)
+func (c *Client) CreateClient(client v1alpha1.Client, realmName string) error {
+	body, err := json.Marshal(client)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to parse request URI: %s", c.URL))
+		return nil
 	}
 
-	u.Path = fmt.Sprintf("/auth/admin/realms/%s/clients/%s", realmName, clientId)
-	urlStr := u.String()
-	form := url.Values{}
-	req, err := http.NewRequest("DELETE", urlStr, strings.NewReader(form.Encode()))
-	req.Header.Add("Authorization", fmt.Sprintf("%s %s", c.token.TokenType, c.token.AccessToken))
-
-	resp, err := c.requester.Do(req)
+	req, err := http.NewRequest(
+		"POST",
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients", c.URL, realmName),
+		bytes.NewBuffer(body),
+	)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get response from %s", urlStr))
+		return err
 	}
 
-	if resp.StatusCode != 204 {
-		return errors.Wrap(err,  fmt.Sprintf("unable to delete client with id: %s", clientId))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Infof("error on request %+v", err)
+		return errors.Wrap(err, "error performing create client request")
 	}
 
-	// do we still need this?
-	// defer resp.Body.Close()
+	if res.StatusCode < 201 || res.StatusCode > 409 {
+		return errors.New("failed to create client: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
 
 	return nil
 }
 
-func (c *Client) ListClients(realmName string) ([]v1alpha1.Client, error) {
-	u, err := url.ParseRequestURI(c.URL)
+func (c *Client) DeleteClient(clientId string, realmName string) error {
+	req, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientId),
+		nil,
+	)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse request URI: %s", c.URL))
+		return err
 	}
 
-	u.Path = fmt.Sprintf("/auth/admin/realms/%s/clients", realmName)
-	urlStr := u.String()
-	form := url.Values{}
-	req, err := http.NewRequest("GET", urlStr, strings.NewReader(form.Encode()))
-	req.Header.Add("Authorization", fmt.Sprintf("%s %s", c.token.TokenType, c.token.AccessToken))
-
-	resp, err := c.requester.Do(req)
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to get response from %s", urlStr))
+		logrus.Infof("error on request %+v", err)
+		return errors.Wrap(err, "error performing delete client request")
 	}
 
-	defer resp.Body.Close()
+	if res.StatusCode != 204 {
+		return errors.New("failed to delete client: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	return nil
+}
+
+func (c *Client) UpdateClient(kcClient, objClient v1alpha1.Client, realmName string) error {
+	body, err := json.Marshal(objClient)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get response body"))
+		return nil
+	}
+
+	req, err := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, kcClient.ID),
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Infof("error on request %+v", err)
+		return errors.Wrap(err, "error performing create client request")
+	}
+
+	if res.StatusCode != 204 {
+		return errors.New("failed to update client: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) ListClients(realmName string) (map[string]*v1alpha1.Client, error) {
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients", c.URL, realmName),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Infof("error on request %+v", err)
+		return nil, errors.Wrap(err, "error performing clients list request")
+	}
+
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return nil, errors.New("failed to list clients: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logrus.Infof("error reading response %+v", err)
+		return nil, errors.Wrap(err, "error reading realms list response")
 	}
 
 	clients := []v1alpha1.Client{}
 	if err := json.Unmarshal(body, &clients); err != nil {
-		return errors.Wrap(err, "failed to unmarshal clients list")
+		return nil, errors.Wrap(err, "failed to unmarshal clients list")
 	}
 
-	return clients, nil
+	clientMap := map[string]*v1alpha1.Client{}
+	for i := 0; i < len(clients); i++ {
+		clientMap[clients[i].ClientID] = &clients[i]
+	}
+
+	return clientMap, nil
 }
 
 func defaultRequester() Requester {
@@ -352,10 +410,12 @@ type KeycloakInterface interface {
 	CreateRealm(realm *v1alpha1.KeycloakRealm) error
 	UpdateRealm(realm *v1alpha1.KeycloakRealm) error
 	DeleteRealm(realmName string) error
-	
-	GetClient(clientId string, realmName string) (v1alpha1.Client, error)
-	DeleteClient(clientId string, realmName string) error
-	ListClients(realmName string) ([]v1alpha1.Client, error)
+
+	GetClient(clientId, realmName string) (*v1alpha1.Client, error)
+	CreateClient(client v1alpha1.Client, realmName string) error
+	DeleteClient(clientId, realmName string) error
+	UpdateClient(kcClient, objClient v1alpha1.Client, realmName string) error
+	ListClients(realmName string) (map[string]*v1alpha1.Client, error)
 }
 
 type KeycloakClientFactory interface {
@@ -368,7 +428,7 @@ type KeycloakFactory struct {
 func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error) {
 	client := &Client{
 		URL:       url,
-		Requester: defaultRequester(),
+		requester: defaultRequester(),
 	}
 	client.login(user, pass)
 

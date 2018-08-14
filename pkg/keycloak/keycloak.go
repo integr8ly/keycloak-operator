@@ -102,7 +102,6 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		}
 
 	case v1alpha1.PhaseCredentialsCreated:
-
 		svcClass, err := h.getServiceClass()
 		if err != nil {
 			return err
@@ -143,7 +142,6 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 
 	case v1alpha1.PhaseProvisioning:
 		if kc.Spec.InstanceUID == "" {
-
 			kcCopy.Status.Phase = v1alpha1.PhaseFailed
 			kcCopy.Status.Message = "instance ID is not defined"
 
@@ -245,36 +243,6 @@ func (h *Handler) reconcileClients(kc *v1alpha1.Keycloak, kcClient KeycloakInter
 		if err != nil {
 			return err
 		}
-
-		// TODO replace dummy realms with phil's work
-		dummyClients := make(map[string]*v1alpha1.Client)
-		for id, client := range kcClients {
-			dummyClients[id] = client
-		}
-		kcRealms["master"].Clients = dummyClients
-
-		// Add test client that will need to be created in keycloak
-		publicClient := v1alpha1.Client{
-			ID:           uuid.New().String(),
-			ClientID:     "my-public-client",
-			Name:         "Dimitras public client",
-			RedirectUris: []string{"http://localhost:*"},
-			WebOrigins:   []string{"http://localhost:8100"},
-			PublicClient: true,
-			Enabled:      true,
-		}
-		bearerClient := v1alpha1.Client{
-			ID:         uuid.New().String(),
-			ClientID:   "new-bearer-client",
-			Name:       "Vitalis bearer client",
-			BearerOnly: true,
-			Enabled:    true,
-		}
-		kcRealms["master"].Clients[publicClient.ClientID] = &publicClient
-		kcRealms["master"].Clients[bearerClient.ClientID] = &bearerClient
-
-		// Change some config
-		kcRealms["master"].Clients["my-public-client"].Enabled = false
 
 		clientPairsList := map[string]*v1alpha1.ClientPair{}
 		for _, client := range kcRealms["master"].Clients {
@@ -495,29 +463,48 @@ func (h *Handler) reconcileRealm(kcRealm, objRealm *v1alpha1.KeycloakRealm, kcCl
 }
 
 func (h *Handler) reconcileClient(kcClient, objClient *v1alpha1.Client, realmName string, authenticatedClient KeycloakInterface) error {
-	if objClient == nil {
-		logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
-		err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
-		if err != nil {
-			return err
-		}
-	} else if kcClient == nil {
-		logrus.Debugf("Creating client %s in realm: %s", objClient.ClientID, realmName)
-		err := authenticatedClient.CreateClient(*objClient, realmName)
-		if err != nil {
-			return err
-		}
-	} else {
-		if !reflect.DeepEqual(kcClient, objClient) {
-			logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
-			err := authenticatedClient.UpdateClient(*kcClient, *objClient, realmName)
+	if !isDefaultClient(realmName, kcClient.ClientID) {
+		if objClient == nil {
+			logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
+			err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
 			if err != nil {
 				return err
+			}
+		} else if kcClient == nil {
+			logrus.Debugf("Creating client %s in realm: %s", objClient.ClientID, realmName)
+			if objClient.ID == "" {
+				objClient.ID = uuid.New().String()
+			}
+			err := authenticatedClient.CreateClient(*objClient, realmName)
+			if err != nil {
+				return err
+			}
+		} else {
+			if !reflect.DeepEqual(kcClient, objClient) {
+				logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
+				err := authenticatedClient.UpdateClient(*kcClient, *objClient, realmName)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func isDefaultClient(realmName, clientName string) bool {
+	defaultClients := []string{"account", "admin-cli", "broker", "realm-management", "security-admin", "console"}
+	if realmName == "master" {
+		defaultClients = append(defaultClients, "master-realm")
+	}
+
+	for _, defaultName := range defaultClients {
+		if clientName == defaultName {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Handler) reconcileUser(ctx context.Context, wg *sync.WaitGroup, userDef v1alpha1.KeycloakUser, authenticatedClient KeycloakInterface) error {

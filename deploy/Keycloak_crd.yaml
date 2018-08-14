@@ -94,15 +94,15 @@ spec:
                           items:
                             type: string
                   clients:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                        clientType:
-                          type: string
-                        config:
-                          type: object
-                        outputSecret:
-                          type: string
+                    type: object
+                    # items:
+                    #   type: object
+                    #   properties:
+                    #     name:
+                    #       type: string
+                    #     clientType:
+                    #       type: string
+                    #     config:
+                    #       type: object
+                    #     outputSecret:
+                    #       type: string

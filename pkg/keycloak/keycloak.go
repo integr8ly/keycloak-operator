@@ -463,29 +463,27 @@ func (h *Handler) reconcileRealm(kcRealm, objRealm *v1alpha1.KeycloakRealm, kcCl
 }
 
 func (h *Handler) reconcileClient(kcClient, objClient *v1alpha1.Client, realmName string, authenticatedClient KeycloakInterface) error {
-	if !isDefaultClient(realmName, kcClient.ClientID) {
-		if objClient == nil {
-			logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
-			err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
+	if objClient == nil && realmName != "master" && !isDefaultClient(kcClient.ClientID) {
+		logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
+		err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
+		if err != nil {
+			return err
+		}
+	} else if kcClient == nil {
+		logrus.Debugf("Creating client %s in realm: %s", objClient.ClientID, realmName)
+		if objClient.ID == "" {
+			objClient.ID = uuid.New().String()
+		}
+		err := authenticatedClient.CreateClient(*objClient, realmName)
+		if err != nil {
+			return err
+		}
+	} else {
+		if !reflect.DeepEqual(kcClient, objClient) && realmName != "master" && !isDefaultClient(kcClient.ClientID) {
+			logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
+			err := authenticatedClient.UpdateClient(*kcClient, *objClient, realmName)
 			if err != nil {
 				return err
-			}
-		} else if kcClient == nil {
-			logrus.Debugf("Creating client %s in realm: %s", objClient.ClientID, realmName)
-			if objClient.ID == "" {
-				objClient.ID = uuid.New().String()
-			}
-			err := authenticatedClient.CreateClient(*objClient, realmName)
-			if err != nil {
-				return err
-			}
-		} else {
-			if !reflect.DeepEqual(kcClient, objClient) {
-				logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
-				err := authenticatedClient.UpdateClient(*kcClient, *objClient, realmName)
-				if err != nil {
-					return err
-				}
 			}
 		}
 	}
@@ -493,11 +491,8 @@ func (h *Handler) reconcileClient(kcClient, objClient *v1alpha1.Client, realmNam
 	return nil
 }
 
-func isDefaultClient(realmName, clientName string) bool {
-	defaultClients := []string{"account", "admin-cli", "broker", "realm-management", "security-admin", "console"}
-	if realmName == "master" {
-		defaultClients = append(defaultClients, "master-realm")
-	}
+func isDefaultClient(clientName string) bool {
+	defaultClients := []string{"account", "admin-cli", "broker", "realm-management", "security-admin-console"}
 
 	for _, defaultName := range defaultClients {
 		if clientName == defaultName {

@@ -6,42 +6,62 @@
   },
   "spec": {
     "version": "4.1.0",
-    "adminCredentials": "adminCredentialSecret",
+    "adminCredentials": "",
     "realms": [
       {
-        "name": "arealm",
-        "authMethods": [
-          {
-            "provider": "github",
-            "clientID": "someclientID,",
-            "clientSecret": "somek8ssecret"
-          }
-        ],
+        "id": "arealm",
+        "realm": "arealm",
+        "displayName": "arealm",
+        "enabled": true,
         "users": [
           {
-            "username": "test@example.com",
-            "outputSecret": "test-user",
-            "roles": [
-              "somerole"
-            ]
+            "username": "admin",
+            "enabled": true,
+            "emailVerified": false,
+            "firstName": "",
+            "lastName": "",
+            "email": "",
+            "realmRoles": [
+              "offline_access",
+              "uma_authorization"
+            ],
+            "clientRoles": {
+              "account": [
+                "manage-account",
+                "view-profile"
+              ]
+            }
           }
         ],
         "clients": [
           {
             "name": "mobile",
-            "clientType": "public",
-            "config": {
-              "webOrigins": "*"
-            },
-            "outputSecret": "mobile"
-          },
+            "clientId": "mobile-test",
+            "publicClient": true,
+            "webOrigins": [
+              "http://localhost:8100",
+              "*"
+            ],
+            "redirectUris": [
+              "http://localhost:*"
+            ],
+            "standardFlowEnabled": true,
+            "enabled": true
+          }
+        ],
+        "identityProviders": [
           {
-            "name": "server",
-            "type": "bearer",
+            "alias": "github",
+            "providerId": "github",
+            "enabled": true,
+            "firstBrokerLoginFlowAlias": "first broker login",
             "config": {
-              "baseURL": "https://keycloak.com"
-            },
-            "outputSecret": "server"
+              "clientId": "test",
+              "clientSecret": "test",
+              "useJwksUrl": "true",
+              "disableUserInfo": "",
+              "hideOnLoginPage": ""
+            }
           }
         ]
       }

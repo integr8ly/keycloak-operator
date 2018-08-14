@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -16,6 +15,9 @@ import (
 	"crypto/tls"
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"strconv"
+	"bytes"
+	"fmt"
 )
 
 var (
@@ -48,50 +50,157 @@ type TokenResponse struct {
 	ErrorDescription string `json:"error_description"`
 }
 
-func (c *Client) ListRealms() (map[string]*v1alpha1.KeycloakRealm, error) {
+func (c *Client) ListRealms() ([]*v1alpha1.KeycloakRealm, error) {
 
 	req, err := http.NewRequest(
 		"GET",
-		c.URL+"/admin/realms",
+		fmt.Sprintf("%s/auth/admin/realms", c.URL),
 		nil,
 	)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Authorization", "Bearer "+c.token)
+	req.Header.Add("Authorization", "Bearer " + c.token)
 	res, err := c.Requester.Do(req)
+	logrus.Debugf("response:", res)
 	if err != nil {
-		logrus.Infof("error on request %+v", err)
+		logrus.Errorf("error on request %+v", err)
 		return nil, errors.Wrap(err, "error performing realms list request")
 	}
-	logrus.Infof(c.token)
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		return nil, errors.New("failed to list realms: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		logrus.Infof("error reading response %+v", err)
+		logrus.Errorf("error reading response %+v", err)
 		return nil, errors.Wrap(err, "error reading realms list response")
 	}
 
-	logrus.Infof("realms list: %+v\n", string(body))
-	// err = json.Unmarshal(body, tokenRes)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "error parsing realms list response")
-	// }
+	logrus.Debugf("realms list: %+v\n", string(body))
 
-	return map[string]*v1alpha1.KeycloakRealm{}, nil
+	var realms []*v1alpha1.KeycloakRealm
+	err = json.Unmarshal(body, &realms)
+
+	if err != nil {
+		logrus.Error(err)
+	}
+	logrus.Debugf("realms = %#v", realms)
+
+	return realms, err
 }
 
-func (c *Client) GetRealm(name string) (*v1alpha1.KeycloakRealm, error) {
-	return &v1alpha1.KeycloakRealm{}, nil
-}
+func (c *Client) CreateRealm(realm *v1alpha1.KeycloakRealm) error {
+	jsonValue, err := json.Marshal(realm)
+	if err != nil {
+		return nil
+	}
 
-func (c *Client) UpdateRealm(realm *v1alpha1.KeycloakRealm) error {
+	logrus.Debugf("creating realm, %v, %v", realm, string(jsonValue))
+
+	req, err := http.NewRequest(
+		"POST",
+		fmt.Sprintf("%s/auth/admin/realms/", c.URL),
+		bytes.NewBuffer(jsonValue),
+	)
+	if err != nil {
+		logrus.Errorf("error creating request %+v", err)
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer " + c.token)
+	res, err := c.Requester.Do(req)
+
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return err
+	}
+
+	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
+	if res.StatusCode != 201 {
+		return errors.New("failed to create realm: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	logrus.Debugf("response:", res)
+
 	return nil
 }
 
-func (c *Client) DeleteRealm(name string) error {
+func (c *Client) GetRealm(name string) (*v1alpha1.KeycloakRealm, error) {
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s/auth/admin/realms/%s", c.URL, name),
+		nil,
+	)
+	if err != nil {
+		logrus.Errorf("error creating request %+v", err)
+		return nil, err
+	}
+	req.Header.Add("Authorization", "Bearer " + c.token)
+	res, err := c.Requester.Do(req)
+
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return nil, err
+	}
+
+	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
+	if res.StatusCode != 200 {
+		return nil, errors.New("failed to get realm: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logrus.Errorf("error reading response %+v", err)
+		return nil, errors.Wrap(err, "error reading realms list response")
+	}
+
+	logrus.Debugf("realm: %+v\n", string(body))
+
+	var realm *v1alpha1.KeycloakRealm
+	err = json.Unmarshal(body, &realm)
+
+	if err != nil {
+		logrus.Error(err)
+	}
+	logrus.Debugf("realm = %#v", realm)
+
+
+	return realm, nil
+}
+
+func (c *Client) UpdateRealm(realm *v1alpha1.KeycloakRealm) error {
+	jsonValue, err := json.Marshal(realm)
+	if err != nil {
+		return nil
+	}
+
+	logrus.Debugf("updating realm, %v, %v", realm, string(jsonValue))
+
+	req, err := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("%s/auth/admin/realms/%s", c.URL, realm.ID),
+		bytes.NewBuffer(jsonValue),
+	)
+	if err != nil {
+		logrus.Errorf("error creating request %+v", err)
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer " + c.token)
+	res, err := c.Requester.Do(req)
+
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return err
+	}
+
+	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return errors.New("failed to update realm: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	logrus.Debugf("response:", res)
+
 	return nil
 }
 
@@ -115,12 +224,12 @@ func (c *Client) login(user, pass string) error {
 	res, err := c.Requester.Do(req)
 
 	if err != nil {
-		logrus.Infof("error on request %+v", err)
+		logrus.Errorf("error on request %+v", err)
 		return errors.Wrap(err, "error performing token request")
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		logrus.Infof("error reading response %+v", err)
+		logrus.Errorf("error reading response %+v", err)
 		return errors.Wrap(err, "error reading token response")
 	}
 	tokenRes := &TokenResponse{}
@@ -131,7 +240,7 @@ func (c *Client) login(user, pass string) error {
 	}
 
 	if tokenRes.Error != "" {
-		logrus.Infof("error with request: " + tokenRes.ErrorDescription)
+		logrus.Errorf("error with request: " + tokenRes.ErrorDescription)
 		return errors.New(tokenRes.ErrorDescription)
 	}
 
@@ -147,10 +256,10 @@ func defaultRequester() requester {
 }
 
 type KeycloakInterface interface {
-	ListRealms() (map[string]*v1alpha1.KeycloakRealm, error)
+	ListRealms() ([]*v1alpha1.KeycloakRealm, error)
 	GetRealm(realmName string) (*v1alpha1.KeycloakRealm, error)
+	CreateRealm(realm *v1alpha1.KeycloakRealm) error
 	UpdateRealm(realm *v1alpha1.KeycloakRealm) error
-	DeleteRealm(realmName string) error
 }
 
 type KeycloakClientFactory interface {
@@ -165,7 +274,6 @@ func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak, user, pass,
 		URL:       url,
 		Requester: defaultRequester(),
 	}
-	logrus.Infof("going to login")
 	client.login(user, pass)
 
 	return client, nil

@@ -234,20 +234,25 @@ func (h *Handler) reconcileClients(kc *v1alpha1.Keycloak, kcClient KeycloakInter
 	kcRealms := map[string]*v1alpha1.KeycloakRealm{
 		"master": &v1alpha1.KeycloakRealm{
 			Name:    "master",
-			Clients: map[string]*v1alpha1.Client{},
+			Clients: []v1alpha1.Client{},
 		},
 	}
 
 	for _, realm := range kcRealms {
-		kcClients, err := kcClient.ListClients(realm.Name)
+		clients, err := kcClient.ListClients(realm.Name)
 		if err != nil {
 			return err
+		}
+
+		kcClients := map[string]*v1alpha1.Client{}
+		for i := 0; i < len(clients); i++ {
+			kcClients[clients[i].ClientID] = &clients[i]
 		}
 
 		clientPairsList := map[string]*v1alpha1.ClientPair{}
 		for _, client := range kcRealms["master"].Clients {
 			clientPairsList[client.ClientID] = &v1alpha1.ClientPair{
-				ObjClient: client,
+				ObjClient: &client,
 				KcClient:  kcClients[client.ClientID],
 			}
 			delete(kcClients, client.ClientID)

@@ -227,17 +227,9 @@ func (in *KeycloakRealm) DeepCopyInto(out *KeycloakRealm) {
 	}
 	if in.Clients != nil {
 		in, out := &in.Clients, &out.Clients
-		*out = make(map[string]*Client, len(*in))
-		for key, val := range *in {
-			var outVal *Client
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				in, out := &val, &outVal
-				*out = new(Client)
-				(*in).DeepCopyInto(*out)
-			}
-			(*out)[key] = outVal
+		*out = make([]Client, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.IdentityProviders != nil {

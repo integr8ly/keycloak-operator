@@ -356,7 +356,7 @@ func (c *Client) UpdateClient(kcClient, objClient v1alpha1.Client, realmName str
 	return nil
 }
 
-func (c *Client) ListClients(realmName string) (map[string]*v1alpha1.Client, error) {
+func (c *Client) ListClients(realmName string) ([]v1alpha1.Client, error) {
 	req, err := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s/auth/admin/realms/%s/clients", c.URL, realmName),
@@ -388,12 +388,7 @@ func (c *Client) ListClients(realmName string) (map[string]*v1alpha1.Client, err
 		return nil, errors.Wrap(err, "failed to unmarshal clients list")
 	}
 
-	clientMap := map[string]*v1alpha1.Client{}
-	for i := 0; i < len(clients); i++ {
-		clientMap[clients[i].ClientID] = &clients[i]
-	}
-
-	return clientMap, nil
+	return clients, nil
 }
 
 func defaultRequester() Requester {
@@ -415,7 +410,7 @@ type KeycloakInterface interface {
 	CreateClient(client v1alpha1.Client, realmName string) error
 	DeleteClient(clientId, realmName string) error
 	UpdateClient(kcClient, objClient v1alpha1.Client, realmName string) error
-	ListClients(realmName string) (map[string]*v1alpha1.Client, error)
+	ListClients(realmName string) ([]v1alpha1.Client, error)
 }
 
 type KeycloakClientFactory interface {

@@ -221,18 +221,18 @@ func (c *Client) login(user, pass string) error {
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	res, err := c.requester.Do(req)
-
 	if err != nil {
 		logrus.Errorf("error on request %+v", err)
 		return errors.Wrap(err, "error performing token request")
 	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		logrus.Errorf("error reading response %+v", err)
 		return errors.Wrap(err, "error reading token response")
 	}
-	tokenRes := &v1alpha1.TokenResponse{}
 
+	tokenRes := &v1alpha1.TokenResponse{}
 	err = json.Unmarshal(body, tokenRes)
 	if err != nil {
 		return errors.Wrap(err, "error parsing token response")
@@ -261,18 +261,32 @@ func (c *Client) GetClient(clientId string, realmName string) (*v1alpha1.Client,
 	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.requester.Do(req)
 	if err != nil {
-		logrus.Infof("error on request %+v", err)
+		logrus.Errorf("error on request %+v", err)
 		return nil, errors.Wrap(err, "error performing create client request")
 	}
 
 	if res.StatusCode != 200 {
+		logrus.Errorf("error reading response %+v", err)
 		return nil, errors.New("failed to get client: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
 	}
 
-	return nil, nil
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logrus.Errorf("error reading response %+v", err)
+		return nil, errors.Wrap(err, "error reading get client response")
+	}
+
+	var client *v1alpha1.Client
+	err = json.Unmarshal(body, &client)
+	if err != nil {
+		logrus.Errorf("failed to unmarshal client %+v", err)
+		return nil, errors.Wrap(err, "failed to unmarshal client")
+	}
+
+	return client, nil
 }
 
-func (c *Client) CreateClient(client v1alpha1.Client, realmName string) error {
+func (c *Client) CreateClient(client *v1alpha1.Client, realmName string) error {
 	body, err := json.Marshal(client)
 	if err != nil {
 		return nil
@@ -291,7 +305,7 @@ func (c *Client) CreateClient(client v1alpha1.Client, realmName string) error {
 	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.requester.Do(req)
 	if err != nil {
-		logrus.Infof("error on request %+v", err)
+		logrus.Errorf("error on request %+v", err)
 		return errors.Wrap(err, "error performing create client request")
 	}
 
@@ -315,7 +329,7 @@ func (c *Client) DeleteClient(clientId string, realmName string) error {
 	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.requester.Do(req)
 	if err != nil {
-		logrus.Infof("error on request %+v", err)
+		logrus.Errorf("error on request %+v", err)
 		return errors.Wrap(err, "error performing delete client request")
 	}
 
@@ -326,7 +340,7 @@ func (c *Client) DeleteClient(clientId string, realmName string) error {
 	return nil
 }
 
-func (c *Client) UpdateClient(kcClient, objClient v1alpha1.Client, realmName string) error {
+func (c *Client) UpdateClient(kcClient, objClient *v1alpha1.Client, realmName string) error {
 	body, err := json.Marshal(objClient)
 	if err != nil {
 		return nil
@@ -345,7 +359,7 @@ func (c *Client) UpdateClient(kcClient, objClient v1alpha1.Client, realmName str
 	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.requester.Do(req)
 	if err != nil {
-		logrus.Infof("error on request %+v", err)
+		logrus.Errorf("error on request %+v", err)
 		return errors.Wrap(err, "error performing create client request")
 	}
 
@@ -356,7 +370,7 @@ func (c *Client) UpdateClient(kcClient, objClient v1alpha1.Client, realmName str
 	return nil
 }
 
-func (c *Client) ListClients(realmName string) ([]v1alpha1.Client, error) {
+func (c *Client) ListClients(realmName string) ([]*v1alpha1.Client, error) {
 	req, err := http.NewRequest(
 		"GET",
 		fmt.Sprintf("%s/auth/admin/realms/%s/clients", c.URL, realmName),
@@ -369,7 +383,7 @@ func (c *Client) ListClients(realmName string) ([]v1alpha1.Client, error) {
 	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.requester.Do(req)
 	if err != nil {
-		logrus.Infof("error on request %+v", err)
+		logrus.Errorf("error on request %+v", err)
 		return nil, errors.Wrap(err, "error performing clients list request")
 	}
 
@@ -379,11 +393,11 @@ func (c *Client) ListClients(realmName string) ([]v1alpha1.Client, error) {
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		logrus.Infof("error reading response %+v", err)
+		logrus.Errorf("error reading response %+v", err)
 		return nil, errors.Wrap(err, "error reading realms list response")
 	}
 
-	clients := []v1alpha1.Client{}
+	clients := []*v1alpha1.Client{}
 	if err := json.Unmarshal(body, &clients); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal clients list")
 	}
@@ -407,10 +421,10 @@ type KeycloakInterface interface {
 	DeleteRealm(realmName string) error
 
 	GetClient(clientId, realmName string) (*v1alpha1.Client, error)
-	CreateClient(client v1alpha1.Client, realmName string) error
+	CreateClient(client *v1alpha1.Client, realmName string) error
 	DeleteClient(clientId, realmName string) error
-	UpdateClient(kcClient, objClient v1alpha1.Client, realmName string) error
-	ListClients(realmName string) ([]v1alpha1.Client, error)
+	UpdateClient(kcClient, objClient *v1alpha1.Client, realmName string) error
+	ListClients(realmName string) ([]*v1alpha1.Client, error)
 }
 
 type KeycloakClientFactory interface {

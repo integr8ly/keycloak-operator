@@ -31,6 +31,20 @@
                 "view-profile"
               ]
             }
+          },
+          {
+            "username": "test",
+            "enabled": true,
+            "realmRoles": [
+              "offline_access",
+              "uma_authorization"
+            ],
+            "clientRoles": {
+              "account": [
+                "manage-account",
+                "view-profile"
+              ]
+            }
           }
         ],
         "clients": [
@@ -45,6 +59,14 @@
             "redirectUris": [
               "http://localhost:*"
             ],
+            "standardFlowEnabled": true,
+            "enabled": true
+          },
+          {
+            "name": "server",
+            "clientId": "server-test",
+            "bearerOnly": true,
+            "baseURL": "https://keycloak.com",
             "standardFlowEnabled": true,
             "enabled": true
           }

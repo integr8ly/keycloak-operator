@@ -32,7 +32,7 @@ spec:
                   realm:
                     type: string
                   enabled:
-                    type: bool
+                    type: boolean
                   displayName:
                     type: string
                   identityProviders:
@@ -49,19 +49,19 @@ spec:
                         providerId:
                           type: string
                         enabled:
-                          type: bool
+                          type: boolean
                         trustEmail:
-                          type: bool
+                          type: boolean
                         storeToken:
-                          type: bool
+                          type: boolean
                         addReadTokenRoleOnCreate:
-                          type: bool
+                          type: boolean
                         firstBrokerLoginFlowAlias:
                           type: string
                         postBrokerLoginFlowAlias:
                           type: string
                         config:
-                          type: map
+                          type: object
                   users:
                     type: array
                     items:
@@ -76,15 +76,15 @@ spec:
                         email:
                           type: string
                         emailVerified:
-                          type: bool
+                          type: boolean
                         enabled:
-                          type: bool
+                          type: boolean
                         realmRoles:
                           type: array
                           items:
                             type: string
                         clientRoles:
-                          type: map
+                          type: object
                         requiredActions:
                           type: array
                           items:

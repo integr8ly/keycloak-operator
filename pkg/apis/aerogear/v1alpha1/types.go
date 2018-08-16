@@ -119,6 +119,22 @@ type KeycloakClient struct {
 	UseTemplateMappers        bool                     `json:"useTemplateMappers,omitempty"`
 	Access                    map[string]string        `json:"access,omitempty"`
 }
+type KeycloakClientPair struct {
+	KcClient  *KeycloakClient
+	ObjClient *KeycloakClient
+}
+
+type TokenResponse struct {
+	AccessToken      string `json:"access_token"`
+	ExpiresIn        int    `json:"expires_in"`
+	RefreshExpiresIn int    `json:"refresh_expires_in"`
+	RefreshToken     string `json:"refresh_token"`
+	TokenType        string `json:"token_type"`
+	NotBeforePolicy  int    `json:"not-before-policy"`
+	SessionState     string `json:"session_state"`
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+}
 
 type GenericStatus struct {
 	Phase    StatusPhase `json:"phase"`
@@ -148,79 +164,3 @@ var (
 	PhaseCredentialsPending StatusPhase = "credentialsPending"
 	PhaseCredentialsCreated StatusPhase = "credentialsCreated"
 )
-
-type TokenResponse struct {
-	AccessToken      string `json:"access_token"`
-	ExpiresIn        int    `json:"expires_in"`
-	RefreshExpiresIn int    `json:"refresh_expires_in"`
-	RefreshToken     string `json:"refresh_token"`
-	TokenType        string `json:"token_type"`
-	NotBeforePolicy  int    `json:"not-before-policy"`
-	SessionState     string `json:"session_state"`
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-}
-
-type Attributes struct {
-}
-
-type Config struct {
-	UserinfoTokenClaim string `json:"userinfo.token.claim"`
-	UserAttribute      string `json:"user.attribute"`
-	IDTokenClaim       string `json:"id.token.claim"`
-	AccessTokenClaim   string `json:"access.token.claim"`
-	ClaimName          string `json:"claim.name"`
-	JSONTypeLabel      string `json:"jsonType.label"`
-}
-
-type ProtocolMapper struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Protocol        string `json:"protocol"`
-	ProtocolMapper  string `json:"protocolMapper"`
-	ConsentRequired bool   `json:"consentRequired"`
-	ConsentText     string `json:"consentText,omitempty"`
-	Config          Config `json:"config"`
-}
-
-type Access struct {
-	View      bool `json:"view"`
-	Configure bool `json:"configure"`
-	Manage    bool `json:"manage"`
-}
-
-type Client struct {
-	ID                        string           `json:"id"`
-	ClientID                  string           `json:"clientId"`
-	Name                      string           `json:"name"`
-	BaseURL                   string           `json:"baseUrl,omitempty"`
-	SurrogateAuthRequired     bool             `json:"surrogateAuthRequired"`
-	Enabled                   bool             `json:"enabled"`
-	ClientAuthenticatorType   string           `json:"clientAuthenticatorType"`
-	DefaultRoles              []string         `json:"defaultRoles,omitempty"`
-	RedirectUris              []string         `json:"redirectUris"`
-	WebOrigins                []string         `json:"webOrigins"`
-	NotBefore                 int              `json:"notBefore"`
-	BearerOnly                bool             `json:"bearerOnly"`
-	ConsentRequired           bool             `json:"consentRequired"`
-	StandardFlowEnabled       bool             `json:"standardFlowEnabled"`
-	ImplicitFlowEnabled       bool             `json:"implicitFlowEnabled"`
-	DirectAccessGrantsEnabled bool             `json:"directAccessGrantsEnabled"`
-	ServiceAccountsEnabled    bool             `json:"serviceAccountsEnabled"`
-	PublicClient              bool             `json:"publicClient"`
-	FrontchannelLogout        bool             `json:"frontchannelLogout"`
-	Protocol                  string           `json:"protocol,omitempty"`
-	Attributes                Attributes       `json:"attributes"`
-	FullScopeAllowed          bool             `json:"fullScopeAllowed"`
-	NodeReRegistrationTimeout int              `json:"nodeReRegistrationTimeout"`
-	ProtocolMappers           []ProtocolMapper `json:"protocolMappers"`
-	UseTemplateConfig         bool             `json:"useTemplateConfig"`
-	UseTemplateScope          bool             `json:"useTemplateScope"`
-	UseTemplateMappers        bool             `json:"useTemplateMappers"`
-	Access                    Access           `json:"access"`
-}
-
-type ClientPair struct {
-	KcClient  *Client
-	ObjClient *Client
-}

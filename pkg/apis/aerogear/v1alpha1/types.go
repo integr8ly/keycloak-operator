@@ -12,6 +12,12 @@ const (
 	KeycloakFinalizer = "finalizer.org.aerogear.keycloak"
 )
 
+type Config struct {
+	ResyncPeriod  int
+	LogLevel      string
+	SyncResources bool
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type KeycloakList struct {

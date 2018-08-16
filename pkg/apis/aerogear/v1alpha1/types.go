@@ -117,7 +117,7 @@ type KeycloakClient struct {
 	UseTemplateConfig         bool                     `json:"useTemplateConfig,omitempty"`
 	UseTemplateScope          bool                     `json:"useTemplateScope,omitempty"`
 	UseTemplateMappers        bool                     `json:"useTemplateMappers,omitempty"`
-	Access                    map[string]string        `json:"access,omitempty"`
+	Access                    map[string]bool          `json:"access,omitempty"`
 }
 type KeycloakClientPair struct {
 	KcClient  *KeycloakClient

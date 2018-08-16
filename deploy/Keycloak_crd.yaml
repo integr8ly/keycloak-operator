@@ -27,19 +27,41 @@ spec:
               items:
                 type: object
                 properties:
-                  name:
+                  id:
                     type: string
-                  authTypes:
+                  realm:
+                    type: string
+                  enabled:
+                    type: boolean
+                  displayName:
+                    type: string
+                  identityProviders:
                     type: array
                     items:
                       type: object
                       properties:
-                        provider:
+                        alias:
                           type: string
-                        clientID:
+                        displayName:
                           type: string
-                        outputSecret:
+                        internalId:
                           type: string
+                        providerId:
+                          type: string
+                        enabled:
+                          type: boolean
+                        trustEmail:
+                          type: boolean
+                        storeToken:
+                          type: boolean
+                        addReadTokenRoleOnCreate:
+                          type: boolean
+                        firstBrokerLoginFlowAlias:
+                          type: string
+                        postBrokerLoginFlowAlias:
+                          type: string
+                        config:
+                          type: object
                   users:
                     type: array
                     items:
@@ -47,9 +69,27 @@ spec:
                       properties:
                         username:
                           type: string
-                        outputSecret:
+                        firstName:
                           type: string
-                        roles:
+                        lastName:
+                          type: string
+                        email:
+                          type: string
+                        emailVerified:
+                          type: boolean
+                        enabled:
+                          type: boolean
+                        realmRoles:
+                          type: array
+                          items:
+                            type: string
+                        clientRoles:
+                          type: object
+                        requiredActions:
+                          type: array
+                          items:
+                            type: string
+                        groups:
                           type: array
                           items:
                             type: string

@@ -52,9 +52,17 @@ func NewHandler(kcClientFactory KeycloakClientFactory, svcCatalog scclientset.In
 }
 
 func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
+	logrus.Debug("handling object ", event.Object.GetObjectKind().GroupVersionKind().String())
+
 	kc := event.Object.(*v1alpha1.Keycloak)
 	kcCopy := kc.DeepCopy()
 	namespace := kc.ObjectMeta.Namespace
+
+	logrus.Debugf("Keycloak: %v, Phase: %v", kc.Name, kc.Status.Phase)
+
+	if event.Deleted {
+		return nil
+	}
 
 	if kc.GetDeletionTimestamp() != nil && (kc.Status.Phase != v1alpha1.PhaseDeprovisioning && kc.Status.Phase != v1alpha1.PhaseDeprovisioned && kc.Status.Phase != v1alpha1.PhaseDeprovisionFailed) {
 		kcCopy.Status.Phase = v1alpha1.PhaseDeprovisioning
@@ -63,12 +71,9 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		return sdk.Update(kcCopy)
 	}
 
-	logrus.Infof("phase: %v\n", kc.Status.Phase)
-
 	switch kc.Status.Phase {
 	case v1alpha1.NoPhase:
-		kcCopy.Status.Phase = v1alpha1.PhaseAccepted
-		kcCopy.Status.Ready = false
+		return h.initKeycloak(kcCopy)
 
 	case v1alpha1.PhaseAccepted:
 		if kc.Spec.AdminCredentials == "" {
@@ -157,8 +162,13 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 
 			labelSelector := fmt.Sprintf("serviceInstanceID=%s,serviceType=%s", kc.Spec.InstanceUID, "keycloak")
 			secretList, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
-			if err != nil || len(secretList.Items) == 0 {
+			if err != nil {
 				return errors.Wrap(err, "error reading admin credentials")
+			}
+
+			if len(secretList.Items) == 0 {
+				logrus.Debug("keycloak service credentials not found")
+				return nil
 			}
 
 			adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
@@ -217,7 +227,7 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 }
 
 func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
-	logrus.Infof("reconciling resources")
+	logrus.Debug("reconciling resources")
 	adminCreds, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrap(err, "failed to get the admin credentials")
@@ -225,7 +235,7 @@ func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
 	user := string(adminCreds.Data["ADMIN_USERNAME"])
 	pass := string(adminCreds.Data["ADMIN_PASSWORD"])
 	url := string(adminCreds.Data["ADMIN_URL"])
-	logrus.Infof("getting authenticated client for (user: %s, pass: %s, url: %s", user, pass, url)
+	logrus.Debugf("getting authenticated client for (user: %s, pass: %s, url: %s", user, pass, url)
 	kcClient, err := h.kcClientFactory.AuthenticatedClient(*kc, user, pass, url)
 	if err != nil {
 		return errors.Wrap(err, "failed to get authenticated client for keycloak")
@@ -329,7 +339,7 @@ func (h *Handler) deleteKeycloak(kc *v1alpha1.Keycloak) error {
 	namespace := kc.ObjectMeta.Namespace
 
 	// Delete keycloak instance
-	err := h.serviceCatalogClient.Servicecatalog().ServiceInstances(namespace).Delete(kc.Spec.InstanceUID, &metav1.DeleteOptions{})
+	err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Delete(kc.Spec.InstanceName, &metav1.DeleteOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
 		return errors.Wrap(err, "failed to delete service instance")
 	}
@@ -344,38 +354,60 @@ func (h *Handler) deleteKeycloak(kc *v1alpha1.Keycloak) error {
 }
 
 func (h *Handler) reconcileRealms(kc *v1alpha1.Keycloak, kcClient KeycloakInterface) error {
-	RealmPairsList := map[string]*KeycloakRealmPair{}
+	logrus.Debugf("reconcile realms, keycloak: %v", kc.Name)
+	realmPairsList := map[string]*KeycloakRealmPair{}
 
+	objRealms := kc.Spec.Realms
 	kcRealms, err := kcClient.ListRealms()
 	if err != nil {
 		return errors.Wrap(err, "error retrieving realms from keycloak")
 	}
 
-	for _, realm := range kc.Spec.Realms {
-		RealmPairsList[realm.Name] = &KeycloakRealmPair{
+	logrus.Debugf("kc realms: %#v, total: %v", kcRealms, len(kcRealms))
+	logrus.Debugf("obj realms: %#v, total: %v", objRealms, len(objRealms))
+
+	kcRealmMap := map[string]*v1alpha1.KeycloakRealm{}
+	for i := 0; i < len(kcRealms); i++ {
+		logrus.Debugf("kc realm %+v", kcRealms[i])
+		kcRealmMap[kcRealms[i].ID] = kcRealms[i]
+	}
+
+	for _, realm := range objRealms {
+		logrus.Debugf("obj realm %+v", realm)
+		realmPairsList[realm.ID] = &KeycloakRealmPair{
 			ObjRealm: &realm,
-			KcRealm:  kcRealms[realm.Name],
-		}
-		delete(kcRealms, realm.Name)
-	}
-
-	for _, realm := range kcRealms {
-		RealmPairsList[realm.Name] = &KeycloakRealmPair{
-			KcRealm:  realm,
-			ObjRealm: nil,
+			KcRealm:  kcRealmMap[realm.ID],
 		}
 	}
 
-	for name, realmPair := range RealmPairsList {
+	for name, realmPair := range realmPairsList {
 		err = h.reconcileRealm(realmPair.KcRealm, realmPair.ObjRealm, kcClient)
+		//This should try and reconcile all realms rather throwing an error on the first failure
 		if err != nil {
-			return errors.Wrap(err, "error reconciling realm "+name)
+			return errors.Wrapf(err, "error reconciling realm: %v", name)
 		}
 	}
 	return nil
 }
 
 func (h *Handler) reconcileRealm(kcRealm, objRealm *v1alpha1.KeycloakRealm, kcClient KeycloakInterface) error {
+	logrus.Debugf("reconcileRealm kc realm: %#v, obj realm: %#v", kcRealm, objRealm)
+
+	if kcRealm == nil {
+		logrus.Infof("creating new realm: %v", objRealm.ID)
+		err := kcClient.CreateRealm(objRealm)
+		if err != nil {
+			return errors.Wrap(err, "error creating keycloak realm")
+		}
+	} else {
+		logrus.Debugf("sync realm, expected %#v, actual %#v", objRealm, kcRealm)
+		if !reflect.DeepEqual(kcRealm, objRealm) {
+			err := kcClient.UpdateRealm(objRealm)
+			if err != nil {
+				return errors.Wrap(err, "error updating keycloak realm")
+			}
+		}
+	}
 
 	return nil
 }
@@ -385,6 +417,19 @@ func (h *Handler) reconcileClient(ctx context.Context, wg *sync.WaitGroup, clien
 }
 
 func (h *Handler) reconcileUser(ctx context.Context, wg *sync.WaitGroup, userDef v1alpha1.KeycloakUser, authenticatedClient KeycloakInterface) error {
+	return nil
+}
+
+func (sh *Handler) initKeycloak(kc *v1alpha1.Keycloak) error {
+	logrus.Infof("initialise keycloak: %v", kc)
+	sc.AddFinalizer(kc, v1alpha1.KeycloakFinalizer)
+	kc.Status.Phase = v1alpha1.PhaseAccepted
+	kc.Status.Ready = false
+	err := sdk.Update(kc)
+	if err != nil {
+		logrus.Errorf("error initialising resource: %v", err)
+		return err
+	}
 	return nil
 }
 

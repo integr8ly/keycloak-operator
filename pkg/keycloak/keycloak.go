@@ -455,15 +455,6 @@ func (h *Handler) reconcileUsers(kc *v1alpha1.Keycloak, kcClient KeycloakInterfa
 			ObjUser: &user,
 			KcUser:  kcUsers[user.UserName],
 		}
-		delete(kcUsers, user.UserName)
-	}
-
-	for i := range kcUsers {
-		user := kcUsers[i]
-		userPairsList[user.UserName] = &v1alpha1.KeycloakUserPair{
-			KcUser:  user,
-			ObjUser: nil,
-		}
 	}
 
 	for _, userPair := range userPairsList {
@@ -542,13 +533,7 @@ func isDefaultClient(clientName string) bool {
 }
 
 func (h *Handler) reconcileUser(kcUser, objUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient KeycloakInterface) error {
-	if objUser == nil {
-		logrus.Debugf("Deleting user %s, %s in realm: %s", kcUser.ID, kcUser.UserName, realmName)
-		err := authenticatedClient.DeleteUser(kcUser.ID, realmName)
-		if err != nil {
-			return err
-		}
-	} else if kcUser == nil {
+	if kcUser == nil {
 		logrus.Debugf("Creating user %s, %s in realm: %s", objUser.ID, objUser.UserName, realmName)
 		err := authenticatedClient.CreateUser(objUser, realmName)
 		if err != nil {

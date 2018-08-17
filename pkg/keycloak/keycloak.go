@@ -454,11 +454,11 @@ func (h *Handler) reconcileRealm(kc *v1alpha1.Keycloak, kcRealm, objRealm *v1alp
 					return errors.Wrap(err, "error updating keycloak realm")
 				}
 			}
-		}
 
-		h.reconcileClients(kc, kcClient, objRealm)
-		// h.reconcileUsers(kc, kcClient, kcRealm)
-		// h.reconcileIdentityProviders(kc, kcClient, kcRealm)
+			h.reconcileClients(kc, kcClient, objRealm)
+			// h.reconcileUsers(kc, kcClient, kcRealm)
+			// h.reconcileIdentityProviders(kc, kcClient, kcRealm)
+		}
 	}
 
 	return nil

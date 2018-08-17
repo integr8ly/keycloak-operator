@@ -85,6 +85,11 @@ type KeycloakUser struct {
 	Groups          []string            `json:"groups,omitempty"`
 }
 
+type KeycloakUserPair struct {
+	KcUser  *KeycloakUser
+	ObjUser *KeycloakUser
+}
+
 type KeycloakProtocolMapper struct {
 	ID              string            `json:"id,omitempty"`
 	Name            string            `json:"name,omitempty"`

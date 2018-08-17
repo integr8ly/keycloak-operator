@@ -385,7 +385,7 @@ func (c *Client) ListClients(realmName string) ([]*v1alpha1.KeycloakClient, erro
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		logrus.Errorf("error reading response %+v", err)
-		return nil, errors.Wrap(err, "error reading realms list response")
+		return nil, errors.Wrap(err, "error reading clients list response")
 	}
 
 	clients := []*v1alpha1.KeycloakClient{}
@@ -394,6 +394,125 @@ func (c *Client) ListClients(realmName string) ([]*v1alpha1.KeycloakClient, erro
 	}
 
 	return clients, nil
+}
+
+func (c *Client) CreateUser(user *v1alpha1.KeycloakUser, realmName string) error {
+	body, err := json.Marshal(user)
+	if err != nil {
+		return nil
+	}
+
+	req, err := http.NewRequest(
+		"POST",
+		fmt.Sprintf("%s/auth/admin/realms/%s/users", c.URL, realmName),
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return errors.Wrap(err, "error performing create user request")
+	}
+
+	if res.StatusCode < 201 || res.StatusCode > 409 {
+		return errors.New("failed to create user: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) DeleteUser(userId string, realmName string) error {
+	req, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, userId),
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return errors.Wrap(err, "error performing delete user request")
+	}
+
+	if res.StatusCode != 204 {
+		return errors.New("failed to delete user: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) UpdateUser(kcUser, objUser *v1alpha1.KeycloakUser, realmName string) error {
+	body, err := json.Marshal(objUser)
+	if err != nil {
+		return nil
+	}
+
+	req, err := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, kcUser.ID),
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return errors.Wrap(err, "error performing create user request")
+	}
+
+	if res.StatusCode != 204 {
+		return errors.New("failed to update user: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error) {
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s/auth/admin/realms/%s/users", c.URL, realmName),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return nil, errors.Wrap(err, "error performing users list request")
+	}
+
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return nil, errors.New("failed to list users: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logrus.Errorf("error reading response %+v", err)
+		return nil, errors.Wrap(err, "error reading users list response")
+	}
+
+	users := []*v1alpha1.KeycloakUser{}
+	if err := json.Unmarshal(body, &users); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal users list")
+	}
+
+	return users, nil
 }
 
 func defaultRequester() Requester {
@@ -415,6 +534,11 @@ type KeycloakInterface interface {
 	DeleteClient(clientId, realmName string) error
 	UpdateClient(kcClient, objClient *v1alpha1.KeycloakClient, realmName string) error
 	ListClients(realmName string) ([]*v1alpha1.KeycloakClient, error)
+
+	CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
+	DeleteUser(userID, realmName string) error
+	UpdateUser(kcUser, objUser *v1alpha1.KeycloakUser, realmName string) error
+	ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error)
 }
 
 type KeycloakClientFactory interface {

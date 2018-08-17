@@ -35,6 +35,7 @@ type KeycloakRealmPair struct {
 }
 
 type Handler struct {
+	cfg                  v1alpha1.Config
 	k8sClient            kubernetes.Interface
 	kcClientFactory      KeycloakClientFactory
 	serviceCatalogClient scclientset.Interface
@@ -44,8 +45,9 @@ type ServiceClassExternalMetadata struct {
 	ServiceName string `json:"serviceName"`
 }
 
-func NewHandler(kcClientFactory KeycloakClientFactory, svcCatalog scclientset.Interface, k8sClient kubernetes.Interface) *Handler {
+func NewHandler(cfg v1alpha1.Config, kcClientFactory KeycloakClientFactory, svcCatalog scclientset.Interface, k8sClient kubernetes.Interface) *Handler {
 	return &Handler{
+		cfg:                  cfg,
 		kcClientFactory:      kcClientFactory,
 		serviceCatalogClient: svcCatalog,
 		k8sClient:            k8sClient,
@@ -444,11 +446,13 @@ func (h *Handler) reconcileRealm(kc *v1alpha1.Keycloak, kcRealm, objRealm *v1alp
 			return errors.Wrap(err, "error creating keycloak realm")
 		}
 	} else {
-		logrus.Debugf("sync realm, expected %#v, actual %#v", objRealm, kcRealm)
-		if !reflect.DeepEqual(kcRealm, objRealm) {
-			err := kcClient.UpdateRealm(objRealm)
-			if err != nil {
-				return errors.Wrap(err, "error updating keycloak realm")
+		if h.cfg.SyncResources {
+			logrus.Debugf("sync realm, expected %#v, actual %#v", objRealm, kcRealm)
+			if !reflect.DeepEqual(kcRealm, objRealm) {
+				err := kcClient.UpdateRealm(objRealm)
+				if err != nil {
+					return errors.Wrap(err, "error updating keycloak realm")
+				}
 			}
 		}
 
@@ -502,7 +506,7 @@ func (h *Handler) reconcileUser(ctx context.Context, wg *sync.WaitGroup, userDef
 }
 
 func (sh *Handler) initKeycloak(kc *v1alpha1.Keycloak) error {
-	logrus.Infof("initialise keycloak: %v", kc)
+	logrus.Infof("initialise keycloak: %v", kc.Name)
 	sc.AddFinalizer(kc, v1alpha1.KeycloakFinalizer)
 	kc.Status.Phase = v1alpha1.PhaseAccepted
 	kc.Status.Ready = false
@@ -515,6 +519,7 @@ func (sh *Handler) initKeycloak(kc *v1alpha1.Keycloak) error {
 }
 
 func (sh *Handler) finalizeKeycloak(kc *v1alpha1.Keycloak) error {
+	logrus.Infof("finalise keycloak: %v", kc.Name)
 	sc.RemoveFinalizer(kc, v1alpha1.KeycloakFinalizer)
 	err := sdk.Update(kc)
 	if err != nil {

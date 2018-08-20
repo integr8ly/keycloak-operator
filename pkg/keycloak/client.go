@@ -50,7 +50,6 @@ func (c *Client) ListRealms() ([]*v1alpha1.KeycloakRealm, error) {
 
 	req.Header.Add("Authorization", "Bearer "+c.token)
 	res, err := c.requester.Do(req)
-	logrus.Debugf("response:", res)
 	if err != nil {
 		logrus.Errorf("error on request %+v", err)
 		return nil, errors.Wrap(err, "error performing realms list request")
@@ -66,15 +65,12 @@ func (c *Client) ListRealms() ([]*v1alpha1.KeycloakRealm, error) {
 		return nil, errors.Wrap(err, "error reading realms list response")
 	}
 
-	logrus.Debugf("realms list: %+v\n", string(body))
-
 	var realms []*v1alpha1.KeycloakRealm
 	err = json.Unmarshal(body, &realms)
 
 	if err != nil {
 		logrus.Error(err)
 	}
-	logrus.Debugf("realms = %#v", realms)
 
 	return realms, err
 }
@@ -164,8 +160,6 @@ func (c *Client) UpdateRealm(realm *v1alpha1.KeycloakRealm) error {
 		return nil
 	}
 
-	logrus.Debugf("updating realm, %v, %v", realm, string(jsonValue))
-
 	req, err := http.NewRequest(
 		"PUT",
 		fmt.Sprintf("%s/auth/admin/realms/%s", c.URL, realm.ID),
@@ -184,12 +178,10 @@ func (c *Client) UpdateRealm(realm *v1alpha1.KeycloakRealm) error {
 		return err
 	}
 
-	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode < 200 || res.StatusCode > 299 {
+		logrus.Errorf("failed to update realm %v", res.Status)
 		return errors.New("failed to update realm: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
 	}
-
-	logrus.Debugf("response:", res)
 
 	return nil
 }
@@ -515,6 +507,168 @@ func (c *Client) ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error) {
 	return users, nil
 }
 
+func (c *Client) CreateIdentityProvider(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
+	body, err := json.Marshal(identityProvider)
+	if err != nil {
+		return nil
+	}
+
+	req, err := http.NewRequest(
+		"POST",
+		fmt.Sprintf("%s/auth/admin/realms/%s/identity-provider/instances", c.URL, realmName),
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return errors.Wrap(err, "error performing create identity provider request")
+	}
+
+	if res.StatusCode != 201 {
+		logrus.Errorf("failed to create identity provider %+v", res)
+		return errors.New("failed to create identity provider: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) GetIdentityProvider(alias string, realmName string) (*v1alpha1.KeycloakIdentityProvider, error) {
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s/auth/admin/realms/%s/identity-provider/instances/%s", c.URL, realmName, alias),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return nil, errors.Wrap(err, "error performing create identity provider request")
+	}
+
+	if res.StatusCode != 200 {
+		logrus.Errorf("error reading response %+v", err)
+		return nil, errors.New("failed to get identity provider: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logrus.Errorf("error reading response %+v", err)
+		return nil, errors.Wrap(err, "error reading get identity provider response")
+	}
+
+	var identityProvider *v1alpha1.KeycloakIdentityProvider
+	err = json.Unmarshal(body, &identityProvider)
+	if err != nil {
+		logrus.Errorf("failed to unmarshal identity provider %+v", err)
+		return nil, errors.Wrap(err, "failed to unmarshal identity provider")
+	}
+
+	return identityProvider, nil
+}
+
+func (c *Client) UpdateIdentityProvider(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
+	body, err := json.Marshal(identityProvider)
+	if err != nil {
+		return nil
+	}
+
+	req, err := http.NewRequest(
+		"PUT",
+		fmt.Sprintf("%s/auth/admin/realms/%s/identity-provider/instances/%s", c.URL, realmName, identityProvider.Alias),
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return errors.Wrap(err, "error performing create identity provider request")
+	}
+
+	if res.StatusCode != 204 {
+		logrus.Errorf("failed to update identity provider :  %+v", res)
+		return errors.New("failed to update identity provider : " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	return nil
+}
+
+
+func (c *Client) DeleteIdentityProvider(alias string, realmName string) error {
+	req, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("%s/auth/admin/realms/%s/identity-provider/instances/%s", c.URL, realmName, alias),
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return errors.Wrap(err, "error performing delete identity provider request")
+	}
+
+	if res.StatusCode != 204 {
+		return errors.New("failed to delete identity provider: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error) {
+	req, err := http.NewRequest(
+		"GET",
+		fmt.Sprintf("%s/auth/admin/realms/%s/identity-provider/instances", c.URL, realmName),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+c.token)
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return nil, errors.Wrap(err, "error performing identity providers list request")
+	}
+
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return nil, errors.New("failed to list identity providers: " + " (" + strconv.Itoa(res.StatusCode) + ") " + res.Status)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logrus.Errorf("error reading response %+v", err)
+		return nil, errors.Wrap(err, "error reading identity providers list response")
+	}
+
+	identityProviders := []*v1alpha1.KeycloakIdentityProvider{}
+	if err := json.Unmarshal(body, &identityProviders); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal identity providers list")
+	}
+
+	return identityProviders, nil
+}
+
+
 func defaultRequester() Requester {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -539,6 +693,13 @@ type KeycloakInterface interface {
 	DeleteUser(userID, realmName string) error
 	UpdateUser(specUser *v1alpha1.KeycloakUser, realmName string) error
 	ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error)
+
+	CreateIdentityProvider(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error
+	GetIdentityProvider(alias, realmName string) (*v1alpha1.KeycloakIdentityProvider, error)
+	UpdateIdentityProvider(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error
+	DeleteIdentityProvider(alias, realmName string) error
+	ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error)
+}
 }
 
 type KeycloakClientFactory interface {

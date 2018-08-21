@@ -196,7 +196,10 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		}
 
 	case v1alpha1.PhaseComplete:
-		return h.reconcileResources(kcCopy)
+		err := h.reconcileResources(kcCopy)
+		if err != nil {
+			return errors.Wrap(err, "could not reconcile resources")
+		}
 
 	case v1alpha1.PhaseDeprovisioning:
 		err := h.deleteKeycloak(kcCopy)
@@ -511,7 +514,8 @@ func (h *Handler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient,
 	} else {
 		if !reflect.DeepEqual(kcClient, specClient) && !isDefaultClient(kcClient.ClientID) {
 			logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
-			err := authenticatedClient.UpdateClient(kcClient.ID, specClient, realmName)
+			specClient.ID = kcClient.ID
+			err := authenticatedClient.UpdateClient(specClient, realmName)
 			if err != nil {
 				return err
 			}
@@ -542,7 +546,8 @@ func (h *Handler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmNa
 	} else {
 		if !reflect.DeepEqual(kcUser, specUser) {
 			logrus.Debugf("Updating user %s, %s in realm: %s", kcUser.ID, kcUser.UserName, realmName)
-			err := authenticatedClient.UpdateUser(kcUser, specUser, realmName)
+			specUser.ID = kcUser.ID
+			err := authenticatedClient.UpdateUser(specUser, realmName)
 			if err != nil {
 				return err
 			}

@@ -331,15 +331,15 @@ func (c *Client) DeleteClient(clientID string, realmName string) error {
 	return nil
 }
 
-func (c *Client) UpdateClient(clientID string, objClient *v1alpha1.KeycloakClient, realmName string) error {
-	body, err := json.Marshal(objClient)
+func (c *Client) UpdateClient(specClient *v1alpha1.KeycloakClient, realmName string) error {
+	body, err := json.Marshal(specClient)
 	if err != nil {
 		return nil
 	}
 
 	req, err := http.NewRequest(
 		"PUT",
-		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientID),
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, specClient.ID),
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
@@ -450,15 +450,15 @@ func (c *Client) DeleteUser(userID string, realmName string) error {
 	return nil
 }
 
-func (c *Client) UpdateUser(userID, objUser *v1alpha1.KeycloakUser, realmName string) error {
-	body, err := json.Marshal(objUser)
+func (c *Client) UpdateUser(specUser *v1alpha1.KeycloakUser, realmName string) error {
+	body, err := json.Marshal(specUser)
 	if err != nil {
 		return nil
 	}
 
 	req, err := http.NewRequest(
 		"PUT",
-		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, userID),
+		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, specUser.ID),
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
@@ -532,12 +532,12 @@ type KeycloakInterface interface {
 	GetClient(clientID, realmName string) (*v1alpha1.KeycloakClient, error)
 	CreateClient(client *v1alpha1.KeycloakClient, realmName string) error
 	DeleteClient(clientID, realmName string) error
-	UpdateClient(clientID string, objClient *v1alpha1.KeycloakClient, realmName string) error
+	UpdateClient(specClient *v1alpha1.KeycloakClient, realmName string) error
 	ListClients(realmName string) ([]*v1alpha1.KeycloakClient, error)
 
 	CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
 	DeleteUser(userID, realmName string) error
-	UpdateUser(userID, objUser *v1alpha1.KeycloakUser, realmName string) error
+	UpdateUser(specUser *v1alpha1.KeycloakUser, realmName string) error
 	ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error)
 }
 

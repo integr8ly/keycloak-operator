@@ -239,10 +239,10 @@ func (c *Client) login(user, pass string) error {
 	return nil
 }
 
-func (c *Client) GetClient(clientId string, realmName string) (*v1alpha1.KeycloakClient, error) {
+func (c *Client) GetClient(clientID string, realmName string) (*v1alpha1.KeycloakClient, error) {
 	req, err := http.NewRequest(
 		"GET",
-		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientId),
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientID),
 		nil,
 	)
 	if err != nil {
@@ -307,10 +307,10 @@ func (c *Client) CreateClient(client *v1alpha1.KeycloakClient, realmName string)
 	return nil
 }
 
-func (c *Client) DeleteClient(clientId string, realmName string) error {
+func (c *Client) DeleteClient(clientID string, realmName string) error {
 	req, err := http.NewRequest(
 		"DELETE",
-		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientId),
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientID),
 		nil,
 	)
 	if err != nil {
@@ -331,7 +331,7 @@ func (c *Client) DeleteClient(clientId string, realmName string) error {
 	return nil
 }
 
-func (c *Client) UpdateClient(kcClient, objClient *v1alpha1.KeycloakClient, realmName string) error {
+func (c *Client) UpdateClient(clientID string, objClient *v1alpha1.KeycloakClient, realmName string) error {
 	body, err := json.Marshal(objClient)
 	if err != nil {
 		return nil
@@ -339,7 +339,7 @@ func (c *Client) UpdateClient(kcClient, objClient *v1alpha1.KeycloakClient, real
 
 	req, err := http.NewRequest(
 		"PUT",
-		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, kcClient.ID),
+		fmt.Sprintf("%s/auth/admin/realms/%s/clients/%s", c.URL, realmName, clientID),
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
@@ -426,10 +426,10 @@ func (c *Client) CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
 	return nil
 }
 
-func (c *Client) DeleteUser(userId string, realmName string) error {
+func (c *Client) DeleteUser(userID string, realmName string) error {
 	req, err := http.NewRequest(
 		"DELETE",
-		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, userId),
+		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, userID),
 		nil,
 	)
 	if err != nil {
@@ -450,7 +450,7 @@ func (c *Client) DeleteUser(userId string, realmName string) error {
 	return nil
 }
 
-func (c *Client) UpdateUser(kcUser, objUser *v1alpha1.KeycloakUser, realmName string) error {
+func (c *Client) UpdateUser(userID, objUser *v1alpha1.KeycloakUser, realmName string) error {
 	body, err := json.Marshal(objUser)
 	if err != nil {
 		return nil
@@ -458,7 +458,7 @@ func (c *Client) UpdateUser(kcUser, objUser *v1alpha1.KeycloakUser, realmName st
 
 	req, err := http.NewRequest(
 		"PUT",
-		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, kcUser.ID),
+		fmt.Sprintf("%s/auth/admin/realms/%s/users/%s", c.URL, realmName, userID),
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
@@ -529,15 +529,15 @@ type KeycloakInterface interface {
 	CreateRealm(realm *v1alpha1.KeycloakRealm) error
 	UpdateRealm(realm *v1alpha1.KeycloakRealm) error
 
-	GetClient(clientId, realmName string) (*v1alpha1.KeycloakClient, error)
+	GetClient(clientID, realmName string) (*v1alpha1.KeycloakClient, error)
 	CreateClient(client *v1alpha1.KeycloakClient, realmName string) error
-	DeleteClient(clientId, realmName string) error
-	UpdateClient(kcClient, objClient *v1alpha1.KeycloakClient, realmName string) error
+	DeleteClient(clientID, realmName string) error
+	UpdateClient(clientID string, objClient *v1alpha1.KeycloakClient, realmName string) error
 	ListClients(realmName string) ([]*v1alpha1.KeycloakClient, error)
 
 	CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
 	DeleteUser(userID, realmName string) error
-	UpdateUser(kcUser, objUser *v1alpha1.KeycloakUser, realmName string) error
+	UpdateUser(userID, objUser *v1alpha1.KeycloakUser, realmName string) error
 	ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error)
 }
 

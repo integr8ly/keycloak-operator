@@ -409,10 +409,10 @@ func (h *Handler) reconcileClients(kc *v1alpha1.Keycloak, kcClient KeycloakInter
 
 	clientPairsList := map[string]*v1alpha1.KeycloakClientPair{}
 	for i := range objRealm.Clients {
-		client := objRealm.Clients[i]
+		client := &objRealm.Clients[i]
 		clientPairsList[client.ClientID] = &v1alpha1.KeycloakClientPair{
-			ObjClient: &client,
-			KcClient:  kcClients[client.ClientID],
+			SpecClient: client,
+			KcClient:   kcClients[client.ClientID],
 		}
 		delete(kcClients, client.ClientID)
 	}
@@ -420,13 +420,13 @@ func (h *Handler) reconcileClients(kc *v1alpha1.Keycloak, kcClient KeycloakInter
 	for i := range kcClients {
 		client := kcClients[i]
 		clientPairsList[client.ClientID] = &v1alpha1.KeycloakClientPair{
-			KcClient:  client,
-			ObjClient: nil,
+			KcClient:   client,
+			SpecClient: nil,
 		}
 	}
 
-	for _, clientPair := range clientPairsList {
-		err := h.reconcileClient(clientPair.KcClient, clientPair.ObjClient, objRealm.Realm, kcClient)
+	for i := range clientPairsList {
+		err := h.reconcileClient(clientPairsList[i].KcClient, clientPairsList[i].SpecClient, objRealm.Realm, kcClient)
 		if err != nil {
 			return err
 		}
@@ -450,15 +450,15 @@ func (h *Handler) reconcileUsers(kc *v1alpha1.Keycloak, kcClient KeycloakInterfa
 
 	userPairsList := map[string]*v1alpha1.KeycloakUserPair{}
 	for i := range objRealm.Users {
-		user := objRealm.Users[i]
+		user := &objRealm.Users[i]
 		userPairsList[user.UserName] = &v1alpha1.KeycloakUserPair{
-			ObjUser: &user,
-			KcUser:  kcUsers[user.UserName],
+			SpecUser: user,
+			KcUser:   kcUsers[user.UserName],
 		}
 	}
 
-	for _, userPair := range userPairsList {
-		err := h.reconcileUser(userPair.KcUser, userPair.ObjUser, objRealm.Realm, kcClient)
+	for i := range userPairsList {
+		err := h.reconcileUser(userPairsList[i].KcUser, userPairsList[i].SpecUser, objRealm.Realm, kcClient)
 		if err != nil {
 			return err
 		}
@@ -495,23 +495,23 @@ func (h *Handler) reconcileRealm(kc *v1alpha1.Keycloak, kcRealm, objRealm *v1alp
 	return nil
 }
 
-func (h *Handler) reconcileClient(kcClient, objClient *v1alpha1.KeycloakClient, realmName string, authenticatedClient KeycloakInterface) error {
-	if objClient == nil && !isDefaultClient(kcClient.ClientID) {
+func (h *Handler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient, realmName string, authenticatedClient KeycloakInterface) error {
+	if specClient == nil && !isDefaultClient(kcClient.ClientID) {
 		logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
 		err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
 		if err != nil {
 			return err
 		}
 	} else if kcClient == nil {
-		logrus.Debugf("Creating client %s in realm: %s", objClient.ClientID, realmName)
-		err := authenticatedClient.CreateClient(objClient, realmName)
+		logrus.Debugf("Creating client %s in realm: %s", specClient.ClientID, realmName)
+		err := authenticatedClient.CreateClient(specClient, realmName)
 		if err != nil {
 			return err
 		}
 	} else {
-		if !reflect.DeepEqual(kcClient, objClient) && !isDefaultClient(kcClient.ClientID) {
+		if !reflect.DeepEqual(kcClient, specClient) && !isDefaultClient(kcClient.ClientID) {
 			logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
-			err := authenticatedClient.UpdateClient(kcClient, objClient, realmName)
+			err := authenticatedClient.UpdateClient(kcClient.ID, specClient, realmName)
 			if err != nil {
 				return err
 			}
@@ -532,17 +532,17 @@ func isDefaultClient(clientName string) bool {
 	return false
 }
 
-func (h *Handler) reconcileUser(kcUser, objUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient KeycloakInterface) error {
+func (h *Handler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient KeycloakInterface) error {
 	if kcUser == nil {
-		logrus.Debugf("Creating user %s, %s in realm: %s", objUser.ID, objUser.UserName, realmName)
-		err := authenticatedClient.CreateUser(objUser, realmName)
+		logrus.Debugf("Creating user %s, %s in realm: %s", specUser.ID, specUser.UserName, realmName)
+		err := authenticatedClient.CreateUser(specUser, realmName)
 		if err != nil {
 			return err
 		}
 	} else {
-		if !reflect.DeepEqual(kcUser, objUser) {
+		if !reflect.DeepEqual(kcUser, specUser) {
 			logrus.Debugf("Updating user %s, %s in realm: %s", kcUser.ID, kcUser.UserName, realmName)
-			err := authenticatedClient.UpdateUser(kcUser, objUser, realmName)
+			err := authenticatedClient.UpdateUser(kcUser, specUser, realmName)
 			if err != nil {
 				return err
 			}

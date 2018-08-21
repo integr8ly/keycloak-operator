@@ -86,8 +86,8 @@ type KeycloakUser struct {
 }
 
 type KeycloakUserPair struct {
-	KcUser  *KeycloakUser
-	ObjUser *KeycloakUser
+	KcUser   *KeycloakUser
+	SpecUser *KeycloakUser
 }
 
 type KeycloakProtocolMapper struct {
@@ -131,8 +131,8 @@ type KeycloakClient struct {
 	Access                    map[string]bool          `json:"access,omitempty"`
 }
 type KeycloakClientPair struct {
-	KcClient  *KeycloakClient
-	ObjClient *KeycloakClient
+	KcClient   *KeycloakClient
+	SpecClient *KeycloakClient
 }
 
 type TokenResponse struct {

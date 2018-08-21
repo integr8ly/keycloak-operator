@@ -71,8 +71,8 @@ type KeycloakIdentityProvider struct {
 	Config                    map[string]string `json:"config,omitempty"`
 }
 type KeycloakIdentityProviderPair struct {
-	KcIdentityProvider  *KeycloakIdentityProvider
-	ObjIdentityProvider *KeycloakIdentityProvider
+	KcIdentityProvider   *KeycloakIdentityProvider
+	SpecIdentityProvider *KeycloakIdentityProvider
 }
 
 type KeycloakUser struct {

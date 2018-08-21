@@ -700,7 +700,6 @@ type KeycloakInterface interface {
 	DeleteIdentityProvider(alias, realmName string) error
 	ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error)
 }
-}
 
 type KeycloakClientFactory interface {
 	AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error)

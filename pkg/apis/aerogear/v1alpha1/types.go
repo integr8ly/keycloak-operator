@@ -77,8 +77,8 @@ type KeycloakUser struct {
 	FirstName       string              `json:"firstName,omitempty"`
 	LastName        string              `json:"lastName,omitempty"`
 	Email           string              `json:"email,omitempty"`
-	EmailVerified   bool                `json:"emailVerified,omitempty"`
-	Enabled         bool                `json:"enabled,omitempty"`
+	EmailVerified   bool                `json:"emailVerified"`
+	Enabled         bool                `json:"enabled"`
 	RealmRoles      []string            `json:"realmRoles,omitempty"`
 	ClientRoles     map[string][]string `json:"clientRoles,omitempty"`
 	RequiredActions []string            `json:"requiredActions,omitempty"`
@@ -105,29 +105,29 @@ type KeycloakClient struct {
 	ClientID                  string                   `json:"clientId,omitempty"`
 	Name                      string                   `json:"name,omitempty"`
 	BaseURL                   string                   `json:"baseUrl,omitempty"`
-	SurrogateAuthRequired     bool                     `json:"surrogateAuthRequired,omitempty"`
-	Enabled                   bool                     `json:"enabled,omitempty"`
+	SurrogateAuthRequired     bool                     `json:"surrogateAuthRequired"`
+	Enabled                   bool                     `json:"enabled"`
 	ClientAuthenticatorType   string                   `json:"clientAuthenticatorType,omitempty"`
 	DefaultRoles              []string                 `json:"defaultRoles,omitempty,omitempty"`
 	RedirectUris              []string                 `json:"redirectUris,omitempty"`
 	WebOrigins                []string                 `json:"webOrigins,omitempty"`
 	NotBefore                 int                      `json:"notBefore,omitempty"`
-	BearerOnly                bool                     `json:"bearerOnly,omitempty"`
-	ConsentRequired           bool                     `json:"consentRequired,omitempty"`
-	StandardFlowEnabled       bool                     `json:"standardFlowEnabled,omitempty"`
-	ImplicitFlowEnabled       bool                     `json:"implicitFlowEnabled,omitempty"`
-	DirectAccessGrantsEnabled bool                     `json:"directAccessGrantsEnabled,omitempty"`
-	ServiceAccountsEnabled    bool                     `json:"serviceAccountsEnabled,omitempty"`
-	PublicClient              bool                     `json:"publicClient,omitempty"`
-	FrontchannelLogout        bool                     `json:"frontchannelLogout,omitempty"`
+	BearerOnly                bool                     `json:"bearerOnly"`
+	ConsentRequired           bool                     `json:"consentRequired"`
+	StandardFlowEnabled       bool                     `json:"standardFlowEnabled"`
+	ImplicitFlowEnabled       bool                     `json:"implicitFlowEnabled"`
+	DirectAccessGrantsEnabled bool                     `json:"directAccessGrantsEnabled"`
+	ServiceAccountsEnabled    bool                     `json:"serviceAccountsEnabled"`
+	PublicClient              bool                     `json:"publicClient"`
+	FrontchannelLogout        bool                     `json:"frontchannelLogout"`
 	Protocol                  string                   `json:"protocol,omitempty"`
 	Attributes                map[string]string        `json:"attributes,omitempty"`
-	FullScopeAllowed          bool                     `json:"fullScopeAllowed,omitempty"`
+	FullScopeAllowed          bool                     `json:"fullScopeAllowed"`
 	NodeReRegistrationTimeout int                      `json:"nodeReRegistrationTimeout,omitempty"`
 	ProtocolMappers           []KeycloakProtocolMapper `json:"protocolMappers,omitempty"`
-	UseTemplateConfig         bool                     `json:"useTemplateConfig,omitempty"`
-	UseTemplateScope          bool                     `json:"useTemplateScope,omitempty"`
-	UseTemplateMappers        bool                     `json:"useTemplateMappers,omitempty"`
+	UseTemplateConfig         bool                     `json:"useTemplateConfig"`
+	UseTemplateScope          bool                     `json:"useTemplateScope"`
+	UseTemplateMappers        bool                     `json:"useTemplateMappers"`
 	Access                    map[string]bool          `json:"access,omitempty"`
 }
 type KeycloakClientPair struct {

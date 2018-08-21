@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 
 	"reflect"
 
@@ -197,7 +196,10 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		}
 
 	case v1alpha1.PhaseComplete:
-		return h.reconcileResources(kcCopy)
+		err := h.reconcileResources(kcCopy)
+		if err != nil {
+			return errors.Wrap(err, "could not reconcile resources")
+		}
 
 	case v1alpha1.PhaseDeprovisioning:
 		err := h.deleteKeycloak(kcCopy)
@@ -410,10 +412,10 @@ func (h *Handler) reconcileClients(kc *v1alpha1.Keycloak, kcClient KeycloakInter
 
 	clientPairsList := map[string]*v1alpha1.KeycloakClientPair{}
 	for i := range objRealm.Clients {
-		client := objRealm.Clients[i]
+		client := &objRealm.Clients[i]
 		clientPairsList[client.ClientID] = &v1alpha1.KeycloakClientPair{
-			ObjClient: &client,
-			KcClient:  kcClients[client.ClientID],
+			SpecClient: client,
+			KcClient:   kcClients[client.ClientID],
 		}
 		delete(kcClients, client.ClientID)
 	}
@@ -421,13 +423,45 @@ func (h *Handler) reconcileClients(kc *v1alpha1.Keycloak, kcClient KeycloakInter
 	for i := range kcClients {
 		client := kcClients[i]
 		clientPairsList[client.ClientID] = &v1alpha1.KeycloakClientPair{
-			KcClient:  client,
-			ObjClient: nil,
+			KcClient:   client,
+			SpecClient: nil,
 		}
 	}
 
-	for _, clientPair := range clientPairsList {
-		err := h.reconcileClient(clientPair.KcClient, clientPair.ObjClient, objRealm.Realm, kcClient)
+	for i := range clientPairsList {
+		err := h.reconcileClient(clientPairsList[i].KcClient, clientPairsList[i].SpecClient, objRealm.Realm, kcClient)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h *Handler) reconcileUsers(kc *v1alpha1.Keycloak, kcClient KeycloakInterface, objRealm *v1alpha1.KeycloakRealm) error {
+	logrus.Info("reconciling users")
+
+	users, err := kcClient.ListUsers(objRealm.Realm)
+	if err != nil {
+		return err
+	}
+
+	kcUsers := map[string]*v1alpha1.KeycloakUser{}
+	for i := range users {
+		kcUsers[users[i].UserName] = users[i]
+	}
+
+	userPairsList := map[string]*v1alpha1.KeycloakUserPair{}
+	for i := range objRealm.Users {
+		user := &objRealm.Users[i]
+		userPairsList[user.UserName] = &v1alpha1.KeycloakUserPair{
+			SpecUser: user,
+			KcUser:   kcUsers[user.UserName],
+		}
+	}
+
+	for i := range userPairsList {
+		err := h.reconcileUser(userPairsList[i].KcUser, userPairsList[i].SpecUser, objRealm.Realm, kcClient)
 		if err != nil {
 			return err
 		}
@@ -456,7 +490,7 @@ func (h *Handler) reconcileRealm(kc *v1alpha1.Keycloak, kcRealm, objRealm *v1alp
 			}
 
 			h.reconcileClients(kc, kcClient, objRealm)
-			// h.reconcileUsers(kc, kcClient, kcRealm)
+			h.reconcileUsers(kc, kcClient, objRealm)
 			// h.reconcileIdentityProviders(kc, kcClient, kcRealm)
 		}
 	}
@@ -464,23 +498,24 @@ func (h *Handler) reconcileRealm(kc *v1alpha1.Keycloak, kcRealm, objRealm *v1alp
 	return nil
 }
 
-func (h *Handler) reconcileClient(kcClient, objClient *v1alpha1.KeycloakClient, realmName string, authenticatedClient KeycloakInterface) error {
-	if objClient == nil && !isDefaultClient(kcClient.ClientID) {
+func (h *Handler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient, realmName string, authenticatedClient KeycloakInterface) error {
+	if specClient == nil && !isDefaultClient(kcClient.ClientID) {
 		logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
 		err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
 		if err != nil {
 			return err
 		}
 	} else if kcClient == nil {
-		logrus.Debugf("Creating client %s in realm: %s", objClient.ClientID, realmName)
-		err := authenticatedClient.CreateClient(objClient, realmName)
+		logrus.Debugf("Creating client %s in realm: %s", specClient.ClientID, realmName)
+		err := authenticatedClient.CreateClient(specClient, realmName)
 		if err != nil {
 			return err
 		}
 	} else {
-		if !reflect.DeepEqual(kcClient, objClient) && !isDefaultClient(kcClient.ClientID) {
+		if !reflect.DeepEqual(kcClient, specClient) && !isDefaultClient(kcClient.ClientID) {
 			logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
-			err := authenticatedClient.UpdateClient(kcClient, objClient, realmName)
+			specClient.ID = kcClient.ID
+			err := authenticatedClient.UpdateClient(specClient, realmName)
 			if err != nil {
 				return err
 			}
@@ -501,7 +536,24 @@ func isDefaultClient(clientName string) bool {
 	return false
 }
 
-func (h *Handler) reconcileUser(ctx context.Context, wg *sync.WaitGroup, userDef v1alpha1.KeycloakUser, authenticatedClient KeycloakInterface) error {
+func (h *Handler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient KeycloakInterface) error {
+	if kcUser == nil {
+		logrus.Debugf("Creating user %s, %s in realm: %s", specUser.ID, specUser.UserName, realmName)
+		err := authenticatedClient.CreateUser(specUser, realmName)
+		if err != nil {
+			return err
+		}
+	} else {
+		if !reflect.DeepEqual(kcUser, specUser) {
+			logrus.Debugf("Updating user %s, %s in realm: %s", kcUser.ID, kcUser.UserName, realmName)
+			specUser.ID = kcUser.ID
+			err := authenticatedClient.UpdateUser(specUser, realmName)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

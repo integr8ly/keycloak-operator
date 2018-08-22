@@ -62,13 +62,17 @@ type KeycloakIdentityProvider struct {
 	DisplayName               string            `json:"displayName,omitempty"`
 	InternalID                string            `json:"internalId,omitempty"`
 	ProviderID                string            `json:"providerId,omitempty"`
-	Enabled                   bool              `json:"enabled,omitempty"`
-	TrustEmail                bool              `json:"trustEmail,omitempty"`
-	StoreToken                bool              `json:"storeToken,omitempty"`
-	AddReadTokenRoleOnCreate  bool              `json:"addReadTokenRoleOnCreate,omitempty"`
+	Enabled                   bool              `json:"enabled"`
+	TrustEmail                bool              `json:"trustEmail"`
+	StoreToken                bool              `json:"storeToken"`
+	AddReadTokenRoleOnCreate  bool              `json:"addReadTokenRoleOnCreate"`
 	FirstBrokerLoginFlowAlias string            `json:"firstBrokerLoginFlowAlias,omitempty"`
 	PostBrokerLoginFlowAlias  string            `json:"postBrokerLoginFlowAlias,omitempty"`
 	Config                    map[string]string `json:"config,omitempty"`
+}
+type KeycloakIdentityProviderPair struct {
+	KcIdentityProvider   *KeycloakIdentityProvider
+	SpecIdentityProvider *KeycloakIdentityProvider
 }
 
 type KeycloakUser struct {

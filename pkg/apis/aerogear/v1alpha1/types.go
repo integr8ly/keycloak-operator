@@ -50,8 +50,8 @@ type KeycloakSpec struct {
 type KeycloakRealm struct {
 	ID                string                     `json:"id,omitempty"`
 	Realm             string                     `json:"realm,omitempty"`
-	Enabled           bool                       `json:"enabled,omitempty"`
-	DisplayName       string                     `json:"displayName,omitempty"`
+	Enabled           bool                       `json:"enabled"`
+	DisplayName       string                     `json:"displayName"`
 	Users             []KeycloakUser             `json:"users,omitempty"`
 	Clients           []KeycloakClient           `json:"clients,omitempty"`
 	IdentityProviders []KeycloakIdentityProvider `json:"identityProviders,omitempty"`
@@ -59,16 +59,16 @@ type KeycloakRealm struct {
 
 type KeycloakIdentityProvider struct {
 	Alias                     string            `json:"alias,omitempty"`
-	DisplayName               string            `json:"displayName,omitempty"`
+	DisplayName               string            `json:"displayName"`
 	InternalID                string            `json:"internalId,omitempty"`
 	ProviderID                string            `json:"providerId,omitempty"`
 	Enabled                   bool              `json:"enabled"`
 	TrustEmail                bool              `json:"trustEmail"`
 	StoreToken                bool              `json:"storeToken"`
 	AddReadTokenRoleOnCreate  bool              `json:"addReadTokenRoleOnCreate"`
-	FirstBrokerLoginFlowAlias string            `json:"firstBrokerLoginFlowAlias,omitempty"`
-	PostBrokerLoginFlowAlias  string            `json:"postBrokerLoginFlowAlias,omitempty"`
-	Config                    map[string]string `json:"config,omitempty"`
+	FirstBrokerLoginFlowAlias string            `json:"firstBrokerLoginFlowAlias"`
+	PostBrokerLoginFlowAlias  string            `json:"postBrokerLoginFlowAlias"`
+	Config                    map[string]string `json:"config"`
 }
 type KeycloakIdentityProviderPair struct {
 	KcIdentityProvider   *KeycloakIdentityProvider
@@ -78,13 +78,13 @@ type KeycloakIdentityProviderPair struct {
 type KeycloakUser struct {
 	ID              string              `json:"id,omitempty"`
 	UserName        string              `json:"username,omitempty"`
-	FirstName       string              `json:"firstName,omitempty"`
-	LastName        string              `json:"lastName,omitempty"`
+	FirstName       string              `json:"firstName"`
+	LastName        string              `json:"lastName"`
 	Email           string              `json:"email,omitempty"`
 	EmailVerified   bool                `json:"emailVerified"`
 	Enabled         bool                `json:"enabled"`
 	RealmRoles      []string            `json:"realmRoles,omitempty"`
-	ClientRoles     map[string][]string `json:"clientRoles,omitempty"`
+	ClientRoles     map[string][]string `json:"clientRoles"`
 	RequiredActions []string            `json:"requiredActions,omitempty"`
 	Groups          []string            `json:"groups,omitempty"`
 }
@@ -100,22 +100,25 @@ type KeycloakProtocolMapper struct {
 	Protocol        string            `json:"protocol,omitempty"`
 	ProtocolMapper  string            `json:"protocolMapper,omitempty"`
 	ConsentRequired bool              `json:"consentRequired,omitempty"`
-	ConsentText     string            `json:"consentText,omitempty"`
-	Config          map[string]string `json:"config,omitempty"`
+	ConsentText     string            `json:"consentText"`
+	Config          map[string]string `json:"config"`
 }
 
 type KeycloakClient struct {
 	ID                        string                   `json:"id,omitempty"`
 	ClientID                  string                   `json:"clientId,omitempty"`
-	Name                      string                   `json:"name,omitempty"`
-	BaseURL                   string                   `json:"baseUrl,omitempty"`
+	Name                      string                   `json:"name"`
+	BaseURL                   string                   `json:"baseUrl"`
+	AdminURL                  string                   `json:"adminUrl"`
+	RootURL                   string                   `json:"rootUrl"`
+	Description               string                   `json:"description"`
 	SurrogateAuthRequired     bool                     `json:"surrogateAuthRequired"`
 	Enabled                   bool                     `json:"enabled"`
-	ClientAuthenticatorType   string                   `json:"clientAuthenticatorType,omitempty"`
-	DefaultRoles              []string                 `json:"defaultRoles,omitempty,omitempty"`
+	ClientAuthenticatorType   string                   `json:"clientAuthenticatorType"`
+	DefaultRoles              []string                 `json:"defaultRoles,omitempty"`
 	RedirectUris              []string                 `json:"redirectUris,omitempty"`
 	WebOrigins                []string                 `json:"webOrigins,omitempty"`
-	NotBefore                 int                      `json:"notBefore,omitempty"`
+	NotBefore                 int                      `json:"notBefore"`
 	BearerOnly                bool                     `json:"bearerOnly"`
 	ConsentRequired           bool                     `json:"consentRequired"`
 	StandardFlowEnabled       bool                     `json:"standardFlowEnabled"`
@@ -127,12 +130,12 @@ type KeycloakClient struct {
 	Protocol                  string                   `json:"protocol,omitempty"`
 	Attributes                map[string]string        `json:"attributes,omitempty"`
 	FullScopeAllowed          bool                     `json:"fullScopeAllowed"`
-	NodeReRegistrationTimeout int                      `json:"nodeReRegistrationTimeout,omitempty"`
+	NodeReRegistrationTimeout int                      `json:"nodeReRegistrationTimeout"`
 	ProtocolMappers           []KeycloakProtocolMapper `json:"protocolMappers,omitempty"`
 	UseTemplateConfig         bool                     `json:"useTemplateConfig"`
 	UseTemplateScope          bool                     `json:"useTemplateScope"`
 	UseTemplateMappers        bool                     `json:"useTemplateMappers"`
-	Access                    map[string]bool          `json:"access,omitempty"`
+	Access                    map[string]bool          `json:"access"`
 }
 type KeycloakClientPair struct {
 	KcClient   *KeycloakClient

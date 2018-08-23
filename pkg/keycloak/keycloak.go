@@ -402,7 +402,7 @@ func (h *Handler) reconcileRealm(kcRealm, specRealm *v1alpha1.KeycloakRealm, kcC
 	} else {
 		if h.cfg.SyncResources {
 			logrus.Debugf("sync realm %v", specRealm.ID)
-			if !reflect.DeepEqual(kcRealm, specRealm) {
+			if !resourcesEqual(kcRealm, specRealm) {
 				err := kcClient.UpdateRealm(specRealm)
 				if err != nil {
 					logrus.Errorf("error updating realm %v", specRealm.ID)
@@ -461,7 +461,7 @@ func (h *Handler) reconcileClients(kcClient KeycloakInterface, specRealm *v1alph
 }
 
 func (h *Handler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient, realmName string, authenticatedClient KeycloakInterface) error {
-	if specClient == nil && !h.contains(kcClient.ClientID) {
+	if specClient == nil && !h.isDefaultClient(kcClient.ClientID) {
 		logrus.Debugf("Deleting client %s in realm: %s", kcClient.ClientID, realmName)
 		err := authenticatedClient.DeleteClient(kcClient.ID, realmName)
 		if err != nil {
@@ -474,7 +474,7 @@ func (h *Handler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient,
 			return err
 		}
 	} else {
-		if !reflect.DeepEqual(kcClient, specClient) && !h.contains(kcClient.ClientID) {
+		if !resourcesEqual(kcClient, specClient) && !h.isDefaultClient(kcClient.ClientID) {
 			logrus.Debugf("Updating client %s in realm: %s", kcClient.ClientID, realmName)
 			specClient.ID = kcClient.ID
 			err := authenticatedClient.UpdateClient(specClient, realmName)
@@ -487,7 +487,13 @@ func (h *Handler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient,
 	return nil
 }
 
-func (h *Handler) contains(client string) bool {
+// resourcesEqual is used to tell whether or not a keycloak resource matches its spec
+// TODO: this could be improved as it doesn't currently work as expected for users and clients
+func resourcesEqual(obj1, obj2 T) bool {
+	return reflect.DeepEqual(obj1, obj2)
+}
+
+func (h *Handler) isDefaultClient(client string) bool {
 	_, ok := h.defaultClients[client]
 	return ok
 }
@@ -532,7 +538,7 @@ func (h *Handler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmNa
 			return err
 		}
 	} else {
-		if !reflect.DeepEqual(kcUser, specUser) {
+		if !resourcesEqual(kcUser, specUser) {
 			logrus.Debugf("Updating user %s, %s in realm: %s", kcUser.ID, kcUser.UserName, realmName)
 			specUser.ID = kcUser.ID
 			err := authenticatedClient.UpdateUser(specUser, realmName)
@@ -604,7 +610,7 @@ func (h *Handler) reconcileIdentityProvider(kcIdentityProvider, specIdentityProv
 		kcIdentityProvider.Config["clientSecret"] = specIdentityProvider.Config["clientSecret"]
 		//Ensure the internalID is set on the spec object, this is required for update requests to succeed
 		specIdentityProvider.InternalID = kcIdentityProvider.InternalID
-		if !reflect.DeepEqual(kcIdentityProvider, specIdentityProvider) {
+		if !resourcesEqual(kcIdentityProvider, specIdentityProvider) {
 			logrus.Debugf("Updating identity provider %s in realm: %s", kcIdentityProvider.Alias, realmName)
 			err := authenticatedClient.UpdateIdentityProvider(specIdentityProvider, realmName)
 			if err != nil {

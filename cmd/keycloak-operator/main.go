@@ -34,7 +34,7 @@ var (
 
 func init() {
 	flagset := flag.CommandLine
-	flagset.IntVar(&cfg.ResyncPeriod, "resync", 7, "change the resync period")
+	flagset.IntVar(&cfg.ResyncPeriod, "resync", 60, "change the resync period")
 	flagset.StringVar(&cfg.LogLevel, "log-level", logrus.Level.String(logrus.InfoLevel), "Log level to use. Possible values: panic, fatal, error, warn, info, debug")
 	flagset.BoolVar(&cfg.SyncResources, "sync-resources", true, "Sync Keycloak resources on each reconciliation loop after the initial creation of the realm.")
 	flagset.Parse(os.Args[1:])

@@ -15,11 +15,12 @@ import (
 	"time"
 
 	"fmt"
+
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 )
 
 const (
-	KEYCLOAK_AUTH_URL = "auth/realms/master/protocol/openid-connect/token"
+	authUrl = "auth/realms/master/protocol/openid-connect/token"
 )
 
 type Requester interface {
@@ -32,10 +33,10 @@ type Client struct {
 	token     string
 }
 
-// generic type for keycloak spec resources
+// T is a generic type for keycloak spec resources
 type T interface{}
 
-//================================================= CREATE =================================================
+// Generic create function for creating new Keycloak resources
 func (c *Client) create(obj T, resourcePath, resourceName string) error {
 	jsonValue, err := json.Marshal(obj)
 	if err != nil {
@@ -66,7 +67,7 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 
 	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode != 201 {
-		return errors.New(fmt.Sprintf("failed to create %s: (%d) %s", resourceName, res.StatusCode, res.Status))
+		return fmt.Errorf("failed to create %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
 	logrus.Debugf("response:", res)
@@ -93,7 +94,7 @@ func (c *Client) CreateIdentityProvider(identityProvider *v1alpha1.KeycloakIdent
 	return err
 }
 
-//================================================= READ =================================================
+// Generic get function for returning a Keycloak resource
 func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body []byte) (T, error)) (T, error) {
 	req, err := http.NewRequest(
 		"GET",
@@ -114,7 +115,7 @@ func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body 
 
 	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("failed to GET %s: (%d) %s", resourceName, res.StatusCode, res.Status))
+		return nil, fmt.Errorf("failed to GET %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
@@ -163,14 +164,14 @@ func (c *Client) GetUser(userID, realmName string) (*v1alpha1.KeycloakUser, erro
 
 func (c *Client) GetIdentityProvider(alias string, realmName string) (*v1alpha1.KeycloakIdentityProvider, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, alias), "identity provider", func(body []byte) (T, error) {
-		var user *v1alpha1.KeycloakIdentityProvider
-		err := json.Unmarshal(body, user)
-		return user, err
+		var provider *v1alpha1.KeycloakIdentityProvider
+		err := json.Unmarshal(body, provider)
+		return provider, err
 	})
 	return result.(*v1alpha1.KeycloakIdentityProvider), err
 }
 
-//================================================= UPDATE =================================================
+// Generic put function for updating Keycloak resources
 func (c *Client) update(obj T, resourcePath, resourceName string) error {
 	jsonValue, err := json.Marshal(obj)
 	if err != nil {
@@ -197,7 +198,7 @@ func (c *Client) update(obj T, resourcePath, resourceName string) error {
 
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		logrus.Errorf("failed to UPDATE %s %v", resourceName, res.Status)
-		return errors.New(fmt.Sprintf("failed to UPDATE %s: (%d) %s", resourceName, res.StatusCode, res.Status))
+		return fmt.Errorf("failed to UPDATE %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
 	logrus.Debugf("response:", res)
@@ -224,7 +225,7 @@ func (c *Client) UpdateIdentityProvider(specIdentityProvider *v1alpha1.KeycloakI
 	return err
 }
 
-//================================================= DELETE =================================================
+// Generic delete function for deleting Keycloak resources
 func (c *Client) delete(resourcePath, resourceName string) error {
 	req, err := http.NewRequest(
 		"DELETE",
@@ -245,7 +246,7 @@ func (c *Client) delete(resourcePath, resourceName string) error {
 
 	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode != 204 {
-		return errors.New(fmt.Sprintf("failed to DELETE %s: (%d) %s", resourceName, res.StatusCode, res.Status))
+		return fmt.Errorf("failed to DELETE %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
 	return nil
@@ -271,7 +272,7 @@ func (c *Client) DeleteIdentityProvider(alias string, realmName string) error {
 	return err
 }
 
-//================================================= LIST =================================================
+// Generic list function for listing Keycloak resources
 func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(body []byte) (T, error)) (T, error) {
 	req, err := http.NewRequest(
 		"GET",
@@ -292,7 +293,7 @@ func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(
 
 	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return nil, errors.New(fmt.Sprintf("failed to LIST %s: (%d) %s", resourceName, res.StatusCode, res.Status))
+		return nil, fmt.Errorf("failed to LIST %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
@@ -341,14 +342,14 @@ func (c *Client) ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error) {
 
 func (c *Client) ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error) {
 	result, err := c.list(fmt.Sprintf("realms/%s/identity-provider/instances", realmName), "identity providers", func(body []byte) (T, error) {
-		var users []*v1alpha1.KeycloakIdentityProvider
-		err := json.Unmarshal(body, &users)
-		return users, err
+		var providers []*v1alpha1.KeycloakIdentityProvider
+		err := json.Unmarshal(body, &providers)
+		return providers, err
 	})
 	return result.([]*v1alpha1.KeycloakIdentityProvider), err
 }
 
-//================================================= LOGIN =================================================
+// login requests a new auth token from Keycloak
 func (c *Client) login(user, pass string) error {
 	form := url.Values{}
 	form.Add("username", user)
@@ -358,7 +359,7 @@ func (c *Client) login(user, pass string) error {
 
 	req, err := http.NewRequest(
 		"POST",
-		fmt.Sprintf("%s/%s", c.URL, KEYCLOAK_AUTH_URL),
+		fmt.Sprintf("%s/%s", c.URL, authUrl),
 		strings.NewReader(form.Encode()),
 	)
 	if err != nil {
@@ -394,6 +395,7 @@ func (c *Client) login(user, pass string) error {
 	return nil
 }
 
+// defaultRequester returns a default client for requesting http endpoints
 func defaultRequester() Requester {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -435,6 +437,7 @@ type KeycloakClientFactory interface {
 type KeycloakFactory struct {
 }
 
+// AuthenticatedClient returns an authenticated client for requesting endpoints from the Keycloak api
 func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error) {
 	client := &Client{
 		URL:       url,

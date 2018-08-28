@@ -176,6 +176,7 @@ var (
 	PhaseFailed             StatusPhase = "failed"
 	PhaseModified           StatusPhase = "modified"
 	PhaseProvisioning       StatusPhase = "provisioning"
+	PhaseWaitForPodsToRun	StatusPhase = "waitingForPods"
 	PhaseDeprovisioning     StatusPhase = "deprovisioning"
 	PhaseDeprovisioned      StatusPhase = "deprovisioned"
 	PhaseDeprovisionFailed  StatusPhase = "deprovisionFailed"

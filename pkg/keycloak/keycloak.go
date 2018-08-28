@@ -2,16 +2,18 @@ package keycloak
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"reflect"
+
+	"strings"
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/google/uuid"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	scclientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
+	routev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -21,17 +23,23 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"encoding/json"
 )
 
 const (
-	KEYCLOAK_SERVICE_NAME = "keycloak"
-	KEYCLOAK_PLAN_NAME    = "sharedInstance"
+	KEYCLOAK_TEMPLATE_NAME = "sso72-x509-postgresql-persistent"
+	SSO_ROUTE_NAME         = "sso"
+	SSO_SECURE_ROUTE_NAME  = "secure-sso"
+	SSO_APPLICATION_NAME   = "sso"
 )
 
 type Handler struct {
 	cfg                  v1alpha1.Config
 	k8sClient            kubernetes.Interface
 	kcClientFactory      KeycloakClientFactory
+	kubeconfig           *rest.Config
 	serviceCatalogClient scclientset.Interface
 	defaultClients       map[string]struct{}
 }
@@ -47,12 +55,14 @@ func NewHandler(cfg v1alpha1.Config, kcClientFactory KeycloakClientFactory, svcC
 		set[s] = struct{}{}
 	}
 
+	kubeconfig, _ := getKubeconfig()
 	return &Handler{
 		cfg:                  cfg,
 		kcClientFactory:      kcClientFactory,
 		serviceCatalogClient: svcCatalog,
 		k8sClient:            k8sClient,
 		defaultClients:       set,
+		kubeconfig:           kubeconfig,
 	}
 }
 
@@ -64,6 +74,7 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	namespace := kc.ObjectMeta.Namespace
 
 	logrus.Debugf("Keycloak: %v, Phase: %v", kc.Name, kc.Status.Phase)
+	logrus.Infof("Keycloak: %v, Phase: %v", kc.Name, kc.Status.Phase)
 
 	if event.Deleted {
 		return nil
@@ -78,10 +89,12 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 
 	switch kc.Status.Phase {
 	case v1alpha1.NoPhase:
+
 		return h.initKeycloak(kcCopy)
 
 	case v1alpha1.PhaseAccepted:
 		if kc.Spec.AdminCredentials == "" {
+
 			adminPwd, err := h.generatePassword()
 			if err != nil {
 				return err
@@ -108,14 +121,19 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	case v1alpha1.PhaseCredentialsCreated:
 		svcClass, err := h.getServiceClass()
 		if err != nil {
-			return err
+			if err.Error() == "failed to find service class" {
+				// only log that we have no class, returning error will eventually reset provision
+				logrus.Info("failed to find service class")
+				return nil
+			} else {
+				return err
+			}
 		}
 
 		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to get the secret for the admin credentials")
 		}
-
 		decodedParams := map[string]string{}
 		for k, v := range adminCreds.Data {
 			decodedParams[k] = string(v)
@@ -162,38 +180,26 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 			return errors.Wrap(err, "failed to get service instance")
 		}
 
-		if len(si.Status.Conditions) == 0 {
-			return nil
+		if len(si.Status.Conditions) > 0 {
+			siCondition := si.Status.Conditions[0]
+			if siCondition.Type == "Ready" && siCondition.Status == "True" {
+				routeClient, _ := routev1.NewForConfig(h.kubeconfig)
+				routeList, _ := routeClient.Routes(namespace).List(metav1.ListOptions{})
+				for _, route := range routeList.Items {
+					if route.Spec.To.Name == SSO_ROUTE_NAME {
+						url := fmt.Sprintf("http://%v", route.Spec.Host)
+						h.addEntryToSecret(namespace, kc.Spec.AdminCredentials, "SSO_ADMIN_URL", url)
+					}
+					if route.Spec.To.Name == SSO_SECURE_ROUTE_NAME {
+						url := fmt.Sprintf("https://%v", route.Spec.Host)
+						h.addEntryToSecret(namespace, kc.Spec.AdminCredentials, "SSO_SECURE_ADMIN_URL", url)
+					}
+				}
+				kcCopy.Status.Phase = v1alpha1.PhaseWaitForPodsToRun
+			}
 		}
-
-		labelSelector := fmt.Sprintf("serviceInstanceID=%s,serviceType=%s", kc.Spec.InstanceUID, "keycloak")
-		secretList, err := h.k8sClient.CoreV1().Secrets(kc.Namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
-		if err != nil {
-			return errors.Wrap(err, "error reading admin credentials")
-		}
-
-		if len(secretList.Items) == 0 {
-			logrus.Debug("keycloak service credentials not found")
-			return nil
-		}
-
-		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
-		if err != nil {
-			return errors.Wrap(err, "failed to get the secret for the admin credentials")
-		}
-
-		adminCreds.StringData = map[string]string{}
-		adminCreds.StringData["ADMIN_USERNAME"] = string(secretList.Items[0].Data["user_name"])
-		adminCreds.StringData["ADMIN_PASSWORD"] = string(secretList.Items[0].Data["user_passwd"])
-		adminCreds.StringData["ADMIN_URL"] = string(secretList.Items[0].Data["route_url"])
-
-		_, err = h.k8sClient.CoreV1().Secrets(kc.Namespace).Update(adminCreds)
-		if err != nil {
-			return errors.Wrap(err, "could not update admin credentials")
-		}
-
-		siCondition := si.Status.Conditions[0]
-		if siCondition.Type == "Ready" && siCondition.Status == "True" {
+	case v1alpha1.PhaseWaitForPodsToRun:
+		if h.areSsoPodReady(namespace) == true {
 			kcCopy.Status.Phase = v1alpha1.PhaseComplete
 			kcCopy.Status.Ready = true
 		}
@@ -233,6 +239,33 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 
 	return nil
 }
+func (h *Handler) areSsoPodReady(namespace string) bool {
+	podList, _ := h.k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{
+		LabelSelector:        fmt.Sprintf("application=%v", SSO_APPLICATION_NAME),
+		IncludeUninitialized: false,
+	})
+
+	for _, pod := range podList.Items {
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status != "True"{
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func getKubeconfig() (*rest.Config, error) {
+	kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	)
+	cfg, err := kubeconfig.ClientConfig()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create kubeconfig")
+	}
+	return cfg, nil
+}
 
 func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
 	logrus.Infof("reconcile resources (%v)", kc.Name)
@@ -240,9 +273,9 @@ func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get the admin credentials")
 	}
-	user := string(adminCreds.Data["ADMIN_USERNAME"])
-	pass := string(adminCreds.Data["ADMIN_PASSWORD"])
-	url := string(adminCreds.Data["ADMIN_URL"])
+	user := string(adminCreds.Data["SSO_ADMIN_USERNAME"])
+	pass := string(adminCreds.Data["SSO_ADMIN_PASSWORD"])
+	url := string(adminCreds.Data["SSO_ADMIN_URL"])
 	logrus.Debugf("getting authenticated client for (user: %s, pass: %s, url: %s", user, pass, url)
 
 	kcClient, err := h.kcClientFactory.AuthenticatedClient(*kc, user, pass, url)
@@ -259,30 +292,18 @@ func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
 }
 
 func (h *Handler) getServiceClass() (*v1beta1.ClusterServiceClass, error) {
-	var svcClassExtMetadata ServiceClassExternalMetadata
-
-	cscs, err := h.serviceCatalogClient.ServicecatalogV1beta1().ClusterServiceClasses().List(metav1.ListOptions{})
+	csc, err := h.serviceCatalogClient.Servicecatalog().ClusterServiceClasses().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get service classes")
 	}
 
-	for _, csc := range cscs.Items {
-		externalMetadata, err := csc.Spec.ExternalMetadata.MarshalJSON()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to marshal the service class external metadata")
-		}
-
-		if err := json.Unmarshal(externalMetadata, &svcClassExtMetadata); err != nil {
-			return nil, errors.Wrap(err, "failed to unmarshal the service class external metadata to a JSON object")
-		}
-
-		// NOTE: This may need to be improved in order to abstract it for the shared service lib
-		if svcClassExtMetadata.ServiceName == KEYCLOAK_SERVICE_NAME {
-			return &csc, nil
+	for _, sc := range csc.Items {
+		if sc.Spec.ExternalName == KEYCLOAK_TEMPLATE_NAME {
+			return &sc, nil
 		}
 	}
 
-	return nil, errors.Wrap(err, "failed to find service class")
+	return nil, errors.New("failed to find service class")
 }
 
 func (h *Handler) createAdminCredentials(namespace, username, password string) (*corev1.Secret, error) {
@@ -296,8 +317,8 @@ func (h *Handler) createAdminCredentials(namespace, username, password string) (
 			GenerateName: "keycloak-admin-cred-",
 		},
 		StringData: map[string]string{
-			"ADMIN_USERNAME": username,
-			"ADMIN_PASSWORD": password,
+			"SSO_ADMIN_USERNAME": username,
+			"SSO_ADMIN_PASSWORD": password,
 		},
 		Type: "Opaque",
 	}
@@ -307,6 +328,17 @@ func (h *Handler) createAdminCredentials(namespace, username, password string) (
 	}
 
 	return adminCredentialsSecret, nil
+}
+func (h *Handler) addEntryToSecret(namespace, secretName, key, value string) error {
+	secret, err := h.k8sClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
+
+	secret.StringData = map[string]string{}
+	secret.StringData[key] = value
+	_, err = h.k8sClient.CoreV1().Secrets(namespace).Update(secret)
+	if err != nil {
+		return errors.Wrap(err, "could not update admin credentials")
+	}
+	return nil
 }
 
 func (h *Handler) createServiceInstance(namespace string, parameters []byte, sc v1beta1.ClusterServiceClass) v1beta1.ServiceInstance {
@@ -322,14 +354,14 @@ func (h *Handler) createServiceInstance(namespace string, parameters []byte, sc 
 		Spec: v1beta1.ServiceInstanceSpec{
 			PlanReference: v1beta1.PlanReference{
 				ClusterServiceClassExternalName: sc.Spec.ExternalName,
-				ClusterServicePlanExternalName:  KEYCLOAK_PLAN_NAME,
+				//ClusterServicePlanExternalName:  KEYCLOAK_PLAN_NAME,
 			},
 			ClusterServiceClassRef: &v1beta1.ClusterObjectReference{
 				Name: sc.Name,
 			},
-			ClusterServicePlanRef: &v1beta1.ClusterObjectReference{
-				Name: KEYCLOAK_PLAN_NAME,
-			},
+			//ClusterServicePlanRef: &v1beta1.ClusterObjectReference{
+			//	Name: KEYCLOAK_PLAN_NAME,
+			//},
 			Parameters: &runtime.RawExtension{Raw: parameters},
 		},
 	}
@@ -340,8 +372,7 @@ func (h *Handler) generatePassword() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "error generating password")
 	}
-
-	return generatedPassword.String(), nil
+	return strings.Replace(generatedPassword.String(), "-", "", 10), nil
 }
 
 func (h *Handler) deleteKeycloak(kc *v1alpha1.Keycloak) error {

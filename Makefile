@@ -1,8 +1,8 @@
-ORG=aerogear
-NAMESPACE=shared
+ORG=witmicko
+NAMESPACE=rhsso
 PROJECT=keycloak-operator
 SHELL = /bin/bash
-TAG = 0.0.2
+TAG = 0.0.3
 PKG = github.com/aerogear/keycloak-operator
 TEST_DIRS     ?= $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
 
@@ -52,7 +52,7 @@ check: check-gofmt test-unit
 
 .PHONY: install
 install: install_crds
-	-kubectl create namespace $(NAMESPACE)
+	-oc new-project $(NAMESPACE)
 	-kubectl create -f deploy/rbac.yaml -n $(NAMESPACE)
 
 .PHONY: install_crds

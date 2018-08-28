@@ -14,7 +14,6 @@ import (
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/aerogear/keycloak-operator/pkg/dispatch"
 	"github.com/aerogear/keycloak-operator/pkg/keycloak"
-	"github.com/aerogear/keycloak-operator/pkg/shared"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
@@ -64,20 +63,11 @@ func main() {
 	//set namespace to empty to watch all namespaces
 	//namespace := ""
 	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, cfg.ResyncPeriod)
-	sdk.Watch(resource, v1alpha1.SharedServiceActionKind, namespace, cfg.ResyncPeriod)
-	sdk.Watch(resource, v1alpha1.SharedServiceKind, namespace, cfg.ResyncPeriod)
-	sdk.Watch(resource, v1alpha1.SharedServiceSliceKind, namespace, cfg.ResyncPeriod)
 
 	dh := dispatch.NewHandler(k8Client, svcClient)
 	dispatcher := dh.(*dispatch.Handler)
 	// Handle keycloak resource reconcile
 	dispatcher.AddHandler(keycloak.NewHandler(cfg, kcFactory, svcClient, k8Client))
-	// Handle sharedserviceaction reconcile
-	dispatcher.AddHandler(shared.NewServiceActionHandler())
-	// Handle sharedservice reconcile
-	dispatcher.AddHandler(shared.NewServiceHandler())
-	// Handle sharedserviceslice reconcile
-	dispatcher.AddHandler(shared.NewServiceSliceHandler())
 
 	// main dispatch of resources
 	sdk.Handle(dispatcher)

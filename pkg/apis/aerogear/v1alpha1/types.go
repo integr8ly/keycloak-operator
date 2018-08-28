@@ -164,7 +164,6 @@ type GenericStatus struct {
 
 type KeycloakStatus struct {
 	GenericStatus
-	SharedConfig StatusSharedConfig `json:"sharedConfig"`
 }
 
 type StatusPhase string

@@ -29,14 +29,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Keycloak{},
 		&KeycloakList{},
-		&SharedService{},
-		&SharedServiceList{},
-		&SharedServicePlan{},
-		&SharedServicePlanList{},
-		&SharedServiceAction{},
-		&SharedServiceActionList{},
-		&SharedServiceSlice{},
-		&SharedServiceSliceList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

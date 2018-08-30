@@ -164,7 +164,6 @@ type GenericStatus struct {
 
 type KeycloakStatus struct {
 	GenericStatus
-	SharedConfig StatusSharedConfig `json:"sharedConfig"`
 }
 
 type StatusPhase string
@@ -175,7 +174,8 @@ var (
 	PhaseComplete           StatusPhase = "complete"
 	PhaseFailed             StatusPhase = "failed"
 	PhaseModified           StatusPhase = "modified"
-	PhaseProvisioning       StatusPhase = "provisioning"
+	PhaseProvisioned        StatusPhase = "provisioned"
+	PhaseWaitForPodsToRun   StatusPhase = "waitingForPods"
 	PhaseDeprovisioning     StatusPhase = "deprovisioning"
 	PhaseDeprovisioned      StatusPhase = "deprovisioned"
 	PhaseDeprovisionFailed  StatusPhase = "deprovisionFailed"

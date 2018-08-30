@@ -319,7 +319,11 @@ func (c *Client) ListRealms() ([]*v1alpha1.KeycloakRealm, error) {
 		err := json.Unmarshal(body, &realms)
 		return realms, err
 	})
-	return result.([]*v1alpha1.KeycloakRealm), err
+	resultAsRealm, ok := result.([]*v1alpha1.KeycloakRealm)
+	if !ok {
+		return nil, err
+	}
+	return resultAsRealm, err
 }
 
 func (c *Client) ListClients(realmName string) ([]*v1alpha1.KeycloakClient, error) {

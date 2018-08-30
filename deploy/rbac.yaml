@@ -1,3 +1,4 @@
+---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
@@ -19,6 +20,7 @@ rules:
   - events
   - configmaps
   - secrets
+  - serviceaccounts
   verbs:
   - "*"
 - apiGroups:
@@ -31,6 +33,37 @@ rules:
   verbs:
   - "*"
 
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - processedtemplates
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - image.openshift.io
+  resources:
+  - imagestreams
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - apps.openshift.io
+  resources:
+  - deploymentconfigs
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - build.openshift.io
+  resources:
+  - buildconfigs
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - authorization.openshift.io
+  resources:
+  - rolebindings
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  - routes/custom-host
+  verbs: [ get, list, create, update, delete, deletecollection, watch]
 ---
 
 kind: RoleBinding
@@ -40,6 +73,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: default
+
 roleRef:
   kind: Role
   name: keycloak-operator

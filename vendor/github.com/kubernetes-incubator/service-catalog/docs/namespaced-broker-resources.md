@@ -68,24 +68,24 @@ Service Catalog's cluster-scoped resources for brokers, services, and plans are
 be used to prevent a user from creating a `ServiceInstance` using that 
 `ClusterServiceClass` and `ClusterServicePlan`. Namespace-scoped brokers, 
 services and plans, however, can be effectively combined with Kubernetes RBAC
-and Service Catalog Catalog Restrictions in order to provide more granular 
+and Service Catalog [Catalog Restrictions](catalog-restrictions.md) in order to provide more granular 
 control over service instance provisioning.
 
-## Enabling Namespace Scoped Broker Resources
+## Disabling Namespace Scoped Broker Resources
 
 Currently, namespace-scoped broker resources are an alpha-feature of Service 
-Catalog behind a feature flag. To start using these resources, you will need 
+Catalog that is on by default. To disable use of these resources, you will need 
 to pass an argument to the API Server when you install Service Catalog:
- `--feature-gates NamespacedServiceBroker=true`.
+ `--feature-gates NamespacedServiceBroker=false`.
 
-If you are using Helm, you can use the `namespacedServiceBrokerEnabled` setting
+If you are using Helm, you can use the `namespacedServiceBrokerDisabled` setting
  to control that flag:
 
 ```console
 helm install svc-cat/catalog \
    --name catalog \
    --namespace catalog \
-   --set namespacedServiceBrokerEnabled=true
+   --set namespacedServiceBrokerDisabled=true
 ```
 
 ## Using Namespace Scoped Broker Resources
@@ -212,7 +212,7 @@ The use of namespace-scoped resources enables you to register brokers within a
  given namespace and leverage RBAC in order to control who can 
 provision services in that namespace. By default, all service classes and plans 
 from that broker will be available to users of the namespace. When registering 
-a broker, catalog restrictions can be specified in order to restrict what plans
+a broker, [catalog restrictions](catalog-restrictions.md) can be specified in order to restrict what plans
  are available within a given namespace. This allows you to specify that in 
  the `developer` namespace, only plans named `basic` can be created. The YAML 
  to accomplish this might look like:

@@ -1,8 +1,8 @@
-ORG=aerogear
-NAMESPACE=shared
+ORG=witmicko
+NAMESPACE=rhsso
 PROJECT=keycloak-operator
 SHELL = /bin/bash
-TAG = 0.0.2
+TAG = 0.0.3
 PKG = github.com/aerogear/keycloak-operator
 TEST_DIRS     ?= $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
 
@@ -52,16 +52,12 @@ check: check-gofmt test-unit
 
 .PHONY: install
 install: install_crds
-	-kubectl create namespace $(NAMESPACE)
+	-oc new-project $(NAMESPACE)
 	-kubectl create -f deploy/rbac.yaml -n $(NAMESPACE)
 
 .PHONY: install_crds
 install_crds:
 	-kubectl create -f deploy/Keycloak_crd.yaml
-	-kubectl create -f deploy/SharedService_crd.yaml
-	-kubectl create -f deploy/SharedServicePlan_crd.yaml
-	-kubectl create -f deploy/SharedServiceAction_crd.yaml
-	-kubectl create -f deploy/SharedServiceSlice_crd.yaml
 
 
 .PHONY: uninstall
@@ -69,16 +65,9 @@ uninstall:
 	-kubectl delete role keycloak-operator -n $(NAMESPACE)
 	-kubectl delete rolebinding default-account-keycloak-operator -n $(NAMESPACE)
 	-kubectl delete crd keycloaks.aerogear.org
-	-kubectl delete crd sharedservices.aerogear.org
-	-kubectl delete crd sharedserviceplans.aerogear.org
-	-kubectl delete crd sharedserviceactions.aerogear.org
-	-kubectl delete crd sharedserviceslices.aerogear.org
 	-kubectl delete namespace $(NAMESPACE)
 
 
 .PHONY: create-examples
 create-examples:
-		-kubectl create -f deploy/examples/sharedservice.json -n $(NAMESPACE)
-		-kubectl create -f deploy/examples/sharedserviceslice.json -n $(NAMESPACE)
-		-kubectl create -f deploy/examples/sharedserviceaction.json -n $(NAMESPACE)
 		-kubectl create -f deploy/examples/keycloak.json -n $(NAMESPACE)

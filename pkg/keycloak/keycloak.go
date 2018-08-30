@@ -13,12 +13,12 @@ import (
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	scclientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
+	apps "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,10 +28,11 @@ import (
 )
 
 const (
-	KEYCLOAK_TEMPLATE_NAME = "sso72-x509-postgresql-persistent"
-	SSO_ROUTE_NAME         = "sso"
-	SSO_SECURE_ROUTE_NAME  = "secure-sso"
-	SSO_APPLICATION_NAME   = "sso"
+	SSO_TEMPLATE_NAME     = "sso72-x509-postgresql-persistent.json"
+	SSO_ROUTE_NAME        = "sso"
+	SSO_SECURE_ROUTE_NAME = "secure-sso"
+	SSO_APPLICATION_NAME  = "sso"
+	SSO_TEMPLATE_PATH     = "./deploy/template"
 )
 
 type Handler struct {
@@ -126,101 +127,37 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		for k, v := range adminCreds.Data {
 			decodedParams[k] = string(v)
 		}
-
-		//parameters, err := json.Marshal(decodedParams)
-		//if err != nil {
-		//	return errors.Wrap(err, "failed to marshal decoded parameters")
-		//}
-
-		err = install(h, namespace, decodedParams)
-		if err != nil{
+		err = install(kcCopy, decodedParams)
+		if err != nil {
 			return errors.Wrap(err, "failed to install sso")
 		}
 
-		//svcClass, err := h.getServiceClass()
-		//if err != nil {
-		//	if err.Error() == "failed to find service class" {
-		//		// only log that we have no class, returning error will eventually reset provision
-		//		logrus.Info("failed to find service class")
-		//		return nil
-		//	} else {
-		//		return err
-		//	}
-		//}
-		//
-		//adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
-		//if err != nil {
-		//	return errors.Wrap(err, "failed to get the secret for the admin credentials")
-		//}
-		//decodedParams := map[string]string{}
-		//for k, v := range adminCreds.Data {
-		//	decodedParams[k] = string(v)
-		//}
-		//
-		//parameters, err := json.Marshal(decodedParams)
-		//if err != nil {
-		//	return errors.Wrap(err, "failed to marshal decoded parameters")
-		//}
-		//
-		//si := h.createServiceInstance(namespace, parameters, *svcClass)
-		//serviceInstance, err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Create(&si)
-		//if err != nil {
-		//	kcCopy.Status.Phase = v1alpha1.PhaseFailed
-		//	kcCopy.Status.Message = fmt.Sprintf("failed to create service instance: %v", err)
-		//
-		//	updateErr := sdk.Update(kcCopy)
-		//	if updateErr != nil {
-		//		return errors.Wrap(updateErr, fmt.Sprintf("failed to create service instance: %v, failed to update resource", err))
-		//	}
-		//
-		//	return errors.Wrap(err, "failed to create service instance")
-		//}
+		kcCopy.Status.Phase = v1alpha1.PhaseWaitForPodsToRun
+		return sdk.Update(kcCopy)
 
-		//kcCopy.Spec.InstanceName = serviceInstance.GetName()
-		//kcCopy.Spec.InstanceUID = serviceInstance.Spec.ExternalID
-		//kcCopy.Status.Phase = v1alpha1.PhaseProvisioning
-
-	case v1alpha1.PhaseProvisioning:
-		if kc.Spec.InstanceUID == "" {
-			kcCopy.Status.Phase = v1alpha1.PhaseFailed
-			kcCopy.Status.Message = "instance ID is not defined"
-
-			err := sdk.Update(kcCopy)
-			if err != nil {
-				return errors.Wrap(err, "instance ID is not defined, failed to update resource")
-			}
-
-			return errors.New("instance ID is not defined")
-		}
-
-		si, err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Get(kc.Spec.InstanceName, metav1.GetOptions{})
-		if err != nil {
-			return errors.Wrap(err, "failed to get service instance")
-		}
-
-		if len(si.Status.Conditions) > 0 {
-			siCondition := si.Status.Conditions[0]
-			if siCondition.Type == "Ready" && siCondition.Status == "True" {
-				routeClient, _ := routev1.NewForConfig(h.kubeconfig)
-				routeList, _ := routeClient.Routes(namespace).List(metav1.ListOptions{})
-				for _, route := range routeList.Items {
-					if route.Spec.To.Name == SSO_ROUTE_NAME {
-						url := fmt.Sprintf("http://%v", route.Spec.Host)
-						h.addEntryToSecret(namespace, kc.Spec.AdminCredentials, "SSO_ADMIN_URL", url)
-					}
-					if route.Spec.To.Name == SSO_SECURE_ROUTE_NAME {
-						url := fmt.Sprintf("https://%v", route.Spec.Host)
-						h.addEntryToSecret(namespace, kc.Spec.AdminCredentials, "SSO_SECURE_ADMIN_URL", url)
-					}
-				}
-				kcCopy.Status.Phase = v1alpha1.PhaseWaitForPodsToRun
-			}
-		}
 	case v1alpha1.PhaseWaitForPodsToRun:
-		if h.areSsoPodReady(namespace) == true {
-			kcCopy.Status.Phase = v1alpha1.PhaseComplete
+		ready, err := h.areSsoPodReady(namespace)
+		if err != nil {
+			return err
+		}
+		if ready {
+			kcCopy.Status.Phase = v1alpha1.PhaseProvisioned
 			kcCopy.Status.Ready = true
 		}
+	case v1alpha1.PhaseProvisioned:
+		routeClient, _ := routev1.NewForConfig(h.kubeconfig)
+		routeList, _ := routeClient.Routes(namespace).List(metav1.ListOptions{})
+		for _, route := range routeList.Items {
+			if route.Spec.To.Name == SSO_ROUTE_NAME {
+				url := fmt.Sprintf("http://%v", route.Spec.Host)
+				h.addEntryToSecret(namespace, kc.Spec.AdminCredentials, "SSO_ADMIN_URL", url)
+			}
+			if route.Spec.To.Name == SSO_SECURE_ROUTE_NAME {
+				url := fmt.Sprintf("https://%v", route.Spec.Host)
+				h.addEntryToSecret(namespace, kc.Spec.AdminCredentials, "SSO_SECURE_ADMIN_URL", url)
+			}
+		}
+		kcCopy.Status.Phase = v1alpha1.PhaseComplete
 
 	case v1alpha1.PhaseComplete:
 		err := h.reconcileResources(kcCopy)
@@ -231,21 +168,12 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	case v1alpha1.PhaseDeprovisioning:
 		err := h.deleteKeycloak(kcCopy)
 		if err != nil {
-			kcCopy.Status.Phase = v1alpha1.PhaseDeprovisionFailed
-			kcCopy.Status.Message = fmt.Sprintf("failed to deprovision: %v", err)
-
-			updateErr := sdk.Update(kcCopy)
-			if updateErr != nil {
-				return errors.Wrap(updateErr, fmt.Sprintf("failed to deprovision instance: %v, failed to update resource", err))
-			}
-
 			return errors.Wrap(err, "failed to deprovision")
 		}
-
+		//todo what about finalizer if it keeps failing
 		kcCopy.Status.Phase = v1alpha1.PhaseDeprovisioned
-
-	case v1alpha1.PhaseDeprovisioned:
 		return h.finalizeKeycloak(kcCopy)
+
 	}
 
 	// Only update the Keycloak custom resource if there was a change
@@ -257,20 +185,25 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 
 	return nil
 }
-func (h *Handler) areSsoPodReady(namespace string) bool {
-	podList, _ := h.k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{
+func (h *Handler) areSsoPodReady(namespace string) (bool, error) {
+
+	podList, err := h.k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{
 		LabelSelector:        fmt.Sprintf("application=%v", SSO_APPLICATION_NAME),
 		IncludeUninitialized: false,
 	})
 
+	if err != nil || len(podList.Items) == 0 {
+		return false, err
+	}
+	fmt.Println("found sso pods", len(podList.Items))
 	for _, pod := range podList.Items {
 		for _, condition := range pod.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status != "True"{
-				return false
+			if condition.Type == "Ready" && condition.Status != "True" {
+				return false, nil
 			}
 		}
 	}
-	return true
+	return true, nil
 }
 
 func getKubeconfig() (*rest.Config, error) {
@@ -309,21 +242,6 @@ func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
 	return nil
 }
 
-func (h *Handler) getServiceClass() (*v1beta1.ClusterServiceClass, error) {
-	csc, err := h.serviceCatalogClient.Servicecatalog().ClusterServiceClasses().List(metav1.ListOptions{})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get service classes")
-	}
-
-	for _, sc := range csc.Items {
-		if sc.Spec.ExternalName == KEYCLOAK_TEMPLATE_NAME {
-			return &sc, nil
-		}
-	}
-
-	return nil, errors.New("failed to find service class")
-}
-
 func (h *Handler) createAdminCredentials(namespace, username, password string) (*corev1.Secret, error) {
 	adminCredentialsSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -331,6 +249,7 @@ func (h *Handler) createAdminCredentials(namespace, username, password string) (
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
+			Labels:       map[string]string{"application": "sso"},
 			Namespace:    namespace,
 			GenerateName: "keycloak-admin-cred-",
 		},
@@ -395,19 +314,42 @@ func (h *Handler) generatePassword() (string, error) {
 
 func (h *Handler) deleteKeycloak(kc *v1alpha1.Keycloak) error {
 	namespace := kc.ObjectMeta.Namespace
-
-	// Delete keycloak instance
-	err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Delete(kc.Spec.InstanceName, &metav1.DeleteOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return errors.Wrap(err, "failed to delete service instance")
+	deleteOpts := metav1.NewDeleteOptions(0)
+	listOpts := metav1.ListOptions{LabelSelector: "application=sso"}
+	dc, err := apps.NewForConfig(h.kubeconfig)
+	if err != nil {
+		return err
+	}
+	// delete dcs
+	if err := dc.DeploymentConfigs(namespace).DeleteCollection(deleteOpts, listOpts); err != nil {
+		return errors.Wrap(err, "failed to remove the deployment configs")
+	}
+	// delete pvc
+	if err := h.k8sClient.CoreV1().PersistentVolumeClaims(kc.Namespace).DeleteCollection(deleteOpts, listOpts); err != nil {
+		return errors.Wrap(err, "failed to remove the pvc")
+	}
+	// delete routes
+	routeClient, err := routev1.NewForConfig(h.kubeconfig)
+	if err := routeClient.Routes(kc.Namespace).DeleteCollection(deleteOpts, listOpts); err != nil {
+		return errors.Wrap(err, "failed to remove the routes")
 	}
 
-	// Delete admin creds secret
-	err = h.k8sClient.CoreV1().Secrets(namespace).Delete(kc.Spec.AdminCredentials, &metav1.DeleteOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return errors.Wrap(err, "failed to delete admin credentials secret")
+	// delete secrets
+	if err := h.k8sClient.CoreV1().Secrets(kc.Namespace).DeleteCollection(deleteOpts, listOpts); err != nil {
+		return errors.Wrap(err, "failed to remove the secrets")
 	}
-
+	// delete services
+	services, err := h.k8sClient.CoreV1().Services(kc.Namespace).List(listOpts)
+	if err != nil {
+		return errors.Wrap(err, "failed to list all services for sso")
+	}
+	// todo handle more than one error
+	for _, s := range services.Items {
+		err = h.k8sClient.CoreV1().Services(kc.Namespace).Delete(s.Name, deleteOpts)
+	}
+	if err != nil {
+		return errors.Wrap(err, "error deleteing service")
+	}
 	return nil
 }
 

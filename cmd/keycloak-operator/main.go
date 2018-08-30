@@ -19,6 +19,8 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
+	// Load Openshift types
+	_ "github.com/aerogear/keycloak-operator/pkg/apis/openshift"
 )
 
 func printVersion() {

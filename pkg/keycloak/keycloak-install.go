@@ -3,6 +3,7 @@ package keycloak
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"path/filepath"
 	"io/ioutil"
 	"encoding/json"
@@ -106,26 +107,34 @@ func postTemplate(h *Handler, sourceTemplate *v1template.Template, namespace str
 		Body(resource).
 		Resource("processedtemplates").
 		Do()
-
 	if result.Error() == nil {
 		data, err := result.Raw()
 		if err != nil {
 			return nil, err
 		}
-		var templ v1template.Template
-		if err := json.Unmarshal(data, &templ); err != nil{
-			return nil, errors.New("wrong type returned by the server")
-		}
-		return templ.Objects, nil
-		//templ, err := util.LoadKubernetesResource(data)
-		//if err != nil {
-		//	return nil, err
-		//}
 
-		//if v1Temp, ok := templ.(*v1.Template); ok {
-		//	return v1Temp.Objects, nil
-		//}
+		templ, err := util.LoadKubernetesResource(data)
+		if err != nil {
+			return nil, err
+		}
+
+		if v1Temp, ok := templ.(*v1template.Template); ok {
+			return v1Temp.Objects, nil
+		}
+		logrus.Error("Wrong type returned by the server", templ)
+		return nil, errors.New("wrong type returned by the server")
 	}
+	//if result.Error() == nil {
+	//	data, err := result.Raw()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	var templ v1template.Template
+	//	if err := json.Unmarshal(data, &templ); err != nil{
+	//		return nil, errors.New("wrong type returned by the server")
+	//	}
+	//	return templ.Objects, nil
+	//}
 	return nil, errors.New("wrong type returned by the server")
 }
 

@@ -180,5 +180,5 @@ var (
 	PhaseDeprovisioned      StatusPhase = "deprovisioned"
 	PhaseDeprovisionFailed  StatusPhase = "deprovisionFailed"
 	PhaseCredentialsPending StatusPhase = "credentialsPending"
-	PhaseCredentialsCreated StatusPhase = "credentialsCreated"
+	PhaseReadyForProvision  StatusPhase = "readyForProvision"
 )

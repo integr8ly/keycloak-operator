@@ -8,6 +8,8 @@ import (
 
 	"strings"
 
+	"encoding/json"
+
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/google/uuid"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
@@ -35,6 +37,10 @@ const (
 	SSO_TEMPLATE_PATH     = "./deploy/template"
 )
 
+type K8sCruder interface {
+	Create(sdk.Object) error
+}
+
 type Handler struct {
 	cfg                  v1alpha1.Config
 	k8sClient            kubernetes.Interface
@@ -42,13 +48,14 @@ type Handler struct {
 	kubeconfig           *rest.Config
 	serviceCatalogClient scclientset.Interface
 	defaultClients       map[string]struct{}
+	k8sCrud              K8sCruder
 }
 
 type ServiceClassExternalMetadata struct {
 	ServiceName string `json:"serviceName"`
 }
 
-func NewHandler(cfg v1alpha1.Config, kcClientFactory KeycloakClientFactory, svcCatalog scclientset.Interface, k8sClient kubernetes.Interface) *Handler {
+func NewHandler(cfg v1alpha1.Config, kcClientFactory KeycloakClientFactory, svcCatalog scclientset.Interface, k8sClient kubernetes.Interface, cruder K8sCruder) *Handler {
 	kcDefaultClients := []string{"account", "admin-cli", "broker", "realm-management", "security-admin-console"}
 	set := make(map[string]struct{}, len(kcDefaultClients))
 	for _, s := range kcDefaultClients {
@@ -63,60 +70,32 @@ func NewHandler(cfg v1alpha1.Config, kcClientFactory KeycloakClientFactory, svcC
 		k8sClient:            k8sClient,
 		defaultClients:       set,
 		kubeconfig:           kubeconfig,
+		k8sCrud:              cruder,
 	}
 }
 
-func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
-	logrus.Debug("handling object ", event.Object.GetObjectKind().GroupVersionKind().String())
-
-	kc := event.Object.(*v1alpha1.Keycloak)
-	kcCopy := kc.DeepCopy()
-	namespace := kc.ObjectMeta.Namespace
-
-	logrus.Debugf("Keycloak: %v, Phase: %v", kc.Name, kc.Status.Phase)
-	logrus.Infof("Keycloak: %v, Phase: %v", kc.Name, kc.Status.Phase)
-
-	if event.Deleted {
-		return nil
+func (h *Handler) accepted(keycloak *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	//make a copy of state and modify it then return it
+	kc := keycloak.DeepCopy()
+	if kc.Spec.AdminCredentials != "" {
+		return nil, nil
 	}
 
-	if kc.GetDeletionTimestamp() != nil && (kc.Status.Phase != v1alpha1.PhaseDeprovisioning && kc.Status.Phase != v1alpha1.PhaseDeprovisioned && kc.Status.Phase != v1alpha1.PhaseDeprovisionFailed) {
-		kcCopy.Status.Phase = v1alpha1.PhaseDeprovisioning
-		kcCopy.Status.Ready = false
-
-		return sdk.Update(kcCopy)
+	adminPwd, err := h.generatePassword()
+	if err != nil {
+		return nil, err
+	}
+	namespace := keycloak.ObjectMeta.Namespace
+	adminCredRef, err := h.createAdminCredentials(namespace, "admin", adminPwd)
+	if err != nil {
+		return nil, err
 	}
 
-	switch kc.Status.Phase {
-	case v1alpha1.NoPhase:
+	kc.Spec.AdminCredentials = adminCredRef.GetName()
+	kc.Status.Phase = v1alpha1.PhaseReadyForProvision
+	return kc, nil
 
-		return h.initKeycloak(kcCopy)
-
-	case v1alpha1.PhaseAccepted:
-		if kc.Spec.AdminCredentials == "" {
-
-			adminPwd, err := h.generatePassword()
-			if err != nil {
-				return err
-			}
-
-			adminCredRef, err := h.createAdminCredentials(namespace, "admin", adminPwd)
-			if err != nil {
-				return err
-			}
-
-			kcCopy.Spec.AdminCredentials = adminCredRef.GetName()
-			kcCopy.Status.Phase = v1alpha1.PhaseCredentialsPending
-		}
-
-	case v1alpha1.PhaseCredentialsPending:
-		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
-		if err != nil {
-			return errors.Wrap(err, "failed to get the secret for the admin credentials")
-		}
-		if adminCreds != nil {
-			kcCopy.Status.Phase = v1alpha1.PhaseCredentialsCreated
-		}
+}
 
 	case v1alpha1.PhaseCredentialsCreated:
 		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
@@ -131,6 +110,7 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to install sso")
 		}
+		return sdk.Update(kcState)
 
 		kcCopy.Status.Phase = v1alpha1.PhaseWaitForPodsToRun
 		return sdk.Update(kcCopy)
@@ -162,8 +142,18 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 	case v1alpha1.PhaseComplete:
 		err := h.reconcileResources(kcCopy)
 		if err != nil {
-			return errors.Wrap(err, "could not reconcile resources")
+			kc.Status.Phase = v1alpha1.PhaseFailed
+			kc.Status.Message = err.Error()
+			logrus.Error("failed to reconcile resources ", err)
+			return sdk.Update(kc)
 		}
+		return nil
+		//if err := sdk.Get(kc, sdk.WithGetOptions(&metav1.GetOptions{})); err != nil {
+		//	return nil
+		//}
+		//// set back to provisioned and we will reconcile again next time through
+		//kc.Status.Phase = v1alpha1.PhaseProvisioned
+		//return sdk.Update(kc)
 
 	case v1alpha1.PhaseDeprovisioning:
 		err := h.deleteKeycloak(kcCopy)
@@ -175,14 +165,6 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		return h.finalizeKeycloak(kcCopy)
 
 	}
-
-	// Only update the Keycloak custom resource if there was a change
-	if !reflect.DeepEqual(kc, kcCopy) {
-		if err := sdk.Update(kcCopy); err != nil {
-			return errors.Wrap(err, "failed to update the keycloak resource")
-		}
-	}
-
 	return nil
 }
 func (h *Handler) areSsoPodReady(namespace string) (bool, error) {
@@ -226,7 +208,7 @@ func (h *Handler) reconcileResources(kc *v1alpha1.Keycloak) error {
 	}
 	user := string(adminCreds.Data["SSO_ADMIN_USERNAME"])
 	pass := string(adminCreds.Data["SSO_ADMIN_PASSWORD"])
-	url := string(adminCreds.Data["SSO_ADMIN_URL"])
+	url := string(adminCreds.Data["SSO_SECURE_ADMIN_URL"])
 	logrus.Debugf("getting authenticated client for (user: %s, pass: %s, url: %s", user, pass, url)
 
 	kcClient, err := h.kcClientFactory.AuthenticatedClient(*kc, user, pass, url)
@@ -260,7 +242,7 @@ func (h *Handler) createAdminCredentials(namespace, username, password string) (
 		Type: "Opaque",
 	}
 
-	if err := sdk.Create(adminCredentialsSecret); err != nil {
+	if err := h.k8sCrud.Create(adminCredentialsSecret); err != nil {
 		return nil, errors.Wrap(err, "failed to create secret for the admin credentials")
 	}
 
@@ -276,32 +258,6 @@ func (h *Handler) addEntryToSecret(namespace, secretName, key, value string) err
 		return errors.Wrap(err, "could not update admin credentials")
 	}
 	return nil
-}
-
-func (h *Handler) createServiceInstance(namespace string, parameters []byte, sc v1beta1.ClusterServiceClass) v1beta1.ServiceInstance {
-	return v1beta1.ServiceInstance{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "servicecatalog.k8s.io/v1beta1",
-			Kind:       "ServiceInstance",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:    namespace,
-			GenerateName: sc.Spec.ExternalName + "-",
-		},
-		Spec: v1beta1.ServiceInstanceSpec{
-			PlanReference: v1beta1.PlanReference{
-				ClusterServiceClassExternalName: sc.Spec.ExternalName,
-				//ClusterServicePlanExternalName:  KEYCLOAK_PLAN_NAME,
-			},
-			ClusterServiceClassRef: &v1beta1.ClusterObjectReference{
-				Name: sc.Name,
-			},
-			//ClusterServicePlanRef: &v1beta1.ClusterObjectReference{
-			//	Name: KEYCLOAK_PLAN_NAME,
-			//},
-			Parameters: &runtime.RawExtension{Raw: parameters},
-		},
-	}
 }
 
 func (h *Handler) generatePassword() (string, error) {
@@ -365,12 +321,12 @@ func (h *Handler) reconcileRealms(kc *v1alpha1.Keycloak, kcClient KeycloakInterf
 	kcRealmMap := map[string]*v1alpha1.KeycloakRealm{}
 	for i := range kcRealms {
 		logrus.Debugf("kc realm %v", kcRealms[i].ID)
-		kcRealmMap[kcRealms[i].ID] = kcRealms[i]
+		kcRealmMap[kcRealms[i].Realm] = kcRealms[i]
 	}
 
 	for i := range specRealms {
 		logrus.Debugf("spec realm %v", specRealms[i].ID)
-		err = h.reconcileRealm(kcRealmMap[specRealms[i].ID], &specRealms[i], kcClient)
+		err = h.reconcileRealm(kcRealmMap[specRealms[i].Realm], &specRealms[i], kcClient)
 		//This should try and reconcile all realms rather throwing an error on the first failure
 		if err != nil {
 			return errors.Wrapf(err, "error reconciling realm: %v", specRealms[i].ID)
@@ -381,22 +337,22 @@ func (h *Handler) reconcileRealms(kc *v1alpha1.Keycloak, kcClient KeycloakInterf
 }
 
 func (h *Handler) reconcileRealm(kcRealm, specRealm *v1alpha1.KeycloakRealm, kcClient KeycloakInterface) error {
-	logrus.Infof("reconcile realm (%v)", specRealm.ID)
+	logrus.Infof("reconcile realm (%v)", specRealm.Realm)
 
 	if kcRealm == nil {
-		logrus.Debugf("create realm: %v", specRealm.ID)
+		logrus.Debugf("create realm: %v", specRealm.Realm)
 		err := kcClient.CreateRealm(specRealm)
 		if err != nil {
-			logrus.Errorf("error creating realm %v", specRealm.ID)
+			logrus.Errorf("error creating realm %v : %v", specRealm.ID, err)
 			return errors.Wrap(err, "error creating keycloak realm")
 		}
 	} else {
 		if h.cfg.SyncResources {
-			logrus.Debugf("sync realm %v", specRealm.ID)
+			logrus.Debugf("sync realm %v", specRealm.Realm)
 			if !resourcesEqual(kcRealm, specRealm) {
 				err := kcClient.UpdateRealm(specRealm)
 				if err != nil {
-					logrus.Errorf("error updating realm %v", specRealm.ID)
+					logrus.Errorf("error updating realm %v", specRealm.Realm)
 					return errors.Wrap(err, "error updating keycloak realm")
 				}
 			}
@@ -411,7 +367,7 @@ func (h *Handler) reconcileRealm(kcRealm, specRealm *v1alpha1.KeycloakRealm, kcC
 }
 
 func (h *Handler) reconcileClients(kcClient KeycloakInterface, specRealm *v1alpha1.KeycloakRealm) error {
-	logrus.Infof("reconcile clients (%v)", specRealm.ID)
+	logrus.Infof("reconcile clients (%v)", specRealm.Realm)
 
 	clients, err := kcClient.ListClients(specRealm.Realm)
 	if err != nil {
@@ -613,17 +569,14 @@ func (h *Handler) reconcileIdentityProvider(kcIdentityProvider, specIdentityProv
 	return nil
 }
 
-func (h *Handler) initKeycloak(kc *v1alpha1.Keycloak) error {
-	logrus.Infof("initialise keycloak: %v", kc.Name)
+func (h *Handler) init(keycloak *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	logrus.Infof("initialise keycloak: %v", keycloak.Name)
+	// copy and return new state
+	kc := keycloak.DeepCopy()
 	sc.AddFinalizer(kc, v1alpha1.KeycloakFinalizer)
 	kc.Status.Phase = v1alpha1.PhaseAccepted
 	kc.Status.Ready = false
-	err := sdk.Update(kc)
-	if err != nil {
-		logrus.Errorf("error initialising resource: %v", err)
-		return err
-	}
-	return nil
+	return kc, nil
 }
 
 func (h *Handler) finalizeKeycloak(kc *v1alpha1.Keycloak) error {

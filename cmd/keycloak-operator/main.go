@@ -14,6 +14,7 @@ import (
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/aerogear/keycloak-operator/pkg/dispatch"
+	"github.com/aerogear/keycloak-operator/pkg/k8s"
 	"github.com/aerogear/keycloak-operator/pkg/keycloak"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
@@ -70,6 +71,9 @@ func main() {
 
 	dh := dispatch.NewHandler(k8Client, svcClient)
 	dispatcher := dh.(*dispatch.Handler)
+
+	// setup cruder
+	cruder := k8s.Cruder{}
 	// Handle keycloak resource reconcile
 	dispatcher.AddHandler(keycloak.NewHandler(cfg, kcFactory, svcClient, k8Client))
 

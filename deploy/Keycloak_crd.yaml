@@ -97,12 +97,3 @@ spec:
                     type: array
                     items:
                       type: object
-                      properties:
-                        name:
-                          type: string
-                        clientType:
-                          type: string
-                        config:
-                          type: object
-                        outputSecret:
-                          type: string

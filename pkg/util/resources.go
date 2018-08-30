@@ -31,8 +31,8 @@ func LoadKubernetesResource(jsonData []byte) (runtime.Object, error) {
 		return nil, err
 	}
 
-	obj := k8sutil.RuntimeObjectFromUnstructured(&u)
-	return obj, nil
+	obj, err := k8sutil.RuntimeObjectFromUnstructured(&u)
+	return obj, err
 }
 
 func jsonIfYaml(source []byte, filename string) ([]byte, error) {

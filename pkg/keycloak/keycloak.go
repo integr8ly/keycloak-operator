@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"encoding/json"
 )
 
 const (
@@ -119,17 +118,6 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 		}
 
 	case v1alpha1.PhaseCredentialsCreated:
-		svcClass, err := h.getServiceClass()
-		if err != nil {
-			if err.Error() == "failed to find service class" {
-				// only log that we have no class, returning error will eventually reset provision
-				logrus.Info("failed to find service class")
-				return nil
-			} else {
-				return err
-			}
-		}
-
 		adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to get the secret for the admin credentials")
@@ -139,28 +127,58 @@ func (h *Handler) Handle(ctx context.Context, event sdk.Event) error {
 			decodedParams[k] = string(v)
 		}
 
-		parameters, err := json.Marshal(decodedParams)
-		if err != nil {
-			return errors.Wrap(err, "failed to marshal decoded parameters")
+		//parameters, err := json.Marshal(decodedParams)
+		//if err != nil {
+		//	return errors.Wrap(err, "failed to marshal decoded parameters")
+		//}
+
+		err = install(h, namespace, decodedParams)
+		if err != nil{
+			return errors.Wrap(err, "failed to install sso")
 		}
 
-		si := h.createServiceInstance(namespace, parameters, *svcClass)
-		serviceInstance, err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Create(&si)
-		if err != nil {
-			kcCopy.Status.Phase = v1alpha1.PhaseFailed
-			kcCopy.Status.Message = fmt.Sprintf("failed to create service instance: %v", err)
+		//svcClass, err := h.getServiceClass()
+		//if err != nil {
+		//	if err.Error() == "failed to find service class" {
+		//		// only log that we have no class, returning error will eventually reset provision
+		//		logrus.Info("failed to find service class")
+		//		return nil
+		//	} else {
+		//		return err
+		//	}
+		//}
+		//
+		//adminCreds, err := h.k8sClient.CoreV1().Secrets(namespace).Get(kc.Spec.AdminCredentials, metav1.GetOptions{})
+		//if err != nil {
+		//	return errors.Wrap(err, "failed to get the secret for the admin credentials")
+		//}
+		//decodedParams := map[string]string{}
+		//for k, v := range adminCreds.Data {
+		//	decodedParams[k] = string(v)
+		//}
+		//
+		//parameters, err := json.Marshal(decodedParams)
+		//if err != nil {
+		//	return errors.Wrap(err, "failed to marshal decoded parameters")
+		//}
+		//
+		//si := h.createServiceInstance(namespace, parameters, *svcClass)
+		//serviceInstance, err := h.serviceCatalogClient.ServicecatalogV1beta1().ServiceInstances(namespace).Create(&si)
+		//if err != nil {
+		//	kcCopy.Status.Phase = v1alpha1.PhaseFailed
+		//	kcCopy.Status.Message = fmt.Sprintf("failed to create service instance: %v", err)
+		//
+		//	updateErr := sdk.Update(kcCopy)
+		//	if updateErr != nil {
+		//		return errors.Wrap(updateErr, fmt.Sprintf("failed to create service instance: %v, failed to update resource", err))
+		//	}
+		//
+		//	return errors.Wrap(err, "failed to create service instance")
+		//}
 
-			updateErr := sdk.Update(kcCopy)
-			if updateErr != nil {
-				return errors.Wrap(updateErr, fmt.Sprintf("failed to create service instance: %v, failed to update resource", err))
-			}
-
-			return errors.Wrap(err, "failed to create service instance")
-		}
-
-		kcCopy.Spec.InstanceName = serviceInstance.GetName()
-		kcCopy.Spec.InstanceUID = serviceInstance.Spec.ExternalID
-		kcCopy.Status.Phase = v1alpha1.PhaseProvisioning
+		//kcCopy.Spec.InstanceName = serviceInstance.GetName()
+		//kcCopy.Spec.InstanceUID = serviceInstance.Spec.ExternalID
+		//kcCopy.Status.Phase = v1alpha1.PhaseProvisioning
 
 	case v1alpha1.PhaseProvisioning:
 		if kc.Spec.InstanceUID == "" {

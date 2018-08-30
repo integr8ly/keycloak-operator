@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"runtime"
+	"time"
 
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
@@ -62,7 +63,8 @@ func main() {
 
 	//set namespace to empty to watch all namespaces
 	//namespace := ""
-	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, cfg.ResyncPeriod)
+	resyncDuration := time.Second * time.Duration(cfg.ResyncPeriod)
+	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, resyncDuration)
 
 	dh := dispatch.NewHandler(k8Client, svcClient)
 	dispatcher := dh.(*dispatch.Handler)

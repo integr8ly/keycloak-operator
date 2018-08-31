@@ -2,6 +2,7 @@ package keycloak
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
@@ -31,7 +32,16 @@ func GetInstallResourcesAsRuntimeObjects(keycloak *v1alpha1.Keycloak, params map
 }
 
 func GetInstallResources(keycloak *v1alpha1.Keycloak, params map[string]string) ([]runtime.RawExtension, error) {
-	templateFilePath, err := filepath.Abs(fmt.Sprintf("%v/%v", SSO_TEMPLATE_PATH, SSO_TEMPLATE_NAME))
+	var templateFilePath string
+	var err error
+	templatePathEnvVar, found := os.LookupEnv(SSO_TEMPLATE_PATH_ENV_VAR)
+
+	if found{
+		templateFilePath, err = filepath.Abs(fmt.Sprintf("%v/%v", templatePathEnvVar, SSO_TEMPLATE_NAME))
+	} else {
+		templateFilePath, err = filepath.Abs(fmt.Sprintf("%v/%v", SSO_TEMPLATE_PATH, SSO_TEMPLATE_NAME))
+	}
+
 	if err != nil {
 		return nil, err
 	}

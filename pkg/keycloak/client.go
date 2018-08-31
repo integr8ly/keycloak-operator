@@ -17,6 +17,8 @@ import (
 	"fmt"
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -444,14 +446,22 @@ type KeycloakInterface interface {
 }
 
 type KeycloakClientFactory interface {
-	AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error)
+	AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error)
 }
 
 type KeycloakFactory struct {
+	SecretClient v1.SecretInterface
 }
 
 // AuthenticatedClient returns an authenticated client for requesting endpoints from the Keycloak api
-func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error) {
+func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error) {
+	adminCreds, err := kf.SecretClient.Get(kc.Spec.AdminCredentials, v12.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get the admin credentials")
+	}
+	user := string(adminCreds.Data["SSO_ADMIN_USERNAME"])
+	pass := string(adminCreds.Data["SSO_ADMIN_PASSWORD"])
+	url := string(adminCreds.Data["SSO_ADMIN_URL"])
 	client := &Client{
 		URL:       url,
 		requester: defaultRequester(),
@@ -459,6 +469,5 @@ func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak, user, pass,
 	if err := client.login(user, pass); err != nil {
 		return nil, err
 	}
-
 	return client, nil
 }

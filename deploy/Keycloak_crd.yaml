@@ -18,8 +18,6 @@ spec:
           properties:
             version:
               type: string
-            instanceID:
-              type: string
             adminCredentials:
               type: string
             realms:

@@ -14,8 +14,8 @@ import (
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/aerogear/keycloak-operator/pkg/dispatch"
+	"github.com/aerogear/keycloak-operator/pkg/k8s"
 	"github.com/aerogear/keycloak-operator/pkg/keycloak"
-	sc "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
@@ -55,23 +55,21 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("Failed to get watch namespace: %v", err)
 	}
-	kubeCfg := k8sclient.GetKubeConfig()
-	svcClient, err := sc.NewForConfig(kubeCfg)
-	if err != nil {
-		logrus.Fatal("failed to set up service catalog client ", err)
-	}
 	k8Client := k8sclient.GetKubeClient()
-	kcFactory := &keycloak.KeycloakFactory{}
+	kcFactory := &keycloak.KeycloakFactory{SecretClient: k8Client.CoreV1().Secrets(namespace)}
 
 	//set namespace to empty to watch all namespaces
 	//namespace := ""
 	resyncDuration := time.Second * time.Duration(cfg.ResyncPeriod)
 	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, resyncDuration)
 
-	dh := dispatch.NewHandler(k8Client, svcClient)
+	dh := dispatch.NewHandler(k8Client)
 	dispatcher := dh.(*dispatch.Handler)
+
+	// setup cruder
+	cruder := k8s.Cruder{}
 	// Handle keycloak resource reconcile
-	dispatcher.AddHandler(keycloak.NewHandler(cfg, kcFactory, svcClient, k8Client))
+	dispatcher.AddHandler(keycloak.NewReconciler(kcFactory, k8Client, cruder))
 
 	// main dispatch of resources
 	sdk.Handle(dispatcher)

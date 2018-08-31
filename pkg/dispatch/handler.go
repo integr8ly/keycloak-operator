@@ -3,17 +3,15 @@ package dispatch
 import (
 	"context"
 
-	sc "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewHandler(k8Client kubernetes.Interface, serviceCatalogClient sc.Interface) sdk.Handler {
+func NewHandler(k8Client kubernetes.Interface) sdk.Handler {
 	return &Handler{
 		k8Client:    k8Client,
-		scClient:    serviceCatalogClient,
 		gvkHandlers: map[schema.GroupVersionKind]sdk.Handler{},
 	}
 }
@@ -21,7 +19,6 @@ func NewHandler(k8Client kubernetes.Interface, serviceCatalogClient sc.Interface
 type Handler struct {
 	// Fill me
 	k8Client    kubernetes.Interface
-	scClient    sc.Interface
 	gvkHandlers map[schema.GroupVersionKind]sdk.Handler
 }
 

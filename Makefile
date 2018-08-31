@@ -34,7 +34,7 @@ build-image:
 
 .PHONY: run
 run:
-	operator-sdk up local --namespace=${NAMESPACE} --operator-flags="--resync=8"
+	operator-sdk up local --namespace=${NAMESPACE} --operator-flags="--resync=10"
 
 .PHONY: generate
 generate:
@@ -53,7 +53,7 @@ check: check-gofmt test-unit
 .PHONY: install
 install: install_crds
 	-oc new-project $(NAMESPACE)
-	-kubectl create -f deploy/rbac.yaml -n $(NAMESPACE)
+	-kubectl create --insecure-skip-tls-verify -f deploy/rbac.yaml -n $(NAMESPACE)
 
 .PHONY: install_crds
 install_crds:

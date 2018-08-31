@@ -17,6 +17,8 @@ import (
 	"fmt"
 
 	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -64,6 +66,7 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 		logrus.Errorf("error on request %+v", err)
 		return errors.Wrapf(err, "error performing POST %s request", resourceName)
 	}
+	defer res.Body.Close()
 
 	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode != 201 {
@@ -117,6 +120,7 @@ func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body 
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("failed to GET %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
+	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -195,7 +199,7 @@ func (c *Client) update(obj T, resourcePath, resourceName string) error {
 		logrus.Errorf("error on request %+v", err)
 		return errors.Wrapf(err, "error performing UPDATE %s request", resourceName)
 	}
-
+	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		logrus.Errorf("failed to UPDATE %s %v", resourceName, res.Status)
 		return fmt.Errorf("failed to UPDATE %s: (%d) %s", resourceName, res.StatusCode, res.Status)
@@ -243,7 +247,7 @@ func (c *Client) delete(resourcePath, resourceName string) error {
 		logrus.Errorf("error on request %+v", err)
 		return errors.Wrapf(err, "error performing DELETE %s request", resourceName)
 	}
-
+	defer res.Body.Close()
 	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode != 204 {
 		return fmt.Errorf("failed to DELETE %s: (%d) %s", resourceName, res.StatusCode, res.Status)
@@ -290,6 +294,7 @@ func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(
 		logrus.Errorf("error on request %+v", err)
 		return nil, errors.Wrapf(err, "error performing LIST %s request", resourceName)
 	}
+	defer res.Body.Close()
 
 	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode < 200 || res.StatusCode > 299 {
@@ -341,6 +346,9 @@ func (c *Client) ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error) {
 		err := json.Unmarshal(body, &users)
 		return users, err
 	})
+	if err != nil {
+		return nil, err
+	}
 	return result.([]*v1alpha1.KeycloakUser), err
 }
 
@@ -350,6 +358,9 @@ func (c *Client) ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakId
 		err := json.Unmarshal(body, &providers)
 		return providers, err
 	})
+	if err != nil {
+		return nil, err
+	}
 	return result.([]*v1alpha1.KeycloakIdentityProvider), err
 }
 
@@ -376,7 +387,7 @@ func (c *Client) login(user, pass string) error {
 		logrus.Errorf("error on request %+v", err)
 		return errors.Wrap(err, "error performing token request")
 	}
-
+	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		logrus.Errorf("error reading response %+v", err)
@@ -435,19 +446,28 @@ type KeycloakInterface interface {
 }
 
 type KeycloakClientFactory interface {
-	AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error)
+	AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error)
 }
 
 type KeycloakFactory struct {
+	SecretClient v1.SecretInterface
 }
 
 // AuthenticatedClient returns an authenticated client for requesting endpoints from the Keycloak api
-func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak, user, pass, url string) (KeycloakInterface, error) {
+func (kf *KeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error) {
+	adminCreds, err := kf.SecretClient.Get(kc.Spec.AdminCredentials, v12.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get the admin credentials")
+	}
+	user := string(adminCreds.Data["SSO_ADMIN_USERNAME"])
+	pass := string(adminCreds.Data["SSO_ADMIN_PASSWORD"])
+	url := string(adminCreds.Data["SSO_ADMIN_URL"])
 	client := &Client{
 		URL:       url,
 		requester: defaultRequester(),
 	}
-	client.login(user, pass)
-
+	if err := client.login(user, pass); err != nil {
+		return nil, err
+	}
 	return client, nil
 }

@@ -21,8 +21,8 @@ func install(kc *v1alpha1.Keycloak, params map[string]string) error {
 	}
 	namespace := kc.Namespace
 	for _, o := range objects {
-		gvk := o.GetObjectKind().GroupVersionKind()
 
+		gvk := o.GetObjectKind().GroupVersionKind()
 		apiVersion, kind := gvk.ToAPIVersionAndKind()
 		resourceClient, _, err := k8sclient.GetResourceClient(apiVersion, kind, namespace)
 		if err != nil {

@@ -91,6 +91,8 @@ spec:
                           type: array
                           items:
                             type: string
+                        outputSecret:
+                          type: string
                   clients:
                     type: array
                     items:

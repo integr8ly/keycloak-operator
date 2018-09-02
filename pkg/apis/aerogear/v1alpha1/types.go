@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"regexp"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,7 +41,25 @@ type Keycloak struct {
 }
 
 func (k *Keycloak) Defaults() {
+	alphaNum := regexp.MustCompile(`[^a-zA-Z0-9]+`)
 	//set the defaults if not set to something else
+	for _, r := range k.Spec.Realms {
+		for i, u := range r.Users {
+			if u.OutputSecret == "" {
+				r.Users[i].OutputSecret = alphaNum.ReplaceAllString(u.UserName, "-")
+			}
+		}
+		for i, c := range r.Clients {
+			if c.ID == "" {
+				c.ID = c.ClientID
+				r.Clients[i] = c
+			}
+			if c.OutputSecret == "" {
+				c.OutputSecret = alphaNum.ReplaceAllString(r.Realm+"-"+c.ClientID, "-")
+			}
+		}
+	}
+
 }
 
 func (k *Keycloak) Validate() error {
@@ -53,13 +73,25 @@ type KeycloakSpec struct {
 }
 
 type KeycloakRealm struct {
+	*KeycloakApiRealm
+	Users   []KeycloakUser   `json:"users,omitempty"`
+	Clients []KeycloakClient `json:"clients,omitempty"`
+}
+
+type KeycloakApiRealm struct {
 	ID                string                     `json:"id,omitempty"`
 	Realm             string                     `json:"realm,omitempty"`
 	Enabled           bool                       `json:"enabled"`
 	DisplayName       string                     `json:"displayName"`
-	Users             []KeycloakUser             `json:"users,omitempty"`
-	Clients           []KeycloakClient           `json:"clients,omitempty"`
+	Users             []KeycloakApiUser          `json:"users,omitempty"`
+	Clients           []KeycloakApiClient        `json:"clients,omitempty"`
 	IdentityProviders []KeycloakIdentityProvider `json:"identityProviders,omitempty"`
+}
+
+type KeycloakApiPasswordReset struct {
+	Type      string `json:"type"`
+	Value     string `json:"value"`
+	Temporary bool   `json:"temporary"`
 }
 
 type KeycloakIdentityProvider struct {
@@ -81,6 +113,11 @@ type KeycloakIdentityProviderPair struct {
 }
 
 type KeycloakUser struct {
+	*KeycloakApiUser
+	OutputSecret string `json:"outputSecret, omitempty"`
+}
+
+type KeycloakApiUser struct {
 	ID              string              `json:"id,omitempty"`
 	UserName        string              `json:"username,omitempty"`
 	FirstName       string              `json:"firstName"`
@@ -110,8 +147,14 @@ type KeycloakProtocolMapper struct {
 }
 
 type KeycloakClient struct {
+	*KeycloakApiClient
+	OutputSecret string `json:"outputSecret, omitempty"`
+}
+
+type KeycloakApiClient struct {
 	ID                        string                   `json:"id,omitempty"`
 	ClientID                  string                   `json:"clientId,omitempty"`
+	Secret                    string                   `json:"secret"`
 	Name                      string                   `json:"name"`
 	BaseURL                   string                   `json:"baseUrl"`
 	AdminURL                  string                   `json:"adminUrl"`

@@ -2,8 +2,6 @@
 package openshift
 
 import (
-	"fmt"
-
 	apps "github.com/openshift/api/apps/v1"
 	authorization "github.com/openshift/api/authorization/v1"
 	build "github.com/openshift/api/build/v1"
@@ -49,7 +47,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 }
 
 func doAdd(addToScheme registerFunction, scheme *runtime.Scheme, err error) error {
-	fmt.Print("Adding openshift type")
 	callErr := addToScheme(scheme)
 	if callErr != nil {
 		logrus.Error("Error while registering Openshift types", callErr)

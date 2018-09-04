@@ -71,15 +71,15 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 			Kind:       "Secret",
 		},
 		ObjectMeta: v12.ObjectMeta{
-			Labels:       map[string]string{"application": "sso", "sso": kc.Name},
-			Namespace:    namespace,
-			GenerateName: "credential-" + kc.Name,
+			Labels:    map[string]string{"application": "sso", "sso": kc.Name},
+			Namespace: namespace,
+			Name:      "credential-" + kc.Name,
 		},
 		Data: data,
 		Type: "Opaque",
 	}
 	adminCredential, err := ph.k8sClient.CoreV1().Secrets(namespace).Create(adminCredentialsSecret)
-	if err != nil {
+	if err != nil && !errors2.IsAlreadyExists(err) {
 		return nil, err
 	}
 

@@ -7,53 +7,26 @@ metadata:
 spec:
   realms:
   - clients:
-    - attributes:
-        exclude.session.state.from.auth.response: "false"
-        saml.assertion.signature: "false"
-        saml.authnstatement: "false"
-        saml.client.signature: "false"
-        saml.encrypt: "false"
-        saml.force.post.binding: "false"
-        saml.multivalued.roles: "false"
-        saml.onetimeuse.condition: "false"
-        saml.server.signature: "false"
-        saml.server.signature.keyinfo.ext: "false"
-        saml_force_name_id_format: "false"
+    - attributes: {}
       bearerOnly: false
       clientAuthenticatorType: client-secret
+      #this is the secret that is needed by openshift config
+      secret: somethingGenerated
       clientId: openshift
       consentRequired: false
       directAccessGrantsEnabled: true
       enabled: true
       frontchannelLogout: false
       fullScopeAllowed: true
-      id: bb71281f-5f9c-4c36-a829-310771fa7d1e
       implicitFlowEnabled: false
-      nodeReRegistrationTimeout: -1
-      notBefore: 0
       protocol: openid-connect
-      protocolMappers:
-      - config:
-          access.token.claim: "true"
-          claim.name: family_name
-          id.token.claim: "true"
-          jsonType.label: String
-          user.attribute: lastName
-          userinfo.token.claim: "true"
-        consentRequired: true
-        consentText: ${familyName}
-        id: 09ed3770-db49-474d-87dd-86f894a97ed0
-        name: family name
-        protocol: openid-connect
-        protocolMapper: oidc-usermodel-property-mapper
       publicClient: false
       redirectUris:
       - https://cloudservices.skunkhenry.com:8443/*
-      serviceAccountsEnabled: false
       standardFlowEnabled: true
-      surrogateAuthRequired: false
+      #this is the secret that the client and client secret will be stored in
+      outputSecret: openshift-client
       webOrigins: []
-    displayName: ""
     enabled: true
     id: openshift
     realm: openshift
@@ -71,6 +44,7 @@ spec:
       - offline_access
       - uma_authorization
       username: admin@example.com
+      outputSecret: openshift-admin
     - clientRoles:
         account:
         - manage-account
@@ -84,4 +58,5 @@ spec:
       - offline_access
       - uma_authorization
       username: evals@example.com
+      outputSecret: openshift-evals
   version: 7.2.2.GA

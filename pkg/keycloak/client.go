@@ -45,7 +45,9 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 		logrus.Errorf("error %+v marshalling object", err)
 		return nil
 	}
-
+	if resourceName == "client" {
+		logrus.Info("creating client ", string(jsonValue))
+	}
 	logrus.Debugf("creating %s, %v, %v", resourceName, obj, string(jsonValue))
 
 	req, err := http.NewRequest(
@@ -73,23 +75,65 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 		return fmt.Errorf("failed to create %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
+	if resourceName == "client" {
+		d, _ := ioutil.ReadAll(res.Body)
+		fmt.Println("user response ", string(d))
+	}
+
 	logrus.Debugf("response:", res)
 	return nil
 }
 
 func (c *Client) CreateRealm(realm *v1alpha1.KeycloakRealm) error {
-	err := c.create(realm, "realms", "realm")
+	var err error
+	err = c.create(realm.KeycloakApiRealm, "realms", "realm")
 	return err
 }
 
 func (c *Client) CreateClient(client *v1alpha1.KeycloakClient, realmName string) error {
-	err := c.create(client, fmt.Sprintf("realms/%s/clients", realmName), "client")
+	err := c.create(client.KeycloakApiClient, fmt.Sprintf("realms/%s/clients", realmName), "client")
 	return err
 }
 
 func (c *Client) CreateUser(user *v1alpha1.KeycloakUser, realmName string) error {
-	err := c.create(user, fmt.Sprintf("realms/%s/users", realmName), "user")
+	var err error
+	err = c.create(user.KeycloakApiUser, fmt.Sprintf("realms/%s/users", realmName), "user")
 	return err
+}
+
+func (c *Client) UpdatePassword(user *v1alpha1.KeycloakApiUser, realmName, newPass string) error {
+	//https://{{ rhsso_route }}/auth/admin/realms/{{ rhsso_realm }}/users/{{ rhsso_eval_user_id }}/reset-password
+	//
+
+	passReset := &v1alpha1.KeycloakApiPasswordReset{}
+	passReset.Type = "password"
+	passReset.Temporary = false
+	passReset.Value = newPass
+	u := fmt.Sprintf("realms/%s/users/%s/reset-password", realmName, user.ID)
+	if err := c.update(passReset, u, "paswordreset"); err != nil {
+		return errors.Wrap(err, "error calling keycloak api ")
+	}
+	return nil
+}
+
+func (c *Client) FindUserByEmail(email, realm string) (*v1alpha1.KeycloakApiUser, error) {
+	result, err := c.get(fmt.Sprintf("realms/%s/users?first=0&max=1&search=%s", realm, email), "user", func(body []byte) (T, error) {
+		var users []*v1alpha1.KeycloakApiUser
+		if err := json.Unmarshal(body, &users); err != nil {
+			return nil, err
+		}
+		if len(users) == 0 {
+			return nil, nil
+		}
+		return users[0], nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, err
+	}
+	return result.(*v1alpha1.KeycloakApiUser), nil
 }
 
 func (c *Client) CreateIdentityProvider(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
@@ -99,9 +143,10 @@ func (c *Client) CreateIdentityProvider(identityProvider *v1alpha1.KeycloakIdent
 
 // Generic get function for returning a Keycloak resource
 func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body []byte) (T, error)) (T, error) {
+	u := fmt.Sprintf("%s/auth/admin/%s", c.URL, resourcePath)
 	req, err := http.NewRequest(
 		"GET",
-		fmt.Sprintf("%s/auth/admin/%s", c.URL, resourcePath),
+		u,
 		nil,
 	)
 	if err != nil {
@@ -141,7 +186,7 @@ func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body 
 
 func (c *Client) GetRealm(realmName string) (*v1alpha1.KeycloakRealm, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s", realmName), "realm", func(body []byte) (T, error) {
-		var realm *v1alpha1.KeycloakRealm
+		realm := &v1alpha1.KeycloakRealm{}
 		err := json.Unmarshal(body, realm)
 		return realm, err
 	})
@@ -150,11 +195,40 @@ func (c *Client) GetRealm(realmName string) (*v1alpha1.KeycloakRealm, error) {
 
 func (c *Client) GetClient(clientID, realmName string) (*v1alpha1.KeycloakClient, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s/clients/%s", realmName, clientID), "client", func(body []byte) (T, error) {
-		var client *v1alpha1.KeycloakClient
+		client := &v1alpha1.KeycloakClient{}
 		err := json.Unmarshal(body, client)
 		return client, err
 	})
+	if err != nil {
+		return nil, err
+	}
 	return result.(*v1alpha1.KeycloakClient), err
+}
+
+func (c *Client) GetClientSecret(clientId, realmName string) (string, error) {
+	//"https://{{ rhsso_route }}/auth/admin/realms/{{ rhsso_realm }}/clients/{{ rhsso_client_id }}/client-secret"
+	result, err := c.get(fmt.Sprintf("realms/%s/clients/%s/client-secret", realmName, clientId), "client-secret", func(body []byte) (T, error) {
+		res := map[string]string{}
+		if err := json.Unmarshal(body, &res); err != nil {
+			return nil, err
+		}
+		return res["value"], nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return result.(string), nil
+}
+
+func (c *Client) GetClientInstall(clientId, realmName string) ([]byte, error) {
+	var response []byte
+	if _, err := c.get(fmt.Sprintf("realms/%s/clients/%s/installation/providers/keycloak-oidc-keycloak-json", realmName, clientId), "client-installation", func(body []byte) (T, error) {
+		response = body
+		return body, nil
+	}); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 func (c *Client) GetUser(userID, realmName string) (*v1alpha1.KeycloakUser, error) {
@@ -428,11 +502,15 @@ type KeycloakInterface interface {
 
 	CreateClient(client *v1alpha1.KeycloakClient, realmName string) error
 	GetClient(clientID, realmName string) (*v1alpha1.KeycloakClient, error)
+	GetClientSecret(clientId, realmName string) (string, error)
+	GetClientInstall(clientId, realmName string) ([]byte, error)
 	UpdateClient(specClient *v1alpha1.KeycloakClient, realmName string) error
 	DeleteClient(clientID, realmName string) error
 	ListClients(realmName string) ([]*v1alpha1.KeycloakClient, error)
 
 	CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
+	UpdatePassword(user *v1alpha1.KeycloakApiUser, realmName, newPass string) error
+	FindUserByEmail(email, realm string) (*v1alpha1.KeycloakApiUser, error)
 	GetUser(userID, realmName string) (*v1alpha1.KeycloakUser, error)
 	UpdateUser(specUser *v1alpha1.KeycloakUser, realmName string) error
 	DeleteUser(userID, realmName string) error

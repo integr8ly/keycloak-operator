@@ -1,8 +1,8 @@
-ORG=witmicko
+ORG=integreatly
 NAMESPACE=rhsso
 PROJECT=keycloak-operator
 SHELL = /bin/bash
-TAG = 0.0.3
+TAG = 0.0.1
 PKG = github.com/aerogear/keycloak-operator
 TEST_DIRS     ?= $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
 
@@ -30,7 +30,7 @@ setup:
 
 .PHONY: build
 build-image:
-	operator-sdk build docker.io/${ORG}/${PROJECT}:${TAG}
+	operator-sdk build quay.io/${ORG}/${PROJECT}:${TAG}
 
 .PHONY: run
 run:

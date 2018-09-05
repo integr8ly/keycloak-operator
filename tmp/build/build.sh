@@ -10,7 +10,11 @@ if ! which go > /dev/null; then
 fi
 
 BIN_DIR="$(pwd)/tmp/_output/bin"
+TEMPLATE_DIR="$(pwd)/tmp/_output/deploy/template"
 mkdir -p ${BIN_DIR}
+mkdir -p ${TEMPLATE_DIR}
+cp $(pwd)/deploy/template/* ${TEMPLATE_DIR}
+
 PROJECT_NAME="keycloak-operator"
 REPO_PATH="github.com/aerogear/keycloak-operator"
 BUILD_PATH="${REPO_PATH}/cmd/${PROJECT_NAME}"

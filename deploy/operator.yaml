@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: keycloak-operator
-          image: docker.io/witmicko/keycloak-operator:0.0.3
+          image: quay.io/integreatly/keycloak-operator:0.0.1
           ports:
           - containerPort: 60000
             name: metrics

@@ -43,6 +43,7 @@ func init() {
 }
 
 func main() {
+
 	logLevel, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		logrus.Errorf("Failed to parse log level: %v", err)

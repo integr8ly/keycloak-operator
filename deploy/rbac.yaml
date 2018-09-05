@@ -32,7 +32,6 @@ rules:
   - statefulsets
   verbs:
   - "*"
-
 - apiGroups:
   - template.openshift.io
   resources:

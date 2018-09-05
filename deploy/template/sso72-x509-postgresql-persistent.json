@@ -320,7 +320,7 @@
                             ],
                             "from": {
                                 "kind": "ImageStreamTag",
-                                "name": "redhat-sso72-openshift:1.2",
+                                "name": "redhat-sso72-openshift:1.1",
                                 "namespace": "${IMAGE_STREAM_NAMESPACE}"
                             }
                         },

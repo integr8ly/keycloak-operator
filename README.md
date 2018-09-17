@@ -2,6 +2,10 @@
 
 A Kubernetes Operator based on the Operator SDK for syncing resources in Keycloak.
 
+## Current status
+
+This is an alpha version. Most functionality is there but it is higly likely there are bugs and improvements needed
+
 # Supported Custom Resources 
 
 ### Keycloak 

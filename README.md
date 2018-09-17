@@ -64,6 +64,11 @@ oc create -f deploy/examples/sharedservice.json -n <managed-services-broker-name
 
 Or alternatively create your own.
 
+## Deploying using operator lifecycle manager
+[operator lifecycle manager](https://github.com/operator-framework/operator-lifecycle-manager) manages operators and other resources.
+To deploy this operator on OLM enabled cluster apply manifest file:
+`kubectl apply -f deploy/olm-catalog/csv.yaml` edit line 5 of the manifest file to desired namespace.
+
 # Tear it down
 
 ```make uninstall```

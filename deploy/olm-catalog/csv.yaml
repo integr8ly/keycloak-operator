@@ -1,8 +1,8 @@
 apiVersion: app.coreos.com/v1alpha1
 kind: ClusterServiceVersion-v1
 metadata:
-  name: keycloakrealm.v0.0.1
-  namespace: placeholder
+  name: keycloak.v0.0.1
+  namespace: rhsso
 spec:
   install:
     strategy: deployment
@@ -32,9 +32,29 @@ spec:
           - apps
           resources:
           - deployments
+          - deploymentconfigs
           - daemonsets
           - replicasets
           - statefulsets
+          verbs:
+          - "*"
+        - apiGroups:
+          - template.openshift.io
+          resources:
+          - processedtemplates
+          verbs:
+          - "*"
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          - routes/custom-host
+          verbs:
+          - "*"
+        - apiGroups:
+          - apps.openshift.io
+          resources:
+          - deploymentconfigs
           verbs:
           - "*"
       deployments:
@@ -51,11 +71,17 @@ spec:
             spec:
               containers:
                 - name: keycloak-operator-olm-owned
-                  image: docker.io/maleck13/keycloak-operator
+                  image: quay.io/integreatly/keycloak-operator:0.0.1
                   command:
                   - keycloak-operator
                   imagePullPolicy: Always
                   env:
+                  - name: WATCH_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+                  - name: OPERATOR_NAME
+                    value: "keycloak-operator"
                   - name: MY_POD_NAMESPACE
                     valueFrom:
                       fieldRef:
@@ -70,13 +96,13 @@ spec:
               serviceAccount: keycloak-operator
   customresourcedefinitions:
     owned:
-      - description: Represents an instance of a KeycloakRealm application
-        displayName: KeycloakRealm Application
-        kind: KeycloakRealm
-        name: keycloakrealms.aerogear.org
+      - description: Represents an instance of a Keycloak application
+        displayName: Keycloak Application
+        kind: Keycloak
+        name: keycloaks.aerogear.org
         version: 0.0.1
   version: 0.0.1
-  displayName: KeycloakRealm
+  displayName: Keycloak
   labels:
     olm-owner-enterprise-app: keycloak-operator
-    olm-status-descriptors: keycloakrealm.v0.0.1
+    olm-status-descriptors: keycloak.v0.0.1

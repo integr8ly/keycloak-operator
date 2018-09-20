@@ -70,9 +70,14 @@ Or alternatively create your own.
 
 ## Deploying using operator lifecycle manager
 [operator lifecycle manager](https://github.com/operator-framework/operator-lifecycle-manager) manages operators and other resources.
-To deploy this operator on OLM enabled cluster apply manifest file:
-`kubectl apply -f deploy/olm-catalog/csv.yaml` edit line 5 of the manifest file to desired namespace.
+To deploy this operator on OLM enabled cluster apply manifest file, edit line 5 of the manifest file to desired namespace:
 
+`kubectl apply -f deploy/olm-catalog/csv.yaml` 
+
+Create operator CRD and RBAC rules:
+- `kubectl apply -f deploy/Keycloak_crd.yaml`
+- `kubectl apply -f deploy/rbac.yaml`
+- `kubectl apply -f deploy/operator.yaml`
 # Tear it down
 
 ```make uninstall```

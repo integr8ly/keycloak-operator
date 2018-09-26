@@ -54,7 +54,6 @@ To deploy this operator on OLM enabled cluster apply manifest file, edit line 5 
 Create operator CRD and RBAC rules:
 - `kubectl apply -f deploy/Keycloak_crd.yaml`
 - `kubectl apply -f deploy/rbac.yaml`
-- `kubectl apply -f deploy/operator.yaml`
 
 ## Create a keycloak
 

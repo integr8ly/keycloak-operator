@@ -45,10 +45,7 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 		logrus.Errorf("error %+v marshalling object", err)
 		return nil
 	}
-	if resourceName == "client" {
-		logrus.Info("creating client ", string(jsonValue))
-	}
-	logrus.Debugf("creating %s, %v, %v", resourceName, obj, string(jsonValue))
+	logrus.Debugf("creating %s: raw: %v, json: %v", resourceName, obj, string(jsonValue))
 
 	req, err := http.NewRequest(
 		"POST",
@@ -85,20 +82,16 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 }
 
 func (c *Client) CreateRealm(realm *v1alpha1.KeycloakRealm) error {
-	var err error
-	err = c.create(realm.KeycloakApiRealm, "realms", "realm")
-	return err
+	apiRealm := realm.Spec.KeycloakApiRealm
+	return c.create(apiRealm, "realms", "realm")
 }
 
 func (c *Client) CreateClient(client *v1alpha1.KeycloakClient, realmName string) error {
-	err := c.create(client.KeycloakApiClient, fmt.Sprintf("realms/%s/clients", realmName), "client")
-	return err
+	return c.create(client.KeycloakApiClient, fmt.Sprintf("realms/%s/clients", realmName), "client")
 }
 
 func (c *Client) CreateUser(user *v1alpha1.KeycloakUser, realmName string) error {
-	var err error
-	err = c.create(user.KeycloakApiUser, fmt.Sprintf("realms/%s/users", realmName), "user")
-	return err
+	return c.create(user.KeycloakApiUser, fmt.Sprintf("realms/%s/users", realmName), "user")
 }
 
 func (c *Client) UpdatePassword(user *v1alpha1.KeycloakApiUser, realmName, newPass string) error {
@@ -131,6 +124,23 @@ func (c *Client) FindUserByEmail(email, realm string) (*v1alpha1.KeycloakApiUser
 		return nil, err
 	}
 	if result == nil {
+		return nil, err
+	}
+	return result.(*v1alpha1.KeycloakApiUser), nil
+}
+
+func (c *Client) FindUserByUsername(name, realm string) (*v1alpha1.KeycloakApiUser, error) {
+	result, err := c.get(fmt.Sprintf("realms/%s/users?first=0&max=1&search=%s", realm, name), "user", func(body []byte) (T, error) {
+		var users []*v1alpha1.KeycloakApiUser
+		if err := json.Unmarshal(body, &users); err != nil {
+			return nil, err
+		}
+		if len(users) == 0 {
+			return nil, errors.New("not found")
+		}
+		return users[0], nil
+	})
+	if err != nil {
 		return nil, err
 	}
 	return result.(*v1alpha1.KeycloakApiUser), nil
@@ -186,23 +196,34 @@ func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body 
 
 func (c *Client) GetRealm(realmName string) (*v1alpha1.KeycloakRealm, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s", realmName), "realm", func(body []byte) (T, error) {
-		realm := &v1alpha1.KeycloakRealm{}
+		realm := &v1alpha1.KeycloakApiRealm{}
 		err := json.Unmarshal(body, realm)
 		return realm, err
 	})
-	return result.(*v1alpha1.KeycloakRealm), err
+	if result == nil {
+		return nil, nil
+	}
+	ret := &v1alpha1.KeycloakRealm{
+		Spec: v1alpha1.KeycloakRealmSpec{
+			KeycloakApiRealm: result.(*v1alpha1.KeycloakApiRealm),
+		},
+	}
+	return ret, err
 }
 
 func (c *Client) GetClient(clientID, realmName string) (*v1alpha1.KeycloakClient, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s/clients/%s", realmName, clientID), "client", func(body []byte) (T, error) {
-		client := &v1alpha1.KeycloakClient{}
+		client := &v1alpha1.KeycloakApiClient{}
 		err := json.Unmarshal(body, client)
 		return client, err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*v1alpha1.KeycloakClient), err
+	ret := &v1alpha1.KeycloakClient{
+		KeycloakApiClient: result.(*v1alpha1.KeycloakApiClient),
+	}
+	return ret, err
 }
 
 func (c *Client) GetClientSecret(clientId, realmName string) (string, error) {
@@ -215,7 +236,7 @@ func (c *Client) GetClientSecret(clientId, realmName string) (string, error) {
 		return res["value"], nil
 	})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to get: "+fmt.Sprintf("realms/%s/clients/%s/client-secret", realmName, clientId))
 	}
 	return result.(string), nil
 }
@@ -233,11 +254,14 @@ func (c *Client) GetClientInstall(clientId, realmName string) ([]byte, error) {
 
 func (c *Client) GetUser(userID, realmName string) (*v1alpha1.KeycloakUser, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s/users/%s", realmName, userID), "user", func(body []byte) (T, error) {
-		var user *v1alpha1.KeycloakUser
+		var user *v1alpha1.KeycloakApiUser
 		err := json.Unmarshal(body, user)
 		return user, err
 	})
-	return result.(*v1alpha1.KeycloakUser), err
+	ret := &v1alpha1.KeycloakUser{
+		KeycloakApiUser: result.(*v1alpha1.KeycloakApiUser),
+	}
+	return ret, err
 }
 
 func (c *Client) GetIdentityProvider(alias string, realmName string) (*v1alpha1.KeycloakIdentityProvider, error) {
@@ -283,24 +307,20 @@ func (c *Client) update(obj T, resourcePath, resourceName string) error {
 	return nil
 }
 
-func (c *Client) UpdateRealm(specRealm *v1alpha1.KeycloakRealm) error {
-	err := c.update(specRealm, fmt.Sprintf("realms/%s", specRealm.ID), "realm")
-	return err
+func (c *Client) UpdateRealm(realm *v1alpha1.KeycloakRealm) error {
+	return c.update(realm, fmt.Sprintf("realms/%s", realm.Spec.ID), "realm")
 }
 
 func (c *Client) UpdateClient(specClient *v1alpha1.KeycloakClient, realmName string) error {
-	err := c.update(specClient, fmt.Sprintf("realms/%s/clients/%s", realmName, specClient.ID), "client")
-	return err
+	return c.update(specClient.KeycloakApiClient, fmt.Sprintf("realms/%s/clients/%s", realmName, specClient.ID), "client")
 }
 
 func (c *Client) UpdateUser(specUser *v1alpha1.KeycloakUser, realmName string) error {
-	err := c.update(specUser, fmt.Sprintf("realms/%s/users/%s", realmName, specUser.ID), "user")
-	return err
+	return c.update(specUser.KeycloakApiUser, fmt.Sprintf("realms/%s/users/%s", realmName, specUser.ID), "user")
 }
 
 func (c *Client) UpdateIdentityProvider(specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
-	err := c.update(specIdentityProvider, fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, specIdentityProvider.Alias), "identity provider")
-	return err
+	return c.update(specIdentityProvider, fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, specIdentityProvider.Alias), "identity provider")
 }
 
 // Generic delete function for deleting Keycloak resources
@@ -411,7 +431,19 @@ func (c *Client) ListClients(realmName string) ([]*v1alpha1.KeycloakClient, erro
 		err := json.Unmarshal(body, &clients)
 		return clients, err
 	})
-	return result.([]*v1alpha1.KeycloakClient), err
+
+	if err != nil {
+		return nil, err
+	}
+
+	res, ok := result.([]*v1alpha1.KeycloakClient)
+
+	if !ok {
+		return nil, errors.New("error decoding list clients response")
+	}
+
+	return res, nil
+
 }
 
 func (c *Client) ListUsers(realmName string) ([]*v1alpha1.KeycloakUser, error) {
@@ -436,6 +468,29 @@ func (c *Client) ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakId
 		return nil, err
 	}
 	return result.([]*v1alpha1.KeycloakIdentityProvider), err
+}
+
+func (c *Client) Ping() error {
+	u := c.URL + "/auth/"
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		logrus.Errorf("error creating ping request %+v", err)
+		return errors.Wrap(err, "error creating ping request")
+	}
+
+	res, err := c.requester.Do(req)
+	if err != nil {
+		logrus.Errorf("error on request %+v", err)
+		return errors.Wrapf(err, "error performing ping request")
+	}
+
+	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
+	if res.StatusCode != 200 {
+		return fmt.Errorf("failed to ping, response status code: %v", res.StatusCode)
+	}
+	defer res.Body.Close()
+
+	return nil
 }
 
 // login requests a new auth token from Keycloak
@@ -493,7 +548,10 @@ func defaultRequester() Requester {
 	return c
 }
 
+//go:generate moq -out keycloakClient_moq.go . KeycloakInterface
+
 type KeycloakInterface interface {
+	Ping() error
 	CreateRealm(realm *v1alpha1.KeycloakRealm) error
 	GetRealm(realmName string) (*v1alpha1.KeycloakRealm, error)
 	UpdateRealm(specRealm *v1alpha1.KeycloakRealm) error
@@ -511,6 +569,7 @@ type KeycloakInterface interface {
 	CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
 	UpdatePassword(user *v1alpha1.KeycloakApiUser, realmName, newPass string) error
 	FindUserByEmail(email, realm string) (*v1alpha1.KeycloakApiUser, error)
+	FindUserByUsername(name, realm string) (*v1alpha1.KeycloakApiUser, error)
 	GetUser(userID, realmName string) (*v1alpha1.KeycloakUser, error)
 	UpdateUser(specUser *v1alpha1.KeycloakUser, realmName string) error
 	DeleteUser(userID, realmName string) error
@@ -523,6 +582,9 @@ type KeycloakInterface interface {
 	ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error)
 }
 
+//go:generate moq -out keycloakClientFactory_moq.go . KeycloakClientFactory
+
+//KeycloakClientFactory interface
 type KeycloakClientFactory interface {
 	AuthenticatedClient(kc v1alpha1.Keycloak) (KeycloakInterface, error)
 }

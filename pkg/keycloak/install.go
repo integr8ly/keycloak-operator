@@ -36,7 +36,7 @@ func GetInstallResources(keycloak *v1alpha1.Keycloak, params map[string]string) 
 	var err error
 	templatePathEnvVar, found := os.LookupEnv(SSO_TEMPLATE_PATH_ENV_VAR)
 
-	if found{
+	if found {
 		templateFilePath, err = filepath.Abs(fmt.Sprintf("%v/%v", templatePathEnvVar, SSO_TEMPLATE_NAME))
 	} else {
 		templateFilePath, err = filepath.Abs(fmt.Sprintf("%v/%v", SSO_TEMPLATE_PATH, SSO_TEMPLATE_NAME))
@@ -51,7 +51,6 @@ func GetInstallResources(keycloak *v1alpha1.Keycloak, params map[string]string) 
 	}
 
 	templ := res.(*v1.Template)
-	fmt.Print("keycloak namespace ", keycloak.Namespace)
 	processor, err := template.NewTemplateProcessor(keycloak.Namespace)
 	if err != nil {
 		return nil, err

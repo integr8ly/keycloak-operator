@@ -13,23 +13,11 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
-  - services
-  - endpoints
   - persistentvolumeclaims
   - events
-  - configmaps
   - secrets
-  - serviceaccounts
-  verbs:
-  - "*"
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
+  - services
+  - pods
   verbs:
   - "*"
 - apiGroups:
@@ -38,24 +26,9 @@ rules:
   - processedtemplates
   verbs: [ get, list, create, update, delete, deletecollection, watch]
 - apiGroups:
-  - image.openshift.io
-  resources:
-  - imagestreams
-  verbs: [ get, list, create, update, delete, deletecollection, watch]
-- apiGroups:
   - apps.openshift.io
   resources:
   - deploymentconfigs
-  verbs: [ get, list, create, update, delete, deletecollection, watch]
-- apiGroups:
-  - build.openshift.io
-  resources:
-  - buildconfigs
-  verbs: [ get, list, create, update, delete, deletecollection, watch]
-- apiGroups:
-  - authorization.openshift.io
-  resources:
-  - rolebindings
   verbs: [ get, list, create, update, delete, deletecollection, watch]
 - apiGroups:
   - route.openshift.io

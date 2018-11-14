@@ -84,7 +84,7 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 	}
 
 	kc.Spec.AdminCredentials = adminCredential.GetName()
-	kc.Status.Phase = v1alpha1.PhaseProvision
+	kc.Status.Phase = v1alpha1.PhaseAwaitProvision
 	return kc, nil
 }
 
@@ -121,11 +121,11 @@ func (ph *phaseHandler) Provision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 		}
 	}
 
-	kc.Status.Phase = v1alpha1.PhaseProvisioned
+	kc.Status.Phase = v1alpha1.PhaseReconcile
 	return kc, nil
 }
 
-func (ph *phaseHandler) Provisioned(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	kc := sso.DeepCopy()
 	podList, err := ph.k8sClient.CoreV1().Pods(kc.Namespace).List(v12.ListOptions{
 		LabelSelector:        fmt.Sprintf("application=%v", SSO_APPLICATION_NAME),
@@ -163,6 +163,7 @@ func (ph *phaseHandler) Provisioned(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak,
 
 func (ph *phaseHandler) Deprovision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	kc := sso.DeepCopy()
+
 	if _, err := v1alpha1.RemoveFinalizer(kc, v1alpha1.KeycloakFinalizer); err != nil {
 		return nil, errors.Wrap(err, "failed to remove finalizer for "+kc.Name)
 	}

@@ -1,0 +1,8 @@
+language: go
+sudo: required
+
+go:
+- 1.10.x
+
+script:
+- cd $HOME/gopath/src/github.com/aerogear/keycloak-operator && make setup test

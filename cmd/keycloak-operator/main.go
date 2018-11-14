@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
@@ -16,6 +17,7 @@ import (
 	"github.com/aerogear/keycloak-operator/pkg/dispatch"
 	"github.com/aerogear/keycloak-operator/pkg/k8s"
 	"github.com/aerogear/keycloak-operator/pkg/keycloak"
+	"github.com/aerogear/keycloak-operator/pkg/keycloak/realm"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
@@ -59,10 +61,11 @@ func main() {
 	k8Client := k8sclient.GetKubeClient()
 	kcFactory := &keycloak.KeycloakFactory{SecretClient: k8Client.CoreV1().Secrets(namespace)}
 
-	//set namespace to empty to watch all namespaces
-	//namespace := ""
 	resyncDuration := time.Second * time.Duration(cfg.ResyncPeriod)
 	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, resyncDuration)
+	for _, ns := range strings.Split(os.Getenv("CONSUMER_NAMESPACES"), ";") {
+		sdk.Watch(resource, v1alpha1.KeycloakRealmKind, ns, resyncDuration)
+	}
 
 	dh := dispatch.NewHandler(k8Client)
 	dispatcher := dh.(*dispatch.Handler)
@@ -71,6 +74,7 @@ func main() {
 	cruder := k8s.Cruder{}
 	// Handle keycloak resource reconcile
 	dispatcher.AddHandler(keycloak.NewReconciler(kcFactory, k8Client, cruder))
+	dispatcher.AddHandler(realm.NewRealmHandler(kcFactory, cruder, realm.NewPhaseHandler(k8Client, cruder, namespace, kcFactory)))
 
 	// main dispatch of resources
 	sdk.Handle(dispatcher)

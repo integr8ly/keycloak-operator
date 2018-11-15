@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
-	"github.com/aerogear/keycloak-operator/pkg/keycloak"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/keycloak"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

@@ -5,4 +5,4 @@ go:
 - 1.10.x
 
 script:
-- cd $HOME/gopath/src/github.com/aerogear/keycloak-operator && make setup test
+- cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test

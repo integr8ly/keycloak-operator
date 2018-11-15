@@ -5,7 +5,7 @@ import (
 
 	"strings"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	v14 "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	v13 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"

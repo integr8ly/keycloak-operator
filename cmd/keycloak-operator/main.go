@@ -13,16 +13,16 @@ import (
 
 	"os"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
-	"github.com/aerogear/keycloak-operator/pkg/dispatch"
-	"github.com/aerogear/keycloak-operator/pkg/k8s"
-	"github.com/aerogear/keycloak-operator/pkg/keycloak"
-	"github.com/aerogear/keycloak-operator/pkg/keycloak/realm"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/dispatch"
+	"github.com/integr8ly/keycloak-operator/pkg/k8s"
+	"github.com/integr8ly/keycloak-operator/pkg/keycloak"
+	"github.com/integr8ly/keycloak-operator/pkg/keycloak/realm"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"github.com/sirupsen/logrus"
 	// Load Openshift types
-	_ "github.com/aerogear/keycloak-operator/pkg/apis/openshift"
+	_ "github.com/integr8ly/keycloak-operator/pkg/apis/openshift"
 )
 
 func printVersion() {

@@ -4,7 +4,7 @@
 package realm
 
 import (
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"sync"
 )
 

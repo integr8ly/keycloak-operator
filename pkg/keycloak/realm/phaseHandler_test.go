@@ -3,8 +3,8 @@ package realm
 import (
 	"testing"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
-	"github.com/aerogear/keycloak-operator/pkg/keycloak"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/keycloak"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"k8s.io/client-go/kubernetes/fake"
 )

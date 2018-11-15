@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aerogear/keycloak-operator/pkg/keycloak"
+	"github.com/integr8ly/keycloak-operator/pkg/keycloak"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 )
 
 func TestRealmHandler(t *testing.T) {

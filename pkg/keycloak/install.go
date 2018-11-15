@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
-	"github.com/aerogear/keycloak-operator/pkg/apis/openshift/template"
-	"github.com/aerogear/keycloak-operator/pkg/util"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/openshift/template"
+	"github.com/integr8ly/keycloak-operator/pkg/util"
 	"github.com/openshift/api/template/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )

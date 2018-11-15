@@ -6,8 +6,8 @@ import (
 
 	"strings"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/google/uuid"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	apps "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"

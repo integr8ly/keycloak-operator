@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
-	"github.com/aerogear/keycloak-operator/pkg/keycloak"
-	"github.com/aerogear/keycloak-operator/pkg/util"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/keycloak"
+	"github.com/integr8ly/keycloak-operator/pkg/util"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"

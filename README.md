@@ -19,7 +19,7 @@ The following Keycloak resources are supported:
 
 *Note*: You will need a running Kubernetes or OpenShift cluster to use the Operator
 
-- clone this repo to `$GOPATH/src/github.com/aerogear/keycloak-operator`
+- clone this repo to `$GOPATH/src/github.com/integr8ly/keycloak-operator`
 - run `make setup install run`
 
 Note that you only need to run `setup` the first time. After that you can simply run `make run`.

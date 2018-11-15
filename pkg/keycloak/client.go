@@ -16,7 +16,7 @@ import (
 
 	"fmt"
 
-	"github.com/aerogear/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/typed/core/v1"
 )

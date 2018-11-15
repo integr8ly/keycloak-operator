@@ -3,7 +3,7 @@ package template
 import (
 	"errors"
 
-	"github.com/aerogear/keycloak-operator/pkg/util"
+	"github.com/integr8ly/keycloak-operator/pkg/util"
 	v1template "github.com/openshift/api/template/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sclient"
 	"github.com/sirupsen/logrus"

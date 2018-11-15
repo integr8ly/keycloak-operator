@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/aerogear/keycloak-operator/pkg/util"
+	"github.com/integr8ly/keycloak-operator/pkg/util"
 )
 
 func TestMultiError(t *testing.T) {

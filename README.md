@@ -80,3 +80,26 @@ Create operator CRD and RBAC rules:
 ## Tear it down
 
 ```make uninstall```
+
+## Tests
+
+Running unit tests:
+
+```sh
+make test-unit
+```
+
+Running e2e tests on a remote cluster:
+
+NOTE: you must be logged in a remote cluster.
+
+```sh
+#build an image with enabled tests
+make build-image-with-tests
+
+#push the operator image
+docker push myimage
+
+#run the test pod
+make test-e2e-cluster
+```

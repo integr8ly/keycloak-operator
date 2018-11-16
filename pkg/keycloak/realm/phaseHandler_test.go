@@ -6,6 +6,7 @@ import (
 	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/integr8ly/keycloak-operator/pkg/keycloak"
 	"github.com/operator-framework/operator-sdk/pkg/sdk"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -172,7 +173,8 @@ func TestPhaseHandlerProvision(t *testing.T) {
 			Name: "Move to provisioned when keycloak realm already exists in keycloak",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseProvision,
+					Phase:        v1alpha1.PhaseProvision,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -183,7 +185,14 @@ func TestPhaseHandlerProvision(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -210,7 +219,8 @@ func TestPhaseHandlerProvision(t *testing.T) {
 			Name: "Move to provisioned when keycloak realm is created in keycloak",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseProvision,
+					Phase:        v1alpha1.PhaseProvision,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -221,7 +231,14 @@ func TestPhaseHandlerProvision(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -270,7 +287,8 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			Name: "no errors in reconcile loop with no reconcile objects",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -281,7 +299,14 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -305,7 +330,8 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			Name: "no errors in reconcile loop with reconcile objects",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -337,7 +363,14 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -388,7 +421,8 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			Name: "no errors in reconcile loop with inequal reconcile objects",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -423,7 +457,14 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -480,7 +521,8 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			Name: "no errors in reconcile loop with reconcile objects in CR and not in keycloak",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -512,7 +554,14 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -562,7 +611,8 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			Name: "no errors when identity provider in keycloak, but not in CR",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -573,7 +623,14 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -604,7 +661,8 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			Name: "no errors when user in keycloak, but not in CR",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -615,7 +673,14 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -648,7 +713,8 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			Name: "no errors when client in keycloak, but not in CR",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -659,7 +725,14 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -721,7 +794,8 @@ func TestProvisionDeletesPassword(t *testing.T) {
 			Name: "Password is removed from user object",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseReconcile,
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -744,7 +818,14 @@ func TestProvisionDeletesPassword(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseReconcile,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -810,7 +891,8 @@ func TestPhaseHandlerDeprovision(t *testing.T) {
 			Name: "Deprovision realm",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseDeprovisioning,
+					Phase:        v1alpha1.PhaseDeprovisioning,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -823,7 +905,14 @@ func TestPhaseHandlerDeprovision(t *testing.T) {
 			ExpectedPhase: v1alpha1.PhaseDeprovisioning,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},
@@ -841,7 +930,8 @@ func TestPhaseHandlerDeprovision(t *testing.T) {
 			Name: "Deprovision realm with objects",
 			Object: &v1alpha1.KeycloakRealm{
 				Status: v1alpha1.KeycloakRealmStatus{
-					Phase: v1alpha1.PhaseDeprovisioning,
+					Phase:        v1alpha1.PhaseDeprovisioning,
+					KeycloakName: "keycloak-instance",
 				},
 				Spec: v1alpha1.KeycloakRealmSpec{
 					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
@@ -865,7 +955,14 @@ func TestPhaseHandlerDeprovision(t *testing.T) {
 				DeleteFunc: func(object sdk.Object, opts ...sdk.DeleteOption) error {
 					return nil
 				},
-				GetFunc: func(object sdk.Object, opts ...sdk.GetOption) error {
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
 					return nil
 				},
 			},

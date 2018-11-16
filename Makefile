@@ -5,6 +5,7 @@ SHELL = /bin/bash
 TAG = 0.0.2
 PKG = github.com/integr8ly/keycloak-operator
 TEST_DIRS     ?= $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
+TEST_POD_NAME = keycloak-operator-test
 
 .PHONY: check-gofmt
 check-gofmt:
@@ -14,6 +15,11 @@ check-gofmt:
 test-unit:
 	@echo Running tests:
 	go test -v -race -cover ./pkg/...
+
+.PHONY: test-e2e-cluster
+test-e2e-cluster:
+	kubectl apply -f deploy/test-e2e-pod.yaml -n ${PROJECT}
+	${SHELL} ./scripts/stream-pod ${TEST_POD_NAME} ${PROJECT}
 
 .PHONY: test
 test: check-gofmt test-unit
@@ -30,6 +36,10 @@ setup:
 .PHONY: build 
 build-image:
 	operator-sdk build quay.io/${ORG}/${PROJECT}:${TAG}
+
+.PHONY: build
+build-image-with-tests:
+	operator-sdk build --enable-tests quay.io/${ORG}/${PROJECT}:${TAG}
 
 .PHONY: run
 run:

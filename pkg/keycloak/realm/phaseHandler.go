@@ -1,6 +1,7 @@
 package realm
 
 import (
+	"github.com/sirupsen/logrus"
 	"reflect"
 	"strings"
 
@@ -449,18 +450,26 @@ func (ph *phaseHandler) Deprovision(realm *v1alpha1.KeycloakRealm) (*v1alpha1.Ke
 }
 
 func (ph *phaseHandler) getClient(kcr *v1alpha1.KeycloakRealm) (keycloak.KeycloakInterface, error) {
-	kc := &v1alpha1.Keycloak{
+	//look for a provisioned keycloak instance
+	list := &v1alpha1.KeycloakList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "keycloak",
 			APIVersion: v1alpha1.Group + "/" + v1alpha1.Version,
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kcr.Status.KeycloakName,
-			Namespace: ph.operatorNS,
-		},
 	}
-	ph.sdk.Get(kc)
-	return ph.kcClientFactory.AuthenticatedClient(*kc)
+	err := ph.sdk.List(ph.operatorNS, list)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("Got %v keycloaks", len(list.Items))
+	for _, kc := range list.Items {
+		logrus.Infof("'%v' ?? '%v'", kc.Name, kcr.Status.KeycloakName)
+		if kc.Name == kcr.Status.KeycloakName {
+			return ph.kcClientFactory.AuthenticatedClient(kc)
+		}
+	}
+
+	return nil, errors.New("Could not find keycloak instance: " + kcr.Status.KeycloakName)
 }
 
 func resourcesEqual(obj1, obj2 keycloak.T) bool {

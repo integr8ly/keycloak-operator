@@ -1,0 +1,18 @@
+#!/bin/bash
+
+POD_NAME=$1
+NS=$2
+QUERY='{.status.containerStatuses[0].state.terminated.exitCode}'
+KEEP_POD=$3
+
+until oc logs $POD_NAME -f -n $NS; do sleep 1; done;
+
+EXIT_CODE=$(oc get pods/$POD_NAME -o jsonpath="$QUERY" -n $NS)
+
+if [[ "$KEEP_POD" -eq "" ]]; then
+    sleep 2
+    oc delete pods/$POD_NAME -n $NS
+fi
+
+exit $EXIT_CODE
+

@@ -67,7 +67,7 @@ uninstall:
 	-kubectl delete crd keycloaks.aerogear.org
 	-kubectl delete namespace $(NAMESPACE)
 
-
 .PHONY: create-examples
 create-examples:
 		-kubectl create -f deploy/examples/keycloak.json -n $(NAMESPACE)
+		-kubectl create -f deploy/examples/keycloakRealm.json -n $(NAMESPACE)

@@ -10,6 +10,8 @@
 ## Environment
 
 * Operating system: (E.g RHEL 7.6 )
+* OpenShift versions:
+<!-- Run the command `oc version` and add the result here. -->
 * Go Version:(E.g go1.10.2)
 * Project Version/Tag: (E.g release-1.0.1)
 

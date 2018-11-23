@@ -53,16 +53,17 @@ func (ph *phaseHandler) Initialise(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, 
 }
 
 func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
-
+	var err error
 	kc := sso.DeepCopy()
-	if kc.Spec.AdminCredentials != "" {
-		return nil, nil
+	adminPwd := kc.Spec.AdminCredentials
+
+	if adminPwd == "" {
+		adminPwd, err = GeneratePassword()
+		if err != nil {
+			return sso, err
+		}
 	}
 
-	adminPwd, err := GeneratePassword()
-	if err != nil {
-		return nil, err
-	}
 	namespace := kc.ObjectMeta.Namespace
 	data := map[string][]byte{"SSO_ADMIN_USERNAME": []byte("admin"), "SSO_ADMIN_PASSWORD": []byte(adminPwd)}
 	adminCredentialsSecret := &v1.Secret{
@@ -80,7 +81,7 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 	}
 	adminCredential, err := ph.k8sClient.CoreV1().Secrets(namespace).Create(adminCredentialsSecret)
 	if err != nil && !errors2.IsAlreadyExists(err) {
-		return nil, err
+		return sso, err
 	}
 
 	kc.Spec.AdminCredentials = adminCredential.GetName()
@@ -91,10 +92,13 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 func (ph *phaseHandler) Provision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	// copy state and modify return state
 	kc := sso.DeepCopy()
-	adminCreds, err := ph.k8sClient.CoreV1().Secrets(kc.Namespace).Get(kc.Spec.AdminCredentials, v12.GetOptions{})
+	secretName := "credential-" + kc.Name
+
+	adminCreds, err := ph.k8sClient.CoreV1().Secrets(kc.Namespace).Get(secretName, v12.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get the secret for the admin credentials")
 	}
+
 	decodedParams := map[string]string{}
 	for k, v := range adminCreds.Data {
 		decodedParams[k] = string(v)

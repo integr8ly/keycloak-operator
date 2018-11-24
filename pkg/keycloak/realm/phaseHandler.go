@@ -413,7 +413,7 @@ func (ph *phaseHandler) Deprovision(realm *v1alpha1.KeycloakRealm) (*v1alpha1.Ke
 
 	//delete client secrets
 	for _, client := range realm.Spec.Clients {
-		if client.OutputSecret == nil{
+		if client.OutputSecret == nil {
 			continue
 		}
 		clientSecret := &corev1.Secret{

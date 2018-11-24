@@ -300,8 +300,8 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 			}
 		}
 	}
-
-	if specClient != nil {
+	logrus.Info("reconciling client", specClient)
+	if specClient != nil && specClient.OutputSecret != nil {
 		cs, err := authenticatedClient.GetClientSecret(specClient.ID, realmName)
 		if err != nil {
 			return err

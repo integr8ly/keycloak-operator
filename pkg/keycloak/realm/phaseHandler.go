@@ -300,8 +300,8 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 			}
 		}
 	}
-
-	if specClient != nil {
+	logrus.Info("reconciling client", specClient)
+	if specClient != nil && specClient.OutputSecret != nil {
 		cs, err := authenticatedClient.GetClientSecret(specClient.ID, realmName)
 		if err != nil {
 			return err
@@ -413,6 +413,9 @@ func (ph *phaseHandler) Deprovision(realm *v1alpha1.KeycloakRealm) (*v1alpha1.Ke
 
 	//delete client secrets
 	for _, client := range realm.Spec.Clients {
+		if client.OutputSecret == nil {
+			continue
+		}
 		clientSecret := &corev1.Secret{
 			TypeMeta: v1.TypeMeta{
 				APIVersion: "v1",

@@ -12,8 +12,8 @@ jobs:
   include:
   - stage: compile
     script:
+    - echo $QUAY_USERNAME
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
-    - printenv
   - stage: deploy
     script:
     - docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io;

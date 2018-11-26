@@ -12,7 +12,7 @@ jobs:
   include:
   - stage: compile
     script:
-    - echo $ZPzWsc
+    - echo $QUAY_USERNAME
     - printenv
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
   - stage: deploy
@@ -22,4 +22,4 @@ jobs:
       TAG=$TRAVIS_COMMIT;
 env:
   global:
-  - secure: e+r+DjKu7+1dk5se9hfk5LbYyp7J2O3cUNLOnZYUGKlkZ4U3Qcy3L4dqepCcfisgboh8qzfGOz+AcmTaMeZsNIp45DMoVQnpQbN50l+KcvJ5glMkWBC8CNIBk/+4jyVvVf3KsDlWs3SGhoJ6msTfueNbe5uooUMWRRZhjQopwW+lV14IL9pz3/wLRz1XN24tmThUVL/gOmWHLgcEiHm7vMEjmdi9Pfn74qwWXcki4DY5R04J2aEz46o6e+y2y3m1K+8p2uwwpQhrPJQAHsyJ6TTXiRBDwi9ZGYL2DQh9pxRfr8eIWJEsATKAZcp0U0NKmkXUOtV5xpUK2e6NFam+EC9+iH+DaZD1ygUhKDP6CQZlFEdJOYjIjx8UEAy3Wyd+o70Fr2R80fOlykQIR3WJpDxkUV0lj5cXlItYnGKnw/J3baEjvIYn6uBdFb71hz0x5S6350f+WHmkB21Btg7UPufCLtAwAcE7gMVakyWweNSq41OeaHntgEFaevxU7FodXgCd3307A/wPuYDwRUFt6EPPTlpiiOtWFck4cpmvgGCbHY9yjOTTHzVgK5vCR3GmwDUxj6HC+f2CI1EL7xzJ9/1b8dMEJh8U5ZBtXpRBAUqbutW/+uQ5ODtfXYRdnHjVIoOw8jeKqjWOE03+QTK6/M89O0F2uIrbEaXh/ZPzWsc=
+    secure: F2teyGsXhL+InPvXqYZIxCETXyiaxBoioSWDDllQy90mhP+vaA4m1YixHJu9AqXrlhq6TKw8rozdwpP6o39ooyuZIjeJDlA+wY8TeR1XiSJJH2QJsWV/TBu538Ed0e4hlGhm9A80gtaNAffidEdNDQfU+8SlO/eqEilKhFvTHE9VD2Wh0yDGVF8z3UduAj5yze7ailpPKL1eB9hxTPHTzCdmcCJPMffCW1WA7cdK+zQicdQiXQm+G5i2PYKRDZ8qrSsZs3Qhm0n6SbvkedDsE2M6CRgYlitnLdqOxMfEG1mHp3fq0ePwHholWmbNCxNx4Z1ZHQQYF2AzdAwofkKHTmHOP/3N+/JOirH2Zi//0MTISZcDzebTdachBEcdZ/866AEA2lo9LiynH0zSQLRdVisUZuYD/Py0vlYnuJ3N/sHf9WZr99uTtMWyZk4+o+rD0nBSWls9SJfQquy6ikGApSI0u9UVFaCxSCeQMqsHQfEZ69oCVHzT+mQZtdRZUGzC/zZvpAJjPaURVCxDmfksGxBpmCJVnHU2yIw10cGHO5MzG29FnHOovy9qZ13ZlKwNGqx75nebDyfcF0BEkpH1g89sz+TRV67N+F+IqvXTku+lQOcZfC4igqNRsEWP5M1Tua6DjPiPcEiBhdigPJRfO3JM8immvy3naZtVNB0owI4=

@@ -12,7 +12,8 @@ jobs:
   include:
   - stage: compile
     script:
-    - echo $QUAY_USERNAME
+    - echo $ZPzWsc
+    - printenv
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
   - stage: deploy
     script:

@@ -15,6 +15,8 @@ jobs:
       test
   - stage: deploy
     script:
+    - echo "$QUAY_TEST"
+    - echo "$QUAY_USERNAME"
     - docker login --password "QUAY_PASSWORD" --username "QUAY_USERNAME" quay.io;
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make build-and-push
       TAG=$TRAVIS_COMMIT;

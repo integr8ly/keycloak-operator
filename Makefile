@@ -37,6 +37,13 @@ setup:
 build-image:
 	operator-sdk build quay.io/${ORG}/${PROJECT}:${TAG}
 
+.PHONY: build-and-push
+build-and-push: build-image push-image
+
+.PHONY: push-image
+push-image:
+    docker push quay.io/${ORG}/${PROJECT}:${TAG}
+
 .PHONY: build
 build-image-with-tests:
 	operator-sdk build --enable-tests quay.io/${ORG}/${PROJECT}:${TAG}

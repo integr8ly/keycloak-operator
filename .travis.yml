@@ -1,8 +1,11 @@
 language: go
 sudo: required
-
 go:
 - 1.10.x
-
 script:
 - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
+- docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io
+- cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make build-and-push TAG=$TRAVIS_COMMIT
+env:
+  global:
+    secure: NN/rqQIm8TPCH4JrIvbjsb9FHiLP+xEWqLzrXM7NM3+I8qWd52lU0G3+xDP9g2S55GSdrutCV5UTNgw/45qo5eYxx8ZlWGm8gc+gjEyTnN03kmkdF7P/pocOuCrkDFnYJ2Bx33Up8NdxvGCD2keW+29uhC9p+FhTVHqIe8b8PXokqi31JYzvqYO335fOXixgbfmlrG8ssu0IOixYydchPeRqjpQKs7e/R6X97fIFgf0MSLQzLQ6j0bpsnbYPuLGN5sq/+djap0agDVo92sCbWo16bVXDMt0kaBnK7kUc3m+S/W9nGG74LflMEtl7UUE1PWXiZy3kQuz9okga/VrOFmtZ18JWoU0EvW6WMrlqrVGbiL2qjFsqKFnD05XfcXVTbfM/VF/gpAoQTeuNxaDeTJtqbydhe6zveuq00uxanJNvjSoKVVpMzCVWgNY1C78Jc1RcMT4bMRBTam5T3TsGTPzifLxPriFcOa9k/d6JrYX91vE71Ur9CKctxGYDA2FRD5nzIND8vWokktZC7wf5GvOt8QrYzthKABh/pqoYN4plWFqbdLjRXzTMKO6rWsU6Z6vtba5pudEJqIm9w0xewKllQh6CgwhdfITO27iamYipHBg9FDMBqXDX7FWL3PqRsE8ZPSzqNpK5/lL0xg69gPVWHGpadxPzVW+LNIXZR3s=

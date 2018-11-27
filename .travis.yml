@@ -8,7 +8,7 @@ go:
 stages:
 - test
 - name: deploy
-  if: QUAY_USERNAME != ""
+  if: repo = "integr8ly/keycloak-operator"
 
 jobs:
   include:

@@ -8,7 +8,7 @@ go:
 stages:
 - test
 - name: deploy
-  if: NOT_SET != ""
+  if: QUAY_USERNAME != ""
 
 jobs:
   include:

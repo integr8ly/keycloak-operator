@@ -1,13 +1,15 @@
 language: go
+
 sudo: required
+
 go:
 - 1.10.x
-services:
-- docker
+
 stages:
 - test
 - name: deploy
   if: $QUAY_USERNAME != "" $QUAY_PASSWORD != ""
+
 jobs:
   include:
   - stage: compile

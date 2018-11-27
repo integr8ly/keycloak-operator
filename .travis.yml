@@ -1,24 +1,8 @@
 language: go
-
 sudo: required
 
 go:
 - 1.10.x
 
-stages:
-- test
-- name: deploy
-  if: $QUAY_USERNAME != "" $QUAY_PASSWORD != ""
-
-jobs:
-  include:
-  - stage: compile
-    script:
-    - echo $QUAY_USERNAME
-    - printenv
-    - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
-  - stage: deploy
-    script:
-    - docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io;
-    - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make build-and-push
-      TAG=$TRAVIS_COMMIT;
+script:
+- cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test

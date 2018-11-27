@@ -21,4 +21,4 @@ jobs:
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator
     - make compile COMPILE_TARGET=./tmp/_output/bin/keycloak-operator
     - docker build -t quay.io/integreatly/keycloak-operator:$(git rev-parse --short ${TRAVIS_COMMIT}) -f tmp/build/Dockerfile .
-    - docker push quay.io/integreatly/keycloak-operator:$TRAVIS_COMMIT
+    - docker push quay.io/integreatly/keycloak-operator:$(git rev-parse --short ${TRAVIS_COMMIT})

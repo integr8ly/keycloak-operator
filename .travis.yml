@@ -6,15 +6,16 @@ services:
 - docker
 stages:
 - test
-- name: push
-  if: $QUAY_USERNAME == "" $QUAY_PASSWORD != "" $NOT_HERE != ""
+- name: deploy
+  if: $QUAY_USERNAME != "" $QUAY_PASSWORD != ""
 jobs:
   include:
   - stage: compile
     script:
+    - echo $QUAY_USERNAME
     - printenv
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
-  - stage: push
+  - stage: deploy
     script:
     - docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io;
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make build-and-push

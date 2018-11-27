@@ -12,13 +12,13 @@ stages:
 
 jobs:
   include:
-  - stage: compile
+  - stage: test
     script:
-    - echo $QUAY_USERNAME
-    - printenv
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
   - stage: deploy
     script:
-    - docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io;
-    - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && docker build -t quay.io/integreatly/keycloak-operator:$TRAVIS_COMMIT -f tmp/build/Dockerfile .;
+    - docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io
+    - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator
+    - make compile
+    - docker build -t quay.io/integreatly/keycloak-operator:$TRAVIS_COMMIT -f tmp/build/Dockerfile .
 

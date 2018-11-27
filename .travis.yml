@@ -7,7 +7,7 @@ services:
 stages:
 - test
 - name: push
-  if: $QUAY_USERNAME != "" $QUAY_PASSWORD != ""
+  if: $QUAY_USERNAME == "" $QUAY_PASSWORD != "" $NOT_HERE != ""
 jobs:
   include:
   - stage: compile
@@ -15,11 +15,8 @@ jobs:
     - echo $QUAY_USERNAME
     - printenv
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make setup test
-  - stage: deploy
+  - stage: push
     script:
     - docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io;
     - cd $HOME/gopath/src/github.com/integr8ly/keycloak-operator && make build-and-push
       TAG=$TRAVIS_COMMIT;
-env:
-  global:
-    secure: L1ZOpSAk500VqAa73iRWTmqVcz/KKfmpgYp18ro4+OHGAeU7/NRjOhC1yUoT82RHrvuAROsBnnQY2ud1GNEkf7wRXFZWm74JBp0ueuTh29ctKwAR14hYlGgaR4uXkdlLxtf7Em6mLpfUYlIhCaBbQW+Hi7l7AB+vC83c0YxGNBqEhfwqwBEWuoeWWNqaJVdD8FOLQ0JQBy8JgnzJEboly+9Nc1aX2NDagW/ax4MyRZpN735uhKrLeaMbsQr+7O45CNeGMngaQnR9YqUzl+akCEiLv50zOxCTjHXiuykNEEIDnSshKHyZF8nOBJSjxjCLuLzB9bzkCodUHn3+lG6ke5FLw/7MgAqu2U83bGodyTt2u+ZkLpH0ogtrdhp3rGHM2pDkE4ALMNwVMeNHawP8FyBhZaGTRN/zsqKnfckAJ+7DWo9+IKGHUfGWhQHqTwkAxZGTy0zq1IJ7l1rSsgJ9SybBwaqTRTGKVuDiOEOe3yGCG/ppVHrBls9H04fvw9SWLuFbzGzNqBhYNy67xKCzh2WTVBrYAMXI71D9XbFdSA2jWW8C4nP2+qZb/cBu8eDy0HPK6MJ6NhgPnFBsX+DsqSvEuhRJ41jPhq7tCYPmx4dvH0QseUkL0R6DEjFsv0dQKurColOqBO+0J4cHO4v8LBZKzHKv7DtL4cior5tJGgk=

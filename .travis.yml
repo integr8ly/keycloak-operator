@@ -8,7 +8,7 @@ go:
 stages:
 - test
 - name: deploy
-  if: $QUAY_USERNAME != "" $QUAY_PASSWORD != ""
+  if: QUAY_USERNAME != ""
 
 jobs:
   include:

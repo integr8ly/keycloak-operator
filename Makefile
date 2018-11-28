@@ -1,12 +1,12 @@
 ORG=integreatly
 NAMESPACE=rhsso
 PROJECT=keycloak-operator
-SHELL = /bin/bash
-TAG = 0.0.2
-PKG = github.com/integr8ly/keycloak-operator
-TEST_DIRS     ?= $(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
-TEST_POD_NAME = keycloak-operator-test
-COMPILE_TARGET = keycloak-operator
+SHELL=/bin/bash
+TAG=0.0.2
+PKG=github.com/integr8ly/keycloak-operator
+TEST_DIRS?=$(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
+TEST_POD_NAME=keycloak-operator-test
+COMPILE_TARGET=./tmp/_output/bin/$(PROJECT)
 
 .PHONY: check-gofmt
 check-gofmt:
@@ -38,12 +38,19 @@ setup:
 build-image:
 	operator-sdk build quay.io/${ORG}/${PROJECT}:${TAG}
 
+.PHONY: docker-build-image
+docker-build-image: compile
+	docker build -t quay.io/${ORG}/${PROJECT}:${TAG} -f tmp/build/Dockerfile .
+
+.PHONY: docker-build-and-push
+docker-build-and-push: docker-build-image push-image
+
 .PHONY: build-and-push
 build-and-push: build-image push-image
 
 .PHONY: push-image
 push-image:
-    docker push quay.io/${ORG}/${PROJECT}:${TAG}
+	docker push quay.io/${ORG}/${PROJECT}:${TAG}
 
 .PHONY: build
 build-image-with-tests:
@@ -58,8 +65,9 @@ generate:
 	operator-sdk generate k8s
 	@go generate ./...
 
+.PHONY: compile
 compile:
-	go build -o=${COMPILE_TARGET} ./cmd/keycloak-operator
+	go build -o=$(COMPILE_TARGET) ./cmd/keycloak-operator
 
 .PHONY: check
 check: check-gofmt test-unit

@@ -26,4 +26,4 @@ jobs:
   - stage: push
     script:
     - docker login --password "$QUAY_PASSWORD" --username "$QUAY_USERNAME" quay.io
-    - make push-image TAG=$(git rev-parse --short ${TRAVIS_COMMIT})
+    - make docker-build-and-push TAG=$(git rev-parse --short ${TRAVIS_COMMIT})

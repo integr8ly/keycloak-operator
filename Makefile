@@ -67,7 +67,7 @@ generate:
 
 .PHONY: compile
 compile:
-	go build -o=$(COMPILE_TARGET) ./cmd/keycloak-operator
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o=$(COMPILE_TARGET) ./cmd/keycloak-operator
 
 .PHONY: check
 check: check-gofmt test-unit

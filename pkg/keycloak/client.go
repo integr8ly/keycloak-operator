@@ -77,7 +77,7 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 		fmt.Println("user response ", string(d))
 	}
 
-	logrus.Debugf("response:", res)
+	logrus.Debugf("response: %+v", res)
 	return nil
 }
 
@@ -303,7 +303,7 @@ func (c *Client) update(obj T, resourcePath, resourceName string) error {
 		return fmt.Errorf("failed to UPDATE %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
-	logrus.Debugf("response:", res)
+	logrus.Debugf("response: %+v", res)
 	return nil
 }
 

@@ -30,9 +30,9 @@ For more information read [more info on keycloak realms](keycloakrealm.md).
 *Note*: You will need a running Kubernetes or OpenShift cluster to use the Operator
 
 - clone this repo to `$GOPATH/src/github.com/integr8ly/keycloak-operator`
-- run `make setup install run`
+- run `make setup/dep cluster/prepare code/run`
 
-Note that you only need to run `setup` the first time. After that you can simply run `make run`.
+Note that you only need to run `setup/dep` the first time. After that you can simply run `make code/run`.
 
 You should see something like:
 
@@ -43,16 +43,16 @@ INFO[0000] operator-sdk Version: 0.0.5+git
 
 ```
 
-In a new terminal run `make create-examples`. 
+In a new terminal run `make cluster/create/examples`.
 
 ## Deploying to a Cluster
 
-Before the Keycloak Operator can be deployed to a running cluster, the necessary Custom Resource Definitions (CRDs) must be installed. To do this, run `make install_crds`.
+Before the Keycloak Operator can be deployed to a running cluster, the necessary Custom Resource Definitions (CRDs) must be installed. To do this, run `kubectl apply -f deploy/crds/`.
 
 Or alternatively create your own.
 
-- `kubectl apply -f deploy/Keycloak_crd.yaml`
-- `kubectl apply -f deploy/KeycloakRealm_crd.yaml`
+- `kubectl apply -f deploy/crds/Keycloak_crd.yaml`
+- `kubectl apply -f deploy/crds/KeycloakRealm_crd.yaml`
 - `kubectl apply -f deploy/rbac.yaml -n <NAMESPACE>`
 - `kubectl apply -f deploy/operator.yaml -n <NAMESPACE>`
 
@@ -65,8 +65,8 @@ To deploy this operator on OLM enabled cluster apply manifest file, edit line 5 
 
 Create operator CRD and RBAC rules:
 
-- `kubectl apply -f deploy/Keycloak_crd.yaml`
-- `kubectl apply -f deploy/KeycloakRealm_crd.yaml`
+- `kubectl apply -f deploy/crds/Keycloak_crd.yaml`
+- `kubectl apply -f deploy/crds/KeycloakRealm_crd.yaml`
 - `kubectl apply -f deploy/rbac.yaml`
 
 ## Create a keycloak
@@ -79,14 +79,14 @@ Create operator CRD and RBAC rules:
 
 ## Tear it down
 
-```make uninstall```
+```make cluster/clean```
 
 ## Tests
 
 Running unit tests:
 
 ```sh
-make test-unit
+make test/unit
 ```
 
 Running e2e tests on a remote cluster:
@@ -95,11 +95,11 @@ NOTE: you must be logged in a remote cluster.
 
 ```sh
 #build an image with enabled tests
-make build-image-with-tests
+make image/build/test
 
 #push the operator image
 docker push myimage
 
 #run the test pod
-make test-e2e-cluster
+make test/e2e
 ```

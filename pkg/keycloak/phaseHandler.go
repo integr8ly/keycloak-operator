@@ -49,6 +49,7 @@ func (ph *phaseHandler) Initialise(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, 
 	}
 	// set the phase to accepted or set a message that it cannot be accepted
 	kcState.Status.Phase = v1alpha1.PhaseAccepted
+	kcState.Status.Version = SSO_VERSION
 	return kcState, nil
 }
 

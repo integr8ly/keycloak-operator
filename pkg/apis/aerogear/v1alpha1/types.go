@@ -12,7 +12,6 @@ const (
 	Version           = "v1alpha1"
 	KeycloakKind      = "Keycloak"
 	KeycloakRealmKind = "KeycloakRealm"
-	KeycloakVersion   = "4.1.0"
 	KeycloakFinalizer = "finalizer.org.aerogear.keycloak"
 )
 
@@ -47,7 +46,6 @@ func (k *Keycloak) Validate() error {
 }
 
 type KeycloakSpec struct {
-	Version          string `json:"version"`
 	AdminCredentials string `json:"adminCredentials"`
 }
 
@@ -207,7 +205,8 @@ type GenericStatus struct {
 	Message  string      `json:"message"`
 	Attempts int         `json:"attempts"`
 	// marked as true when all work is done on it
-	Ready bool `json:"ready"`
+	Ready   bool   `json:"ready"`
+	Version string `json:"version"`
 }
 
 type KeycloakStatus struct {

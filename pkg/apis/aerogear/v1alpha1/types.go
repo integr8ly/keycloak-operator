@@ -47,6 +47,7 @@ func (k *Keycloak) Validate() error {
 
 type KeycloakSpec struct {
 	AdminCredentials string `json:"adminCredentials"`
+	Plugins          string `json:"plugins"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -5,6 +5,7 @@
     "name": "example"
   },
   "spec": {
-    "adminCredentials": ""
+    "adminCredentials": "",
+    "plugins": "keycloak-metrics-spi"
   }
 }

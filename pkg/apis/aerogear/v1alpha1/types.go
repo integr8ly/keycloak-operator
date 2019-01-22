@@ -83,6 +83,7 @@ type KeycloakApiRealm struct {
 	Users             []*KeycloakUser             `json:"users,omitempty"`
 	Clients           []*KeycloakClient           `json:"clients,omitempty"`
 	IdentityProviders []*KeycloakIdentityProvider `json:"identityProviders,omitempty"`
+	EventsListeners   []string                    `json:"eventsListeners"`
 }
 
 type KeycloakApiPasswordReset struct {

@@ -11,6 +11,7 @@ required = [
   "k8s.io/code-generator/cmd/openapi-gen",
   "k8s.io/gengo/args",
   "github.com/matryer/moq",
+  "github.com/Jeffail/gabs",
 ]
 
 [[override]]
@@ -41,6 +42,10 @@ required = [
 [[override]]
   name = "sigs.k8s.io/controller-runtime"
   version = "v0.1.3"
+
+[[constraint]]
+  name = "github.com/Jeffail/gabs"
+  version = "v1.1.1"
 
 [prune]
   go-tests = true

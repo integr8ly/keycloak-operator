@@ -100,8 +100,8 @@ func (ph *phaseHandler) Provision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 		return nil, errors.Wrap(err, "failed to get the secret for the admin credentials")
 	}
 
+	// List of plugins passed in the custom resource
 	plugins := sso.Spec.Plugins
-
 	decodedParams := map[string]string{
 		"SSO_PLUGINS": plugins,
 	}

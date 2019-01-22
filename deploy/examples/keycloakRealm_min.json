@@ -8,6 +8,7 @@
     "id": "arealm",
     "realm": "arealm",
     "displayName": "arealm",
-    "enabled": true
+    "enabled": true,
+    "eventsListeners": ["metrics-listener"]
   }
 }

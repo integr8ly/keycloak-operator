@@ -172,6 +172,11 @@ func (in *KeycloakApiRealm) DeepCopyInto(out *KeycloakApiRealm) {
 			}
 		}
 	}
+	if in.EventsListeners != nil {
+		in, out := &in.EventsListeners, &out.EventsListeners
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

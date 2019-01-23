@@ -43,7 +43,6 @@ func GetInstallResources(keycloak *v1alpha1.Keycloak, params map[string]string) 
 		templateFilePath, err = filepath.Abs(fmt.Sprintf("%v/%v", SSO_TEMPLATE_PATH, SSO_TEMPLATE_NAME))
 	}
 
-
 	tpl, err := ioutil.ReadFile(templateFilePath)
 	if err != nil {
 		return nil, err

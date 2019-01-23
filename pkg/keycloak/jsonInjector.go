@@ -69,7 +69,6 @@ func (j *JsonInjectorImpl) InjectAll(template []byte) ([]byte, error) {
 	return tpl.Bytes(), nil
 }
 
-
 // Parse the string template to a mutable JSON object
 func (j *JsonInjectorImpl) ParseTemplate(template []byte) (*gabs.Container, error) {
 	parsed, err := gabs.ParseJSON(template)

@@ -229,10 +229,6 @@
                                     {
                                         "name": "SSO_SERVICE_PASSWORD",
                                         "value": "${SSO_SERVICE_PASSWORD}"
-                                    },
-                                    {
-                                        "name": "SSO_PLUGINS",
-                                        "value": "${SSO_PLUGINS}"
                                     }
                                 ],
                                 "image": "${APPLICATION_NAME}",

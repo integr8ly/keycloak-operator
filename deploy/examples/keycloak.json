@@ -6,6 +6,6 @@
   },
   "spec": {
     "adminCredentials": "",
-    "plugins": "keycloak-metrics-spi"
+    "plugins": ["keycloak-metrics-spi"]
   }
 }

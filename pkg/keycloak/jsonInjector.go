@@ -3,6 +3,7 @@ package keycloak
 import (
 	"fmt"
 	"github.com/Jeffail/gabs"
+	"github.com/pkg/errors"
 )
 
 // JsonInjector provides functions to inject kubernetes resources into a JSON
@@ -34,7 +35,7 @@ func newJsonInjector() *JsonInjectorImpl {
 		PluginVolumeMount:  "/opt/eap/providers",
 		InitContainerName:  "sso-plugins-init",
 		InitContainerMount: "/opt/plugins",
-		InitContainerImage: "docker.io/pb82/kc_plugins_init:latest",
+		InitContainerImage: "quay.io/integreatly/sso_plugins_init:0.0.1",
 	}
 }
 
@@ -78,6 +79,49 @@ func (j *JsonInjectorImpl) ParseTemplate(template []byte) (*gabs.Container, erro
 	return parsed, nil
 }
 
+// Find the DeploymentConfig resource that contains the sso containers
+func (j *JsonInjectorImpl) LookupDeploymentConfig(tpl *gabs.Container) (*gabs.Container, error) {
+	objects, err := tpl.S("objects").Children()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, resource := range objects {
+		kind := resource.S("kind").Data().(string)
+		name := resource.S("metadata").S("name").Data().(string)
+
+		// At this point the variables are not yet replaced. Our only indication that this is the
+		// right deployment config is that the name will become `${APPLICATION_NAME}`
+		if kind == "DeploymentConfig" && name == "${APPLICATION_NAME}" {
+			return resource, nil
+		}
+	}
+
+	return nil, errors.New("SSO DeploymentConfig not found")
+}
+
+// Find the SSO container in the DeploymentConfig
+func (j *JsonInjectorImpl) LookupContainer(tpl *gabs.Container) (*gabs.Container, error) {
+	containers, err := tpl.S("containers").Children()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, container := range containers {
+		name := container.S("name").Data().(string)
+
+		// At this point the variables are not yet replaced. Our only indication that this is the
+		// right container is that the name will become `${APPLICATION_NAME}`
+		if name == "${APPLICATION_NAME}" {
+			return container, nil
+		}
+	}
+
+	return nil, errors.New("SSO Container not found")
+}
+
 // Injects an env var into the Pod containing the list of plugins
 // The actual list is provided by the operator when the deployment is created
 func (j *JsonInjectorImpl) InjectEnvVar(tpl *gabs.Container) (*gabs.Container, error) {
@@ -104,8 +148,12 @@ func (j *JsonInjectorImpl) InjectVolume(tpl *gabs.Container) (*gabs.Container, e
 	pluginsVolume.Set(gabs.New().Data(), "emptyDir")
 
 	// Path in the template is .objects[4].spec.template.spec.volumes
-	err := tpl.S("objects").Index(4).S("spec").S("template").S("spec").ArrayAppend(pluginsVolume.Data(), "volumes")
+	deploymentConfig, err := j.LookupDeploymentConfig(tpl)
+	if err != nil {
+		return nil, err
+	}
 
+	err = deploymentConfig.S("spec").S("template").S("spec").ArrayAppend(pluginsVolume.Data(), "volumes")
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +170,17 @@ func (j *JsonInjectorImpl) InjectVolumeMount(tpl *gabs.Container) (*gabs.Contain
 	volumeMount.Set(false, "readonly")
 
 	// Path in the template is .objects[4].spec.template.spec.containers[0].volumeMounts
-	err := tpl.S("objects").Index(4).S("spec").S("template").S("spec").S("containers").Index(0).ArrayAppend(volumeMount.Data(), "volumeMounts")
+	deploymentConfig, err := j.LookupDeploymentConfig(tpl)
+	if err != nil {
+		return nil, err
+	}
 
+	container, err := j.LookupContainer(deploymentConfig.S("spec").S("template").S("spec"))
+	if err != nil {
+		return nil, err
+	}
+
+	container.ArrayAppend(volumeMount.Data(), "volumeMounts")
 	if err != nil {
 		return nil, err
 	}
@@ -156,8 +213,12 @@ func (j *JsonInjectorImpl) InjectInitContainer(tpl *gabs.Container) (*gabs.Conta
 	initContainer.Set(j.InitContainerName, "name")
 
 	// Path in the template is .objects[4].spec.template.spec.initContainers
-	err := tpl.S("objects").Index(4).S("spec").S("template").S("spec").ArrayAppend(initContainer.Data(), "initContainers")
+	deploymentConfig, err := j.LookupDeploymentConfig(tpl)
+	if err != nil {
+		return nil, err
+	}
 
+	err = deploymentConfig.S("spec").S("template").S("spec").ArrayAppend(initContainer.Data(), "initContainers")
 	if err != nil {
 		return nil, err
 	}

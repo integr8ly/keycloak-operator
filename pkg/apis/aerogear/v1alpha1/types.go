@@ -46,7 +46,8 @@ func (k *Keycloak) Validate() error {
 }
 
 type KeycloakSpec struct {
-	AdminCredentials string `json:"adminCredentials"`
+	AdminCredentials string   `json:"adminCredentials"`
+	Plugins          []string `json:"plugins"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -82,6 +83,7 @@ type KeycloakApiRealm struct {
 	Users             []*KeycloakUser             `json:"users,omitempty"`
 	Clients           []*KeycloakClient           `json:"clients,omitempty"`
 	IdentityProviders []*KeycloakIdentityProvider `json:"identityProviders,omitempty"`
+	EventsListeners   []string                    `json:"eventsListeners"`
 }
 
 type KeycloakApiPasswordReset struct {

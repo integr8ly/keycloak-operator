@@ -20,3 +20,8 @@ spec:
               type: string
             adminCredentials:
               type: string
+            plugins:
+              type: array
+              items:
+                description: Plugin names
+                type: string

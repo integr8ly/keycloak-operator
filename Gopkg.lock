@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:6eefbb45475750bda6fc0331c36acd2015640ec5ed2ff7f8e2b0646aee451175"
+  name = "github.com/Jeffail/gabs"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "7be49c3f43696c7ca8c9a76d6836703d83aea404"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:d8ebbd207f3d3266d4423ce4860c9f3794956306ded6c7ba312ecc69cdfbf04c"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -758,6 +766,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Jeffail/gabs",
     "github.com/google/uuid",
     "github.com/matryer/moq",
     "github.com/openshift/api/apps/v1",

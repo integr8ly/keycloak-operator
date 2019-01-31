@@ -8,6 +8,7 @@
     ]
   },
   "spec": {
-    "adminCredentials": ""
+    "adminCredentials": "",
+    "plugins": []
   }
 }

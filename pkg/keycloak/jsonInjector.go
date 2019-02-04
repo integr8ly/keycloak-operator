@@ -67,6 +67,11 @@ func (j *JsonInjectorImpl) InjectAll(template []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	tpl, err = j.NamePort(tpl)
+	if err != nil {
+		return nil, err
+	}
+
 	return tpl.Bytes(), nil
 }
 
@@ -120,6 +125,44 @@ func (j *JsonInjectorImpl) LookupContainer(tpl *gabs.Container) (*gabs.Container
 	}
 
 	return nil, errors.New("SSO Container not found")
+}
+
+// Find the service for the SSO pod
+func (j *JsonInjectorImpl) LookupSSOService(tpl *gabs.Container) (*gabs.Container, error) {
+	objects, err := tpl.S("objects").Children()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, resource := range objects {
+		kind := resource.S("kind").Data().(string)
+		name := resource.S("metadata").S("name").Data().(string)
+
+		// At this point the variables are not yet replaced. Our only indication that this is the
+		// right deployment config is that the name will become `${APPLICATION_NAME}`
+		if kind == "Service" && name == "${APPLICATION_NAME}" {
+			return resource, nil
+		}
+	}
+
+	return nil, errors.New("SSO DeploymentConfig not found")
+}
+
+// In order for the metrics endpoint to be disoverable, the port of the SSO service
+// has to be named. This function adds a name field to the port.
+func (j *JsonInjectorImpl) NamePort(tpl *gabs.Container) (*gabs.Container, error) {
+	service, err := j.LookupSSOService(tpl)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = service.S("spec").S("ports").Index(0).Set("sso", "name")
+	if err != nil {
+		return nil, err
+	}
+
+	return tpl, nil
 }
 
 // Injects an env var into the Pod containing the list of plugins

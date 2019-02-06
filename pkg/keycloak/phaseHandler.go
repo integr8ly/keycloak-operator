@@ -2,7 +2,7 @@ package keycloak
 
 import (
 	"fmt"
-
+	"github.com/sirupsen/logrus"
 	"strings"
 
 	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
@@ -171,6 +171,46 @@ func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 	return kc, nil
 }
 
+func (ph *phaseHandler) SetupMonitoringResources(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	kc := sso.DeepCopy()
+	if kc.Status.MonitoringResourcesCreated == false {
+		created, err := ph.SetupMonitoringResource(kc, GrafanaDashboardName)
+		if err != nil || !created {
+			return kc, err
+		}
+
+		created, err = ph.SetupMonitoringResource(kc, ServiceMonitorName)
+		if err != nil || !created {
+			return kc, err
+		}
+
+		created, err = ph.SetupMonitoringResource(kc, PrometheusRuleName)
+		if err != nil || !created {
+			return kc, err
+		}
+
+		kc.Status.MonitoringResourcesCreated = true
+		return kc, nil
+	}
+
+	return kc, nil
+}
+
+func (ph *phaseHandler) SetupMonitoringResource(sso *v1alpha1.Keycloak, resource string) (bool, error) {
+	created, err := ph.CreateResource(sso, resource)
+	if err != nil {
+		return false, err
+	}
+
+	if created {
+		logrus.Info(fmt.Sprintf("Monitoring resource '%s' successfully created", resource))
+		return true, nil
+	}
+
+	logrus.Warn(fmt.Sprintf("Cannot create monitoring resource '%s' at this time, retrying", resource))
+	return false, nil
+}
+
 func (ph *phaseHandler) Deprovision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	kc := sso.DeepCopy()
 
@@ -215,4 +255,30 @@ func (ph *phaseHandler) Deprovision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak,
 		return nil, errors.New("failed to remove services while deprovisioning " + errMsg)
 	}
 	return kc, nil
+}
+
+// Creates a generic kubernetes resource from a templates
+func (ph *phaseHandler) CreateResource(sso *v1alpha1.Keycloak, resourceName string) (bool, error) {
+	kc := sso.DeepCopy()
+	resourceHelper := newResourceHelper(kc)
+	resource, err := resourceHelper.createResource(resourceName)
+	if err != nil {
+		return false, err
+	}
+
+	gvk := resource.GetObjectKind().GroupVersionKind()
+	apiVersion, kind := gvk.ToAPIVersionAndKind()
+	resourceClient, _, err := ph.dynamicResourceClientFactory(apiVersion, kind, kc.Namespace)
+	if err != nil {
+		// The resource cannot be created because the CRD is not installed in the cluster.
+		// We can try again later.
+		return false, nil
+	}
+
+	resource, err = resourceClient.Create(resource)
+	if err != nil && !errors2.IsAlreadyExists(err) {
+		return false, errors.Wrap(err, "failed to create unstructured object")
+	}
+
+	return true, nil
 }

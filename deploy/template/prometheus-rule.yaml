@@ -1,0 +1,84 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    monitoring-key: middleware
+    prometheus: application-monitoring
+    role: alert-rules
+  name: application-monitoring
+  namespace: [[ .Namespace ]]
+spec:
+  groups:
+    - name: general.rules
+      rules:
+        - alert: KeycloakJavaHeapThresholdExceeded
+          annotations:
+            message: >-
+              {{ printf "%0.0f" $value }}% heap usage of {{ $labels.area }} in pod {{
+              $labels.pod }}, namespace {{ $labels.namespace }}.
+          expr: |
+            100 * jvm_memory_bytes_used{area="heap",namespace="[[ .Namespace ]]"}
+              / jvm_memory_bytes_max{area="heap",namespace="[[ .Namespace ]]"}
+              > 90
+          for: 1m
+          labels:
+            severity: critical
+        - alert: KeycloakJavaNonHeapThresholdExceeded
+          annotations:
+            message: >-
+              {{ printf "%0.0f" $value }}% nonheap usage of {{ $labels.area }} in pod {{
+              $labels.pod }}, namespace {{ $labels.namespace }}.
+          expr: |
+            100 * jvm_memory_bytes_used{area="nonheap",namespace="[[ .Namespace ]]"}
+              / jvm_memory_bytes_max{area="nonheap",namespace="[[ .Namespace ]]"}
+              > 90
+          for: 1m
+          labels:
+            severity: critical
+        - alert: KeycloakJavaGCTimePerMinuteScavenge
+          annotations:
+            message: >-
+              Amount of time per minute spent on garbage collection of {{ $labels.area }}
+              in pod {{ $labels.pod }}, namespace {{ $labels.namespace }} exceeds 90%.
+              This could indicate that the available heap memory is insufficient.
+          expr: |
+            ((jvm_gc_collection_seconds_sum{gc="PS Scavenge",namespace="[[ .Namespace ]]"} / 60) * 100)
+              > 90
+          for: 1m
+          labels:
+            severity: critical
+        - alert: KeycloakJavaGCTimePerMinuteMarkSweep
+          annotations:
+            message: >-
+              Amount of time per minute spent on garbage collection of {{ $labels.area }}
+              in pod {{ $labels.pod }}, namespace {{ $labels.namespace }} exceeds 90%.
+              This could indicate that the available heap memory is insufficient.
+          expr: |
+            ((jvm_gc_collection_seconds_sum{gc="PS MarkSweep",namespace="[[ .Namespace ]]"} / 60) * 100)
+              > 90
+          for: 1m
+          labels:
+            severity: critical
+        - alert: KeycloakJavaDeadlockedThreads
+          annotations:
+            message: >-
+              Number of threads in deadlock state of {{ $labels.area }}
+              in pod {{ $labels.pod }}, namespace {{ $labels.namespace }}
+          expr: |
+            jvm_threads_deadlocked{namespace="[[ .Namespace ]]"}
+              > 0
+          for: 1m
+          labels:
+            severity: warning
+        - alert: KeycloakLoginFailedThresholdExceeded
+          annotations:
+            message: >-
+              More than 100 failed login attempts for realm {{ $labels.realm }},
+              provider {{ $labels.provider }}, namespace {{ $labels.namespace }}
+              over the last 5 minutes. (Rate of {{ printf "%0f" $value }})
+          expr: >
+            rate(keycloak_failed_login_attempts{namespace="[[ .Namespace ]]"}[5m])
+            * 300 > 100
+          for: 1m
+          labels:
+            severity: warning

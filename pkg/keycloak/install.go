@@ -1,15 +1,11 @@
 package keycloak
 
 import (
-	"fmt"
-	"github.com/integr8ly/keycloak-operator/pkg/apis/openshift/template"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
 	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
+	"github.com/integr8ly/keycloak-operator/pkg/apis/openshift/template"
 	"github.com/integr8ly/keycloak-operator/pkg/util"
 	"github.com/openshift/api/template/v1"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -33,14 +29,9 @@ func GetInstallResourcesAsRuntimeObjects(keycloak *v1alpha1.Keycloak, params map
 }
 
 func GetInstallResources(keycloak *v1alpha1.Keycloak, params map[string]string) ([]runtime.RawExtension, error) {
-	var templateFilePath string
-	var err error
-	templatePathEnvVar, found := os.LookupEnv(SSO_TEMPLATE_PATH_ENV_VAR)
-
-	if found {
-		templateFilePath, err = filepath.Abs(fmt.Sprintf("%v/%v", templatePathEnvVar, SSO_TEMPLATE_NAME))
-	} else {
-		templateFilePath, err = filepath.Abs(fmt.Sprintf("%v/%v", SSO_TEMPLATE_PATH, SSO_TEMPLATE_NAME))
+	templateFilePath, err := getTemplatePath(SSO_TEMPLATE_NAME)
+	if err != nil {
+		return nil, err
 	}
 
 	tpl, err := ioutil.ReadFile(templateFilePath)

@@ -78,7 +78,7 @@ spec:
               over the last 5 minutes. (Rate of {{ printf "%0f" $value }})
           expr: >
             rate(keycloak_failed_login_attempts{namespace="[[ .Namespace ]]"}[5m])
-            * 300 > 100
-          for: 1m
+            * 300 > 50
+          for: 5m
           labels:
             severity: warning

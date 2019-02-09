@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    monitoring-key: middleware
+  name: keycloak-monitoring
+  namespace: [[ .Namespace ]]
+spec:
+  endpoints:
+    - path: /auth/realms/master/metrics
+      port: sso
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+  selector:
+    matchLabels:
+      application: sso

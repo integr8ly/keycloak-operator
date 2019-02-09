@@ -213,6 +213,7 @@ type GenericStatus struct {
 
 type KeycloakStatus struct {
 	GenericStatus
+	MonitoringResourcesCreated bool `json:"monitoringResourcesCreated"`
 }
 
 type StatusPhase string

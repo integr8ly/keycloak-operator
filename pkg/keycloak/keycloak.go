@@ -150,7 +150,11 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 		}
 		return h.sdkCrud.Update(kcState)
 	case v1alpha1.PhaseComplete:
-		return nil
+		kcState, err := h.phaseHandler.SetupMonitoringResources(kc)
+		if err != nil {
+			return errors.Wrap(err, "setup of monitoring resources failed")
+		}
+		return h.sdkCrud.Update(kcState)
 	}
 	return nil
 }

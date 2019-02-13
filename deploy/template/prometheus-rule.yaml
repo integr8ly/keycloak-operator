@@ -73,7 +73,7 @@ spec:
         - alert: KeycloakLoginFailedThresholdExceeded
           annotations:
             message: >-
-              More than 100 failed login attempts for realm {{ $labels.realm }},
+              More than 50 failed login attempts for realm {{ $labels.realm }},
               provider {{ $labels.provider }}, namespace {{ $labels.namespace }}
               over the last 5 minutes. (Rate of {{ printf "%0f" $value }})
           expr: >

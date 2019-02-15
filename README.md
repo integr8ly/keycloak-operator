@@ -103,3 +103,22 @@ docker push myimage
 #run the test pod
 make test/e2e
 ```
+
+## Release
+
+Update operator version files:
+
+* Bump [operator version](version/version.go) 
+```Version = "<version>"```
+* Bump [makefile TAG](Makefile)
+```TAG=<version>```
+* Bump [operator image version](deploy/operator.yaml)
+```image: quay.io/integreatly/keycloak-operator:v<version>```
+
+Commit changes and open pull request.
+
+When the PR is accepted, create a new release tag:
+
+```git tag v<version> && git push upstream v<version>```
+
+

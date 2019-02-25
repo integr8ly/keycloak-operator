@@ -25,3 +25,9 @@ spec:
               items:
                 description: Plugin names
                 type: string
+            backups:
+              type: array
+              items:
+                description: Backup configuration
+                type: object
+              

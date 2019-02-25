@@ -2,7 +2,10 @@ package keycloak
 
 import (
 	"fmt"
+	"github.com/integr8ly/keycloak-operator/pkg/util"
 	"github.com/sirupsen/logrus"
+	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/api/batch/v1beta1"
 	"strings"
 
 	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
@@ -131,11 +134,11 @@ func (ph *phaseHandler) Provision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 		}
 	}
 
-	kc.Status.Phase = v1alpha1.PhaseReconcile
+	kc.Status.Phase = v1alpha1.PhaseWaitForPodsToRun
 	return kc, nil
 }
 
-func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+func (ph *phaseHandler) WaitforPods(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	kc := sso.DeepCopy()
 	podList, err := ph.k8sClient.CoreV1().Pods(kc.Namespace).List(v12.ListOptions{
 		LabelSelector:        fmt.Sprintf("application=%v", SSO_APPLICATION_NAME),
@@ -145,6 +148,7 @@ func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 	if err != nil || len(podList.Items) == 0 {
 		return kc, nil
 	}
+	//wait for all the SSO pods to be ready
 	for _, pod := range podList.Items {
 		for _, condition := range pod.Status.Conditions {
 			if condition.Type == "Ready" && condition.Status != "True" {
@@ -152,6 +156,7 @@ func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 			}
 		}
 	}
+	//get the route to keycloak admin
 	routeList, _ := ph.ocRouteClient.Routes(kc.Namespace).List(v12.ListOptions{LabelSelector: "application=sso"})
 	for _, route := range routeList.Items {
 		if route.Spec.To.Name == SSO_ROUTE_NAME {
@@ -167,24 +172,174 @@ func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 			}
 		}
 	}
-	kc.Status.Phase = v1alpha1.PhaseComplete
+	kc.Status.Phase = v1alpha1.PhaseReconcile
 	return kc, nil
 }
 
-func (ph *phaseHandler) SetupMonitoringResources(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	multiError := &util.MultiError{}
+	sso, err := ph.reconcileDBPassword(sso)
+	if err != nil {
+		multiError.AddError(errors.Wrap(err, "could not reconcile db password"))
+	}
+
+	sso, err = ph.reconcileMonitoringResources(sso)
+	if err != nil {
+		multiError.AddError(errors.Wrap(err, "could not reconcile monitoring resources"))
+	}
+
+	sso, err = ph.reconcileBackups(sso)
+	if err != nil {
+		multiError.AddError(errors.Wrap(err, "could not reconcile backups"))
+	}
+	if multiError.IsNil() {
+		return sso, nil
+	}
+
+	return sso, multiError
+
+}
+
+func (ph *phaseHandler) reconcileBackups(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	multiError := &util.MultiError{}
+
+	for _, backup := range sso.Spec.Backups {
+		err := ph.reconcileBackup(sso, backup, sso.Namespace)
+		if err != nil {
+			multiError.AddError(err)
+		}
+	}
+	if !multiError.IsNil() {
+		return sso, multiError
+	}
+	return sso, nil
+}
+
+func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.KeycloakBackup, namespace string) error {
+	cron := &v1beta1.CronJob{
+		ObjectMeta: v12.ObjectMeta{
+			Name:   backup.Name,
+			Labels: map[string]string{"application": "sso", "sso": sso.Name},
+		},
+		Spec: v1beta1.CronJobSpec{
+			Schedule: backup.Schedule,
+			JobTemplate: v1beta1.JobTemplateSpec{
+				Spec: batchv1.JobSpec{
+					Template: v1.PodTemplateSpec{
+						Spec: v1.PodSpec{
+							Containers: []v1.Container{
+								{
+									Name:    backup.Name + "-keycloak-backup",
+									Image:   backup.Image + ":" + backup.ImageTag,
+									Command: []string{"/opt/intly/tools/entrypoint.sh", "-c", "postgres", "-b", "s3", "-e", "gpg"},
+									EnvFrom: []v1.EnvFromSource{
+										{
+											SecretRef: &v1.SecretEnvSource{
+												LocalObjectReference: v1.LocalObjectReference{
+													Name: backup.AwsCredentialsSecretName,
+												},
+											},
+										},
+										{
+											SecretRef: &v1.SecretEnvSource{
+												LocalObjectReference: v1.LocalObjectReference{
+													Name: "db-credentials-" + sso.Name,
+												},
+											},
+										},
+										{
+											SecretRef: &v1.SecretEnvSource{
+												LocalObjectReference: v1.LocalObjectReference{
+													Name: backup.EncryptionKeySecretName,
+												},
+											},
+										},
+									},
+								},
+							},
+							RestartPolicy: v1.RestartPolicyOnFailure,
+						},
+					},
+				},
+			},
+		},
+	}
+	_, err := ph.k8sClient.BatchV1beta1().CronJobs(namespace).Create(cron)
+	if err != nil && !errors2.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "error creating cronjob %s/%s", cron.Namespace, cron.Name)
+	}
+	if err != nil && errors2.IsAlreadyExists(err) {
+		_, err := ph.k8sClient.BatchV1beta1().CronJobs(namespace).Update(cron)
+		if err != nil {
+			return errors.Wrapf(err, "could not update cronjob %s/%s", cron.Namespace, cron.Name)
+		}
+	}
+
+	return nil
+}
+
+func (ph *phaseHandler) reconcileDBPassword(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	ssoDc, err := ph.ocDCClient.DeploymentConfigs(sso.Namespace).Get("sso", v12.GetOptions{})
+	if err != nil {
+		return sso, errors.Wrap(err, "could not get 'sso' deploymentconfig")
+	}
+
+	username := ""
+	password := ""
+	host := "sso-postgresql." + sso.Namespace + ".svc"
+
+	for _, envVar := range ssoDc.Spec.Template.Spec.Containers[0].Env {
+		if envVar.Name == "DB_USERNAME" {
+			username = envVar.Value
+		}
+		if envVar.Name == "DB_PASSWORD" {
+			password = envVar.Value
+		}
+	}
+	data := map[string][]byte{"POSTGRES_USERNAME": []byte(username), "POSTGRES_PASSWORD": []byte(password), "POSTGRES_HOST": []byte(host)}
+	dbCredentialsSecret := &v1.Secret{
+		TypeMeta: v12.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		ObjectMeta: v12.ObjectMeta{
+			Labels:    map[string]string{"application": "sso", "sso": sso.Name},
+			Namespace: sso.Namespace,
+			Name:      "db-credentials-" + sso.Name,
+		},
+		Data: data,
+		Type: "Opaque",
+	}
+	_, err = ph.k8sClient.CoreV1().Secrets(sso.Namespace).Create(dbCredentialsSecret)
+	if err != nil && !errors2.IsAlreadyExists(err) {
+		return sso, errors.Wrap(err, "could not create db credentials secret")
+	}
+	if err != nil && errors2.IsAlreadyExists(err) {
+		logrus.Infof("updating secret: %s", dbCredentialsSecret.Name)
+		_, err = ph.k8sClient.CoreV1().Secrets(sso.Namespace).Update(dbCredentialsSecret)
+		if err != nil {
+			return sso, errors.Wrap(err, "could not update db credentials secret")
+		}
+	}
+
+	return sso, nil
+
+}
+
+func (ph *phaseHandler) reconcileMonitoringResources(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	kc := sso.DeepCopy()
 	if kc.Status.MonitoringResourcesCreated == false {
-		created, err := ph.SetupMonitoringResource(kc, GrafanaDashboardName)
+		created, err := ph.reconcileMonitoringResource(kc, GrafanaDashboardName)
 		if err != nil || !created {
 			return kc, err
 		}
 
-		created, err = ph.SetupMonitoringResource(kc, ServiceMonitorName)
+		created, err = ph.reconcileMonitoringResource(kc, ServiceMonitorName)
 		if err != nil || !created {
 			return kc, err
 		}
 
-		created, err = ph.SetupMonitoringResource(kc, PrometheusRuleName)
+		created, err = ph.reconcileMonitoringResource(kc, PrometheusRuleName)
 		if err != nil || !created {
 			return kc, err
 		}
@@ -196,8 +351,8 @@ func (ph *phaseHandler) SetupMonitoringResources(sso *v1alpha1.Keycloak) (*v1alp
 	return kc, nil
 }
 
-func (ph *phaseHandler) SetupMonitoringResource(sso *v1alpha1.Keycloak, resource string) (bool, error) {
-	created, err := ph.CreateResource(sso, resource)
+func (ph *phaseHandler) reconcileMonitoringResource(sso *v1alpha1.Keycloak, resource string) (bool, error) {
+	created, err := ph.createResource(sso, resource)
 	if err != nil {
 		return false, err
 	}
@@ -242,6 +397,11 @@ func (ph *phaseHandler) Deprovision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak,
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list all services for sso")
 	}
+	// delete cronjobs
+	if err := ph.k8sClient.BatchV1beta1().CronJobs(kc.Namespace).DeleteCollection(deleteOpts, listOpts); err != nil {
+		return nil, errors.Wrap(err, "failed to delete all cronjobs for sso")
+	}
+
 	// todo handle more than one error
 	var errs []string
 	for _, s := range services.Items {
@@ -258,7 +418,7 @@ func (ph *phaseHandler) Deprovision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak,
 }
 
 // Creates a generic kubernetes resource from a templates
-func (ph *phaseHandler) CreateResource(sso *v1alpha1.Keycloak, resourceName string) (bool, error) {
+func (ph *phaseHandler) createResource(sso *v1alpha1.Keycloak, resourceName string) (bool, error) {
 	kc := sso.DeepCopy()
 	resourceHelper := newResourceHelper(kc)
 	resource, err := resourceHelper.createResource(resourceName)

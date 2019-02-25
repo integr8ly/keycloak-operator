@@ -113,7 +113,6 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 				}
 			}
 		}
-
 		kcState, err := h.phaseHandler.Deprovision(kcCopy)
 		if err != nil {
 			return errors.Wrap(err, "failed to deprovision")
@@ -143,16 +142,16 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 			return errors.Wrap(err, "phase provision failed")
 		}
 		return h.sdkCrud.Update(kcState)
-	case v1alpha1.PhaseReconcile:
-		kcState, err := h.phaseHandler.Reconcile(kc)
+	case v1alpha1.PhaseWaitForPodsToRun:
+		kcState, err := h.phaseHandler.WaitforPods(kc)
 		if err != nil {
 			return errors.Wrap(err, "phase provisioned failed")
 		}
 		return h.sdkCrud.Update(kcState)
-	case v1alpha1.PhaseComplete:
-		kcState, err := h.phaseHandler.SetupMonitoringResources(kc)
+	case v1alpha1.PhaseReconcile:
+		kcState, err := h.phaseHandler.Reconcile(kc)
 		if err != nil {
-			return errors.Wrap(err, "setup of monitoring resources failed")
+			return errors.Wrap(err, "reconciling failed")
 		}
 		return h.sdkCrud.Update(kcState)
 	}

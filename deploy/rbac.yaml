@@ -21,7 +21,7 @@ rules:
     verbs:
       - "*"
   - apiGroups:
-      - template.openshift.io
+      - ""
     resources:
       - processedtemplates
     verbs: [ get, list, create, update, delete, deletecollection, watch]

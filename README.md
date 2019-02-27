@@ -71,11 +71,11 @@ Create operator CRD and RBAC rules:
 
 ## Create a keycloak
 
-- `kubectl apply -f deploy/examples/keycloak.json`
+- `kubectl apply -f deploy/examples/keycloak_min.json`
 
 ## Create a keycloak realm
 
-- `kubectl apply -f deploy/examples/keycloak.json`
+- `kubectl apply -f deploy/examples/keycloakRealm.json`
 
 ## Tear it down
 

@@ -93,7 +93,7 @@ func TestPhaseHandlerAccepted(t *testing.T) {
 							{
 								Status: v1alpha1.KeycloakStatus{
 									GenericStatus: v1alpha1.GenericStatus{
-										Phase: v1alpha1.PhaseComplete,
+										Phase: v1alpha1.PhaseReconcile,
 									},
 								},
 							},

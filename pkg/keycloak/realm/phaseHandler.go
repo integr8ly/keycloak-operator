@@ -81,7 +81,7 @@ func (ph *phaseHandler) Accepted(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keycloa
 			kc.Status.Phase = v1alpha1.PhaseProvision
 			ph.sdk.Update(&kc)
 		}
-		if kc.Status.Phase == v1alpha1.PhaseComplete {
+		if kc.Status.Phase == v1alpha1.PhaseReconcile {
 			kcr.Status.KeycloakName = kc.Name
 			kcr.Status.Phase = v1alpha1.PhaseProvision
 		}
@@ -300,8 +300,8 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 			}
 		}
 	}
-	logrus.Info("reconciling client", specClient)
 	if specClient != nil && specClient.OutputSecret != nil {
+		logrus.Info("reconciling client", specClient)
 		cs, err := authenticatedClient.GetClientSecret(specClient.ID, realmName)
 		if err != nil {
 			return err
@@ -464,9 +464,7 @@ func (ph *phaseHandler) getClient(kcr *v1alpha1.KeycloakRealm) (keycloak.Keycloa
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Got %v keycloaks", len(list.Items))
 	for _, kc := range list.Items {
-		logrus.Infof("'%v' ?? '%v'", kc.Name, kcr.Status.KeycloakName)
 		if kc.Name == kcr.Status.KeycloakName {
 			return ph.kcClientFactory.AuthenticatedClient(kc)
 		}

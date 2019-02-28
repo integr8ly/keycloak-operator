@@ -46,8 +46,20 @@ func (k *Keycloak) Validate() error {
 }
 
 type KeycloakSpec struct {
-	AdminCredentials string   `json:"adminCredentials"`
-	Plugins          []string `json:"plugins"`
+	AdminCredentials string           `json:"adminCredentials"`
+	Plugins          []string         `json:"plugins"`
+	Backups          []KeycloakBackup `json:"backups"`
+}
+
+//KeycloakBackup details of a backup task
+type KeycloakBackup struct {
+	Name                     string `json:"name"`
+	Schedule                 string `json:"schedule"`
+	EncryptionKeySecretName  string `json:"encryption_key_secret_name"`
+	AwsCredentialsSecretName string `json:"aws_credentials_secret_name"`
+	DbCredentialsSecretName  string `json:"db_credentials_secret_name"`
+	Image                    string `json:"image"`
+	ImageTag                 string `json:"image_tag"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

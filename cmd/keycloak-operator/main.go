@@ -62,8 +62,10 @@ func main() {
 	kcFactory := &keycloak.KeycloakFactory{SecretClient: k8Client.CoreV1().Secrets(namespace)}
 
 	resyncDuration := time.Second * time.Duration(cfg.ResyncPeriod)
+	logrus.Infof("Watching kc namespace: %s", namespace)
 	sdk.Watch(resource, v1alpha1.KeycloakKind, namespace, resyncDuration)
 	for _, ns := range strings.Split(os.Getenv("CONSUMER_NAMESPACES"), ";") {
+		logrus.Infof("Watching namespace: %s", ns)
 		sdk.Watch(resource, v1alpha1.KeycloakRealmKind, ns, resyncDuration)
 	}
 

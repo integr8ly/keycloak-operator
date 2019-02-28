@@ -287,6 +287,7 @@ func (ph *phaseHandler) reconcileDBPassword(sso *v1alpha1.Keycloak) (*v1alpha1.K
 	username := ""
 	password := ""
 	host := "sso-postgresql." + sso.Namespace + ".svc"
+	superuser := "false"
 
 	for _, envVar := range ssoDc.Spec.Template.Spec.Containers[0].Env {
 		if envVar.Name == "DB_USERNAME" {
@@ -296,7 +297,12 @@ func (ph *phaseHandler) reconcileDBPassword(sso *v1alpha1.Keycloak) (*v1alpha1.K
 			password = envVar.Value
 		}
 	}
-	data := map[string][]byte{"POSTGRES_USERNAME": []byte(username), "POSTGRES_PASSWORD": []byte(password), "POSTGRES_HOST": []byte(host)}
+	data := map[string][]byte{
+		"POSTGRES_USERNAME":  []byte(username),
+		"POSTGRES_PASSWORD":  []byte(password),
+		"POSTGRES_HOST":      []byte(host),
+		"POSTGRES_SUPERUSER": []byte(superuser),
+	}
 	dbCredentialsSecret := &v1.Secret{
 		TypeMeta: v12.TypeMeta{
 			APIVersion: "v1",

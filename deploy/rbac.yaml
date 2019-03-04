@@ -5,6 +5,12 @@ metadata:
   name: keycloak-operator
 rules:
   - apiGroups:
+      - batch
+    resources:
+      - "cronjobs"
+    verbs:
+      - "*"
+  - apiGroups:
       - aerogear.org
     resources:
       - "*"
@@ -58,7 +64,6 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: default
-
 roleRef:
   kind: Role
   name: keycloak-operator

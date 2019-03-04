@@ -247,13 +247,6 @@ func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.
 												},
 											},
 										},
-										{
-											SecretRef: &v1.SecretEnvSource{
-												LocalObjectReference: v1.LocalObjectReference{
-													Name: backup.EncryptionKeySecretName,
-												},
-											},
-										},
 									},
 								},
 							},
@@ -263,6 +256,21 @@ func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.
 				},
 			},
 		},
+	}
+	/*
+
+	 */
+	if backup.EncryptionKeySecretName != "" {
+		cron.Spec.JobTemplate.Spec.Template.Spec.Containers[0].EnvFrom = append(
+			cron.Spec.JobTemplate.Spec.Template.Spec.Containers[0].EnvFrom,
+			v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: backup.EncryptionKeySecretName,
+					},
+				},
+			},
+		)
 	}
 	_, err := ph.k8sClient.BatchV1beta1().CronJobs(namespace).Create(cron)
 	if err != nil && !errors2.IsAlreadyExists(err) {

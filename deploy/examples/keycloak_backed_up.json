@@ -10,10 +10,10 @@
     "backups": [
       {
         "name": "daily-at-midnight",
-        "schedule": "* 0 * * *",
+        "schedule": "0 0 * * *",
         "encryption_key_secret_name": "example-encryption-key",
         "aws_credentials_secret_name": "example-aws-key",
-        "image": "quay.io/philbrookes/backup-container-image",
+        "image": "quay.io/integreatly/backup-container",
         "image_tag": "latest"
       }
     ]

@@ -1,5 +1,6 @@
 ORG=integreatly
 NAMESPACE=rhsso
+CONSUMER_NAMESPACES=${NAMESPACE}
 PROJECT=keycloak-operator
 REG=quay.io
 SHELL=/bin/bash
@@ -22,6 +23,7 @@ setup/travis:
 
 .PHONY: code/run
 code/run:
+	export CONSUMER_NAMESPACES=${CONSUMER_NAMESPACES}
 	@operator-sdk up local --namespace=${NAMESPACE} --operator-flags="--resync=10"
 
 .PHONY: code/compile

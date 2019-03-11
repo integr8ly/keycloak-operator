@@ -227,25 +227,28 @@ func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.
 				Spec: batchv1.JobSpec{
 					Template: v1.PodTemplateSpec{
 						Spec: v1.PodSpec{
+							ServiceAccountName: "backupjob",
 							Containers: []v1.Container{
 								{
 									Name:    backup.Name + "-keycloak-backup",
 									Image:   backup.Image + ":" + backup.ImageTag,
-									Command: []string{"/opt/intly/tools/entrypoint.sh", "-c", "postgres", "-b", "s3", "-e", "gpg"},
-									EnvFrom: []v1.EnvFromSource{
+									Command: []string{"/opt/intly/tools/entrypoint.sh", "-c", "postgres", "-n", namespace, "-b", "s3", "-e", "gpg"},
+									Env: []v1.EnvVar{
 										{
-											SecretRef: &v1.SecretEnvSource{
-												LocalObjectReference: v1.LocalObjectReference{
-													Name: backup.AwsCredentialsSecretName,
-												},
-											},
+											Name:  "BACKEND_SECRET_NAME",
+											Value: backup.AwsCredentialsSecretName,
 										},
 										{
-											SecretRef: &v1.SecretEnvSource{
-												LocalObjectReference: v1.LocalObjectReference{
-													Name: "db-credentials-" + sso.Name,
-												},
-											},
+											Name:  "ENCRYPTION_SECRET_NAME",
+											Value: backup.EncryptionKeySecretName,
+										},
+										{
+											Name:  "COMPONENT_SECRET_NAME",
+											Value: "db-credentials-" + sso.Name,
+										},
+										{
+											Name:  "PRODUCT_NAME",
+											Value: "rhsso",
 										},
 									},
 								},
@@ -257,21 +260,7 @@ func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.
 			},
 		},
 	}
-	/*
 
-	 */
-	if backup.EncryptionKeySecretName != "" {
-		cron.Spec.JobTemplate.Spec.Template.Spec.Containers[0].EnvFrom = append(
-			cron.Spec.JobTemplate.Spec.Template.Spec.Containers[0].EnvFrom,
-			v1.EnvFromSource{
-				SecretRef: &v1.SecretEnvSource{
-					LocalObjectReference: v1.LocalObjectReference{
-						Name: backup.EncryptionKeySecretName,
-					},
-				},
-			},
-		)
-	}
 	_, err := ph.k8sClient.BatchV1beta1().CronJobs(namespace).Create(cron)
 	if err != nil && !errors2.IsAlreadyExists(err) {
 		return errors.Wrapf(err, "error creating cronjob %s/%s", cron.Namespace, cron.Name)

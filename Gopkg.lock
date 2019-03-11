@@ -767,6 +767,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Jeffail/gabs",
+    "github.com/ghodss/yaml",
     "github.com/google/uuid",
     "github.com/matryer/moq",
     "github.com/openshift/api/apps/v1",
@@ -785,6 +786,8 @@
     "github.com/operator-framework/operator-sdk/version",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
+    "k8s.io/api/batch/v1",
+    "k8s.io/api/batch/v1beta1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/meta",

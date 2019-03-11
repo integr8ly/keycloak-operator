@@ -173,6 +173,7 @@ func (ph *phaseHandler) WaitforPods(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak,
 		}
 	}
 	kc.Status.Phase = v1alpha1.PhaseReconcile
+	kc.Status.Ready = true
 	return kc, nil
 }
 

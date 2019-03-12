@@ -151,6 +151,15 @@ type KeycloakUserPair struct {
 	SpecUser *KeycloakUser
 }
 
+type KeycloakUserClientRole struct {
+	ID string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Composite bool `json:"composite,omitempty"`
+	ClientRole bool `json:"clientRole,omitempty"`
+	ContainerID string `json:"containerId,omitempty"`
+}
+
 type KeycloakProtocolMapper struct {
 	ID              string            `json:"id,omitempty"`
 	Name            string            `json:"name,omitempty"`

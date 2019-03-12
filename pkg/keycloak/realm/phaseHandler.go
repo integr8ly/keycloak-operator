@@ -151,7 +151,6 @@ func (ph *phaseHandler) Reconcile(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 }
 
 func (ph *phaseHandler) reconcileUsers(kcClient keycloak.KeycloakInterface, realm *v1alpha1.KeycloakRealm, ns string) util.MultiErrorer {
-
 	users, err := kcClient.ListUsers(realm.Spec.Realm)
 	if err != nil {
 		retErr := util.NewMultiError()
@@ -240,6 +239,7 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		}
 		if !resourcesEqual(kcUser.KeycloakApiUser, specUser.KeycloakApiUser) {
 			specUser.ID = kcUser.ID
+			logrus.Info("updating!")
 			err := authenticatedClient.UpdateUser(specUser, realmName)
 			if err != nil {
 				return err
@@ -247,6 +247,66 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		}
 	}
 
+	logrus.Infof("reconciling user '%s' client roles", specUser.UserName)
+	if err := ph.reconcileUserClientRoles(specUser, realmName, authenticatedClient); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient keycloak.KeycloakInterface) error {
+	clients, err := authenticatedClient.ListClients(realmName)
+	if err != nil {
+		return err
+	}
+	for clientName, roles := range specUser.ClientRoles {
+		FindMatchingClient:
+		for _, client := range clients {
+			if clientName == client.ClientID {
+				err = ph.reconcileRolesForClient(roles, client, specUser, realmName, authenticatedClient)
+				break FindMatchingClient
+			}
+		}
+	}
+	return nil
+}
+
+func (ph *phaseHandler) reconcileRolesForClient(roles []string, client *v1alpha1.KeycloakClient, user *v1alpha1.KeycloakUser, realmName string, authenticatedClient keycloak.KeycloakInterface) error {
+	kcRoles, err := authenticatedClient.ListUserClientRoles(realmName, client.ID, user.ID)
+	if err != nil {
+		return err
+	}
+	FindRole:
+	for i, role := range roles {
+		for j, kcRole := range kcRoles {
+			if kcRole.Name == role {
+				//this role is in both already so delete it from both
+				kcRoles = append(kcRoles[:j], kcRoles[j+1:]...)
+				roles = append(roles[:i], roles[i+1:]...)
+				break FindRole
+			}
+		}
+	}
+	FindKCRole:
+	for i, kcRole := range kcRoles {
+		for j, role := range roles {
+			if kcRole.Name == role {
+				//this role is in both already so delete it from both
+				kcRoles = append(kcRoles[:i], kcRoles[i+1:]...)
+				roles = append(roles[:j], roles[j+1:]...)
+				break FindKCRole
+			}
+		}
+	}
+
+	//whatever is left in roles needs to be created
+	for _, createRole := range roles {
+		authenticatedClient.CreateUserClientRole(client.ID, realmName, createRole, user.ID)
+	}
+
+	//whatever is left in kcroles need to be deleted
+	logrus.Infof("client %s kcroles: %+v", client.Name, kcRoles)
 	return nil
 }
 

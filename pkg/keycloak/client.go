@@ -94,6 +94,11 @@ func (c *Client) CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
 	return c.create(user.KeycloakApiUser, fmt.Sprintf("realms/%s/users", realmName), "user")
 }
 
+
+func (c *Client) CreateUserClientRole(clientID, realmName, roleName, userId string) error {
+	url := "realms/" + realmName + "/users/" + userId + "/role-mappings/clients/" + clientID
+}
+
 func (c *Client) UpdatePassword(user *v1alpha1.KeycloakApiUser, realmName, newPass string) error {
 	//https://{{ rhsso_route }}/auth/admin/realms/{{ rhsso_realm }}/users/{{ rhsso_eval_user_id }}/reset-password
 	//
@@ -370,6 +375,10 @@ func (c *Client) DeleteIdentityProvider(alias string, realmName string) error {
 	return err
 }
 
+func (c *Client) DeleteClientRole() error {
+	return nil
+}
+
 // Generic list function for listing Keycloak resources
 func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(body []byte) (T, error)) (T, error) {
 	req, err := http.NewRequest(
@@ -377,6 +386,7 @@ func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(
 		fmt.Sprintf("%s/auth/admin/%s", c.URL, resourcePath),
 		nil,
 	)
+	logrus.Infof(req.URL.String())
 	if err != nil {
 		logrus.Errorf("error creating LIST %s request %+v", resourceName, err)
 		return nil, errors.Wrapf(err, "error creating LIST %s request", resourceName)
@@ -470,6 +480,16 @@ func (c *Client) ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakId
 	return result.([]*v1alpha1.KeycloakIdentityProvider), err
 }
 
+func (c *Client) ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+	logrus.Infof("listing user client roles")
+	objects, err := c.list("realms/" + realmName + "/users/" + userID + "/role-mappings/clients/"+clientID, "userClientRoles", func(body []byte) (t T, e error) {
+		var userClientRoles []*v1alpha1.KeycloakUserClientRole
+		err := json.Unmarshal(body, &userClientRoles)
+		return userClientRoles, err
+	})
+	return objects.([]*v1alpha1.KeycloakUserClientRole), err
+}
+
 func (c *Client) Ping() error {
 	u := c.URL + "/auth/"
 	req, err := http.NewRequest("GET", u, nil)
@@ -552,6 +572,7 @@ func defaultRequester() Requester {
 
 type KeycloakInterface interface {
 	Ping() error
+
 	CreateRealm(realm *v1alpha1.KeycloakRealm) error
 	GetRealm(realmName string) (*v1alpha1.KeycloakRealm, error)
 	UpdateRealm(specRealm *v1alpha1.KeycloakRealm) error
@@ -580,6 +601,11 @@ type KeycloakInterface interface {
 	UpdateIdentityProvider(specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error
 	DeleteIdentityProvider(alias, realmName string) error
 	ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error)
+
+
+	CreateUserClientRole(clientID, roleName, userId string) error
+	ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
+//	DeleteUserClientRole(clientID, roleID, userID string) error
 }
 
 //go:generate moq -out keycloakClientFactory_moq.go . KeycloakClientFactory

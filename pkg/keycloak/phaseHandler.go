@@ -217,16 +217,25 @@ func (ph *phaseHandler) reconcileBackups(sso *v1alpha1.Keycloak) (*v1alpha1.Keyc
 }
 
 func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.KeycloakBackup, namespace string) error {
+	cronJobLabels := map[string]string{"application": "sso", "sso": sso.Name}
+	jobLabels := map[string]string{"cronjob-name": backup.Name}
+	for k, v := range backup.Labels {
+		cronJobLabels[k] = v
+		jobLabels[k] = v
+	}
 	cron := &v1beta1.CronJob{
 		ObjectMeta: v12.ObjectMeta{
 			Name:   backup.Name,
-			Labels: map[string]string{"application": "sso", "sso": sso.Name},
+			Labels: cronJobLabels,
 		},
 		Spec: v1beta1.CronJobSpec{
 			Schedule: backup.Schedule,
 			JobTemplate: v1beta1.JobTemplateSpec{
 				Spec: batchv1.JobSpec{
 					Template: v1.PodTemplateSpec{
+						ObjectMeta: v12.ObjectMeta{
+							Labels: jobLabels,
+						},
 						Spec: v1.PodSpec{
 							ServiceAccountName: "backupjob",
 							Containers: []v1.Container{

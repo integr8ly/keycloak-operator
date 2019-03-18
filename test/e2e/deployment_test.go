@@ -55,6 +55,7 @@ func TestRealmCreation(t *testing.T) {
 				Realm:       "openshift",
 				DisplayName: "openshift",
 				Enabled:     true,
+				CreateOnly:  true,
 			},
 		},
 	}

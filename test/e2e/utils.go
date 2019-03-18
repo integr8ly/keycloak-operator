@@ -187,7 +187,7 @@ func waitForRealm(f *framework.Framework, cr *v1alpha1.KeycloakRealm, retryInter
 			return false, err
 		}
 
-		if ref.Status.Phase == v1alpha1.PhaseReconcile {
+		if ref.Status.Phase == v1alpha1.PhaseReconcile && ref.Status.CreateOnly == true {
 			return true, nil
 		}
 

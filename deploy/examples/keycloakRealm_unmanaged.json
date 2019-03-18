@@ -1,0 +1,14 @@
+{
+  "apiVersion": "aerogear.org/v1alpha1",
+  "kind": "KeycloakRealm",
+  "metadata": {
+    "name": "arealm"
+  },
+  "spec": {
+    "id": "arealm",
+    "realm": "arealm",
+    "displayName": "arealm",
+    "enabled": true,
+    "createOnly": true
+  }
+}

@@ -79,6 +79,7 @@ type KeycloakRealmStatus struct {
 	Phase        StatusPhase `json:"phase,omitempty"`
 	KeycloakName string      `json:"keycloakName,omitempty"`
 	Message      string      `json:"message,omitempty"`
+	CreateOnly   bool        `json:"createOnly,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -93,6 +94,7 @@ type KeycloakApiRealm struct {
 	Realm             string                      `json:"realm,omitempty"`
 	Enabled           bool                        `json:"enabled"`
 	DisplayName       string                      `json:"displayName"`
+	CreateOnly        bool                        `json:"createOnly,omitempty"`
 	Users             []*KeycloakUser             `json:"users,omitempty"`
 	Clients           []*KeycloakClient           `json:"clients,omitempty"`
 	IdentityProviders []*KeycloakIdentityProvider `json:"identityProviders,omitempty"`

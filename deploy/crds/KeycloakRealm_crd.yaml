@@ -24,6 +24,8 @@ spec:
               type: boolean
             displayName:
               type: string
+            createOnly:
+              type: boolean
             identityProviders:
               type: array
               items:

@@ -121,6 +121,7 @@ func (ph *phaseHandler) Provision(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 	}
 
 	kcr.Status.Phase = v1alpha1.PhaseReconcile
+	kcr.Status.CreateOnly = kcr.Spec.CreateOnly
 
 	return kcr, nil
 }
@@ -129,6 +130,12 @@ func (ph *phaseHandler) Reconcile(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 	kcClient, err := ph.getClient(kcr)
 	if err != nil {
 		return kcr, errors.Wrapf(err, "error reconciling keycloak realm: '%v'", kcr.Spec.Realm)
+	}
+
+	kcr.Status.CreateOnly = kcr.Spec.CreateOnly
+	if kcr.Status.CreateOnly {
+		logrus.Debugf("Skip reconcile of non-managed realm %s", kcr.Spec.DisplayName)
+		return kcr, nil
 	}
 
 	errors := util.NewMultiError()

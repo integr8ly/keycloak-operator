@@ -335,7 +335,6 @@ func (ph *phaseHandler) reconcileDBPassword(sso *v1alpha1.Keycloak) (*v1alpha1.K
 		return sso, errors.Wrap(err, "could not create db credentials secret")
 	}
 	if err != nil && errors2.IsAlreadyExists(err) {
-		logrus.Infof("updating secret: %s", dbCredentialsSecret.Name)
 		_, err = ph.k8sClient.CoreV1().Secrets(sso.Namespace).Update(dbCredentialsSecret)
 		if err != nil {
 			return sso, errors.Wrap(err, "could not update db credentials secret")
@@ -378,7 +377,6 @@ func (ph *phaseHandler) reconcileMonitoringResource(sso *v1alpha1.Keycloak, reso
 	}
 
 	if created {
-		logrus.Info(fmt.Sprintf("Monitoring resource '%s' successfully created", resource))
 		return true, nil
 	}
 

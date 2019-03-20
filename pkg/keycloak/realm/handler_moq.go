@@ -17,6 +17,10 @@ var (
 	lockHandlerMockReconcile       sync.RWMutex
 )
 
+// Ensure, that HandlerMock does implement Handler.
+// If this is not the case, regenerate this file with moq.
+var _ Handler = &HandlerMock{}
+
 // HandlerMock is a mock implementation of Handler.
 //
 //     func TestSomethingThatUsesHandler(t *testing.T) {

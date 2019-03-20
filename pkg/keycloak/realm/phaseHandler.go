@@ -151,7 +151,6 @@ func (ph *phaseHandler) Reconcile(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 }
 
 func (ph *phaseHandler) reconcileUsers(kcClient keycloak.KeycloakInterface, realm *v1alpha1.KeycloakRealm, ns string) util.MultiErrorer {
-
 	users, err := kcClient.ListUsers(realm.Spec.Realm)
 	if err != nil {
 		retErr := util.NewMultiError()
@@ -247,6 +246,87 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		}
 	}
 
+	if err := ph.reconcileUserClientRoles(specUser, realmName, authenticatedClient); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient keycloak.KeycloakInterface) error {
+	clients, err := authenticatedClient.ListClients(realmName)
+	if err != nil {
+		return err
+	}
+	me := util.NewMultiError()
+	for _, client := range clients {
+		foundClient := false
+	FindMatchingClient:
+		for clientName, roles := range specUser.ClientRoles {
+			rolesCopy := make([]string, len(roles))
+			copy(rolesCopy, roles)
+			if clientName == client.ClientID {
+				me.AddError(ph.reconcileRolesForClient(rolesCopy, client, specUser, realmName, authenticatedClient))
+				foundClient = true
+				break FindMatchingClient
+			}
+		}
+		if !foundClient {
+			// delete all roles, this client is deleted from this user in the CR
+			me.AddError(ph.reconcileRolesForClient([]string{}, client, specUser, realmName, authenticatedClient))
+		}
+	}
+	if me.IsNil() {
+		return nil
+	}
+	return me
+}
+
+func (ph *phaseHandler) reconcileRolesForClient(roles []string, client *v1alpha1.KeycloakClient, user *v1alpha1.KeycloakUser, realmName string, authenticatedClient keycloak.KeycloakInterface) error {
+	availableRoles, err := authenticatedClient.ListAvailableUserClientRoles(realmName, client.ID, user.ID)
+	kcRoles, err := authenticatedClient.ListUserClientRoles(realmName, client.ID, user.ID)
+	if err != nil {
+		return err
+	}
+FindRole:
+	for i, role := range roles {
+		for j, kcRole := range kcRoles {
+			if kcRole.Name == role {
+				//this role is in both already so delete it from both
+				kcRoles = append(kcRoles[:j], kcRoles[j+1:]...)
+				roles = append(roles[:i], roles[i+1:]...)
+				break FindRole
+			}
+		}
+	}
+FindKCRole:
+	for i, kcRole := range kcRoles {
+		for j, role := range roles {
+			if kcRole.Name == role {
+				//this role is in both already so delete it from both
+				kcRoles = append(kcRoles[:i], kcRoles[i+1:]...)
+				roles = append(roles[:j], roles[j+1:]...)
+				break FindKCRole
+			}
+		}
+	}
+	//whatever is left in roles needs to be created
+	for _, createRoleName := range roles {
+		for _, createRole := range availableRoles {
+			if createRole.Name == createRoleName {
+				if err := authenticatedClient.CreateUserClientRole(createRole, realmName, client.ID, user.ID); err != nil {
+					return errors.Wrap(err, "error creating user client role")
+				}
+			}
+		}
+	}
+
+	//whatever is left in kcroles need to be deleted
+	for _, deleteRole := range kcRoles {
+		if err := authenticatedClient.DeleteUserClientRole(deleteRole, realmName, client.ID, user.ID); err != nil {
+			return errors.Wrap(err, "error deleting user client role")
+		}
+	}
 	return nil
 }
 
@@ -308,7 +388,6 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 		}
 	}
 	if specClient != nil && specClient.OutputSecret != nil {
-		logrus.Info("reconciling client", specClient)
 		cs, err := authenticatedClient.GetClientSecret(specClient.ID, realmName)
 		if err != nil {
 			return err

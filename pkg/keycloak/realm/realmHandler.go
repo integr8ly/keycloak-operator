@@ -3,11 +3,9 @@ package realm
 import (
 	"context"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
 	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
 	"github.com/integr8ly/keycloak-operator/pkg/keycloak"
+	"github.com/pkg/errors"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -67,8 +65,6 @@ func (r *realmHandler) Handle(context context.Context, object interface{}, delet
 	if !ok {
 		return errors.New("error converting object to keycloak realm")
 	}
-
-	logrus.Infof("Keycloak Realm: %v, Phase: %v", kcr.Name, kcr.Status.Phase)
 
 	if _, err := r.handler.PreflightChecks(kcr); err != nil {
 		//cannot contact keycloak API

@@ -16,6 +16,10 @@ var (
 	lockSdkCruderMockUpdate sync.RWMutex
 )
 
+// Ensure, that SdkCruderMock does implement SdkCruder.
+// If this is not the case, regenerate this file with moq.
+var _ SdkCruder = &SdkCruderMock{}
+
 // SdkCruderMock is a mock implementation of SdkCruder.
 //
 //     func TestSomethingThatUsesSdkCruder(t *testing.T) {

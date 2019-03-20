@@ -28,6 +28,9 @@
                     "account": [
                         "manage-account",
                         "view-profile"
+                    ],
+                    "realm-management": [
+                        "manage-users"
                     ]
                 }
             },

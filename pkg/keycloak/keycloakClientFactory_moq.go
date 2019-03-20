@@ -12,6 +12,10 @@ var (
 	lockKeycloakClientFactoryMockAuthenticatedClient sync.RWMutex
 )
 
+// Ensure, that KeycloakClientFactoryMock does implement KeycloakClientFactory.
+// If this is not the case, regenerate this file with moq.
+var _ KeycloakClientFactory = &KeycloakClientFactoryMock{}
+
 // KeycloakClientFactoryMock is a mock implementation of KeycloakClientFactory.
 //
 //     func TestSomethingThatUsesKeycloakClientFactory(t *testing.T) {

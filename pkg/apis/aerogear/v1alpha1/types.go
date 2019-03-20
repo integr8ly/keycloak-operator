@@ -47,8 +47,8 @@ func (k *Keycloak) Validate() error {
 
 type KeycloakSpec struct {
 	AdminCredentials string           `json:"adminCredentials"`
-	Plugins          []string         `json:"plugins"`
-	Backups          []KeycloakBackup `json:"backups"`
+	Plugins          []string         `json:"plugins,omitempty"`
+	Backups          []KeycloakBackup `json:"backups,omitempty"`
 }
 
 //KeycloakBackup details of a backup task

@@ -166,6 +166,9 @@ func (ph *phaseHandler) WaitforPods(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak,
 			}
 			url := fmt.Sprintf("%v://%v", protocol, route.Spec.Host)
 			secret, err := ph.k8sClient.CoreV1().Secrets(kc.Namespace).Get(kc.Spec.AdminCredentials, v12.GetOptions{})
+			if err != nil {
+				return nil, errors.Wrap(err, "could not retrieve admin secret")
+			}
 			secret.Data["SSO_ADMIN_URL"] = []byte(url)
 			if _, err = ph.k8sClient.CoreV1().Secrets(kc.Namespace).Update(secret); err != nil {
 				return nil, errors.Wrap(err, "could not update admin credentials")

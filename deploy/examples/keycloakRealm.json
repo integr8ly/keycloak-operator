@@ -9,7 +9,7 @@
         "realm": "arealm",
         "displayName": "arealm",
         "enabled": true,
-        "eventsListeners": [],
+        "eventsListeners": ["metrics-listener"],
         "users": [
             {
                 "username": "admin",

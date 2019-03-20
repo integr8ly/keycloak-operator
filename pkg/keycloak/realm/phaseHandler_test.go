@@ -413,6 +413,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						UpdateIdentityProviderFunc: func(specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
 							return nil
 						},
+						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
+							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						},
+						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
+							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						},
 					}, nil
 				},
 			},
@@ -512,6 +518,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 									Config: map[string]string{},
 								},
 							}, nil
+						},
+						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
+							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						},
+						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
+							return []*v1alpha1.KeycloakUserClientRole{}, nil
 						},
 					}, nil
 				},
@@ -757,6 +769,101 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						},
 						ListIdentityProvidersFunc: func(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error) {
 							return []*v1alpha1.KeycloakIdentityProvider{}, nil
+						},
+					}, nil
+				},
+			},
+		},
+		{
+			Name: "no errors in reconcile loop with user with inequal client roles",
+			Object: &v1alpha1.KeycloakRealm{
+				Status: v1alpha1.KeycloakRealmStatus{
+					Phase:        v1alpha1.PhaseReconcile,
+					KeycloakName: "keycloak-instance",
+				},
+				Spec: v1alpha1.KeycloakRealmSpec{
+					KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
+						Realm: "keycloak-realm",
+						Users: []*v1alpha1.KeycloakUser{
+							{
+								OutputSecret: &pointerStringVal,
+								KeycloakApiUser: &v1alpha1.KeycloakApiUser{
+									Email:         "test@example.com",
+									EmailVerified: true,
+									ClientRoles: map[string][]string{
+										"account": {
+											"manage-accounts",
+										},
+									},
+								},
+							},
+						},
+						Clients:           []*v1alpha1.KeycloakClient{},
+						IdentityProviders: []*v1alpha1.KeycloakIdentityProvider{},
+					},
+				},
+			},
+			ExpectedPhase: v1alpha1.PhaseReconcile,
+			FakeClient:    fake.NewSimpleClientset(),
+			FakeSDK: &keycloak.SdkCruderMock{
+				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {
+					into.(*v1alpha1.KeycloakList).Items = []v1alpha1.Keycloak{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "keycloak-instance",
+							},
+						},
+					}
+					return nil
+				},
+			},
+			FakeKCF: &keycloak.KeycloakClientFactoryMock{
+				AuthenticatedClientFunc: func(kc v1alpha1.Keycloak) (keycloak.KeycloakInterface, error) {
+					return &keycloak.KeycloakInterfaceMock{
+						UpdateUserFunc: func(specUser *v1alpha1.KeycloakUser, realmName string) error {
+							return nil
+						},
+						ListUsersFunc: func(realmName string) ([]*v1alpha1.KeycloakUser, error) {
+							return []*v1alpha1.KeycloakUser{
+								{
+									KeycloakApiUser: &v1alpha1.KeycloakApiUser{
+										Email: "test@example.com",
+									},
+								},
+							}, nil
+						},
+						ListClientsFunc: func(realmName string) ([]*v1alpha1.KeycloakClient, error) {
+							return []*v1alpha1.KeycloakClient{
+								{
+									KeycloakApiClient: &v1alpha1.KeycloakApiClient{
+										Name:     "account",
+										ClientID: "account",
+									},
+								},
+							}, nil
+						},
+						ListIdentityProvidersFunc: func(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error) {
+							return []*v1alpha1.KeycloakIdentityProvider{}, nil
+						},
+						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
+							return []*v1alpha1.KeycloakUserClientRole{
+								{
+									Name: "manage-accounts",
+								},
+							}, nil
+						},
+						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
+							return []*v1alpha1.KeycloakUserClientRole{
+								{
+									Name: "delete-this-role",
+								},
+							}, nil
+						},
+						CreateUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userId string) error {
+							return nil
+						},
+						DeleteUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userID string) error {
+							return nil
 						},
 					}, nil
 				},

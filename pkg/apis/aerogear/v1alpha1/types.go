@@ -125,7 +125,6 @@ type KeycloakIdentityProviderPair struct {
 	SpecIdentityProvider *KeycloakIdentityProvider
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type KeycloakUser struct {
 	*KeycloakApiUser
 	OutputSecret *string `json:"outputSecret, omitempty"`
@@ -152,11 +151,11 @@ type KeycloakUserPair struct {
 }
 
 type KeycloakUserClientRole struct {
-	ID string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	ID          string `json:"id,omitempty"`
+	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
-	Composite bool `json:"composite,omitempty"`
-	ClientRole bool `json:"clientRole,omitempty"`
+	Composite   bool   `json:"composite,omitempty"`
+	ClientRole  bool   `json:"clientRole,omitempty"`
 	ContainerID string `json:"containerId,omitempty"`
 }
 

@@ -45,7 +45,6 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 		logrus.Errorf("error %+v marshalling object", err)
 		return nil
 	}
-	logrus.Debugf("creating %s: raw: %v, json: %v", resourceName, obj, string(jsonValue))
 
 	req, err := http.NewRequest(
 		"POST",
@@ -67,8 +66,7 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 	}
 	defer res.Body.Close()
 
-	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
-	if res.StatusCode != 201 {
+	if res.StatusCode != 201 && res.StatusCode != 204 {
 		return fmt.Errorf("failed to create %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
@@ -77,7 +75,6 @@ func (c *Client) create(obj T, resourcePath, resourceName string) error {
 		fmt.Println("user response ", string(d))
 	}
 
-	logrus.Debugf("response: %+v", res)
 	return nil
 }
 
@@ -94,15 +91,24 @@ func (c *Client) CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
 	return c.create(user.KeycloakApiUser, fmt.Sprintf("realms/%s/users", realmName), "user")
 }
 
+func (c *Client) CreateUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error {
+	return c.create(
+		[]*v1alpha1.KeycloakUserClientRole{role},
+		fmt.Sprintf("realms/%s/users/%s/role-mappings/clients/%s", realmName, userId, clientID),
+		"user-client-role",
+	)
+}
 
-func (c *Client) CreateUserClientRole(clientID, realmName, roleName, userId string) error {
-	url := "realms/" + realmName + "/users/" + userId + "/role-mappings/clients/" + clientID
+func (c *Client) DeleteUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error {
+	err := c.delete(
+		fmt.Sprintf("realms/%s/users/%s/role-mappings/clients/%s", realmName, userId, clientID),
+		"user-client-role",
+		[]*v1alpha1.KeycloakUserClientRole{role},
+	)
+	return err
 }
 
 func (c *Client) UpdatePassword(user *v1alpha1.KeycloakApiUser, realmName, newPass string) error {
-	//https://{{ rhsso_route }}/auth/admin/realms/{{ rhsso_realm }}/users/{{ rhsso_eval_user_id }}/reset-password
-	//
-
 	passReset := &v1alpha1.KeycloakApiPasswordReset{}
 	passReset.Type = "password"
 	passReset.Temporary = false
@@ -176,7 +182,6 @@ func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body 
 		return nil, errors.Wrapf(err, "error performing GET %s request", resourceName)
 	}
 
-	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("failed to GET %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
@@ -188,14 +193,10 @@ func (c *Client) get(resourcePath, resourceName string, unMarshalFunc func(body 
 		return nil, errors.Wrapf(err, "error reading %s GET response", resourceName)
 	}
 
-	logrus.Debugf("%s GET: %+v\n", resourceName, string(body))
-
 	obj, err := unMarshalFunc(body)
 	if err != nil {
 		logrus.Error(err)
 	}
-	logrus.Debugf("%s GET= %#v", resourceName, obj)
-
 	return obj, nil
 }
 
@@ -308,7 +309,6 @@ func (c *Client) update(obj T, resourcePath, resourceName string) error {
 		return fmt.Errorf("failed to UPDATE %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
 
-	logrus.Debugf("response: %+v", res)
 	return nil
 }
 
@@ -329,12 +329,26 @@ func (c *Client) UpdateIdentityProvider(specIdentityProvider *v1alpha1.KeycloakI
 }
 
 // Generic delete function for deleting Keycloak resources
-func (c *Client) delete(resourcePath, resourceName string) error {
+func (c *Client) delete(resourcePath, resourceName string, obj T) error {
 	req, err := http.NewRequest(
 		"DELETE",
 		fmt.Sprintf("%s/auth/admin/%s", c.URL, resourcePath),
 		nil,
 	)
+
+	if obj != nil {
+		jsonValue, err := json.Marshal(obj)
+		if err != nil {
+			return nil
+		}
+		req, err = http.NewRequest(
+			"DELETE",
+			fmt.Sprintf("%s/auth/admin/%s", c.URL, resourcePath),
+			bytes.NewBuffer(jsonValue),
+		)
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	if err != nil {
 		logrus.Errorf("error creating DELETE %s request %+v", resourceName, err)
 		return errors.Wrapf(err, "error creating DELETE %s request", resourceName)
@@ -347,7 +361,6 @@ func (c *Client) delete(resourcePath, resourceName string) error {
 		return errors.Wrapf(err, "error performing DELETE %s request", resourceName)
 	}
 	defer res.Body.Close()
-	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode != 204 {
 		return fmt.Errorf("failed to DELETE %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
@@ -356,27 +369,23 @@ func (c *Client) delete(resourcePath, resourceName string) error {
 }
 
 func (c *Client) DeleteRealm(realmName string) error {
-	err := c.delete(fmt.Sprintf("realms/%s", realmName), "realm")
+	err := c.delete(fmt.Sprintf("realms/%s", realmName), "realm", nil)
 	return err
 }
 
 func (c *Client) DeleteClient(clientID, realmName string) error {
-	err := c.delete(fmt.Sprintf("realms/%s/clients/%s", realmName, clientID), "client")
+	err := c.delete(fmt.Sprintf("realms/%s/clients/%s", realmName, clientID), "client", nil)
 	return err
 }
 
 func (c *Client) DeleteUser(userID, realmName string) error {
-	err := c.delete(fmt.Sprintf("realms/%s/users/%s", realmName, userID), "user")
+	err := c.delete(fmt.Sprintf("realms/%s/users/%s", realmName, userID), "user", nil)
 	return err
 }
 
 func (c *Client) DeleteIdentityProvider(alias string, realmName string) error {
-	err := c.delete(fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, alias), "identity provider")
+	err := c.delete(fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, alias), "identity provider", nil)
 	return err
-}
-
-func (c *Client) DeleteClientRole() error {
-	return nil
 }
 
 // Generic list function for listing Keycloak resources
@@ -386,7 +395,6 @@ func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(
 		fmt.Sprintf("%s/auth/admin/%s", c.URL, resourcePath),
 		nil,
 	)
-	logrus.Infof(req.URL.String())
 	if err != nil {
 		logrus.Errorf("error creating LIST %s request %+v", resourceName, err)
 		return nil, errors.Wrapf(err, "error creating LIST %s request", resourceName)
@@ -400,7 +408,6 @@ func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(
 	}
 	defer res.Body.Close()
 
-	logrus.Debugf("response status: %v, %v", res.StatusCode, res.Status)
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		return nil, fmt.Errorf("failed to LIST %s: (%d) %s", resourceName, res.StatusCode, res.Status)
 	}
@@ -411,13 +418,10 @@ func (c *Client) list(resourcePath, resourceName string, unMarshalListFunc func(
 		return nil, errors.Wrapf(err, "error reading %s LIST response", resourceName)
 	}
 
-	logrus.Debugf("%s LIST: %+v\n", resourceName, string(body))
-
 	objs, err := unMarshalListFunc(body)
 	if err != nil {
 		logrus.Error(err)
 	}
-	logrus.Debugf("%s LIST= %#v", resourceName, objs)
 
 	return objs, nil
 }
@@ -481,12 +485,26 @@ func (c *Client) ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakId
 }
 
 func (c *Client) ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
-	logrus.Infof("listing user client roles")
-	objects, err := c.list("realms/" + realmName + "/users/" + userID + "/role-mappings/clients/"+clientID, "userClientRoles", func(body []byte) (t T, e error) {
+	objects, err := c.list("realms/"+realmName+"/users/"+userID+"/role-mappings/clients/"+clientID, "userClientRoles", func(body []byte) (t T, e error) {
 		var userClientRoles []*v1alpha1.KeycloakUserClientRole
 		err := json.Unmarshal(body, &userClientRoles)
 		return userClientRoles, err
 	})
+	if err != nil {
+		return nil, err
+	}
+	return objects.([]*v1alpha1.KeycloakUserClientRole), err
+}
+
+func (c *Client) ListAvailableUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+	objects, err := c.list("realms/"+realmName+"/users/"+userID+"/role-mappings/clients/"+clientID+"/available", "userClientRoles", func(body []byte) (t T, e error) {
+		var userClientRoles []*v1alpha1.KeycloakUserClientRole
+		err := json.Unmarshal(body, &userClientRoles)
+		return userClientRoles, err
+	})
+	if err != nil {
+		return nil, err
+	}
 	return objects.([]*v1alpha1.KeycloakUserClientRole), err
 }
 
@@ -602,10 +620,10 @@ type KeycloakInterface interface {
 	DeleteIdentityProvider(alias, realmName string) error
 	ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error)
 
-
-	CreateUserClientRole(clientID, roleName, userId string) error
+	CreateUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error
 	ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
-//	DeleteUserClientRole(clientID, roleID, userID string) error
+	ListAvailableUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
+	DeleteUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userID string) error
 }
 
 //go:generate moq -out keycloakClientFactory_moq.go . KeycloakClientFactory

@@ -14,7 +14,6 @@ func GetInstallResourcesAsRuntimeObjects(keycloak *v1alpha1.Keycloak, params map
 	if err != nil {
 		return nil, err
 	}
-
 	objects := make([]runtime.Object, 0)
 
 	for _, rawObj := range rawExtensions {
@@ -33,7 +32,6 @@ func GetInstallResources(keycloak *v1alpha1.Keycloak, params map[string]string) 
 	if err != nil {
 		return nil, err
 	}
-
 	tpl, err := ioutil.ReadFile(templateFilePath)
 	if err != nil {
 		return nil, err
@@ -49,12 +47,10 @@ func GetInstallResources(keycloak *v1alpha1.Keycloak, params map[string]string) 
 	if err != nil {
 		return nil, err
 	}
-
 	templ := res.(*v1.Template)
 	processor, err := template.NewTemplateProcessor(keycloak.Namespace)
 	if err != nil {
 		return nil, err
 	}
-
 	return processor.Process(templ, params)
 }

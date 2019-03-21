@@ -2,10 +2,7 @@
   "apiVersion": "aerogear.org/v1alpha1",
   "kind": "Keycloak",
   "metadata": {
-    "name": "minexample",
-    "finalizers": [
-      "finalizers.aerogear.keycloak.org"
-    ]
+    "name": "minexample"
   },
   "spec": {
     "adminCredentials": ""

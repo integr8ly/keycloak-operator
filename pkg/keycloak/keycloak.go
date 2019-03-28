@@ -27,7 +27,7 @@ const (
 	SSO_APPLICATION_NAME      = "sso"
 	SSO_TEMPLATE_PATH         = "deploy/template"
 	SSO_TEMPLATE_PATH_ENV_VAR = "TEMPLATE_DIR"
-	SSO_VERSION               = "7.2.2.GA"
+	SSO_VERSION               = "7.2.6.GA"
 )
 
 //go:generate moq -out sdkCruder_moq.go . SdkCruder

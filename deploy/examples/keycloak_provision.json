@@ -1,0 +1,12 @@
+{
+  "apiVersion": "aerogear.org/v1alpha1",
+  "kind": "Keycloak",
+  "metadata": {
+    "name": "example_provision"
+  },
+  "spec": {
+    "adminCredentials": "",
+    "plugins": ["keycloak-metrics-spi"],
+    "provision": true
+  }
+}

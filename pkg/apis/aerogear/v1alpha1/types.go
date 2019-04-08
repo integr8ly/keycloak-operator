@@ -49,6 +49,7 @@ type KeycloakSpec struct {
 	AdminCredentials string           `json:"adminCredentials"`
 	Plugins          []string         `json:"plugins,omitempty"`
 	Backups          []KeycloakBackup `json:"backups,omitempty"`
+	Provision        bool             `json:"provision, omitempty"`
 }
 
 //KeycloakBackup details of a backup task

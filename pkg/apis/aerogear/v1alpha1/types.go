@@ -74,6 +74,7 @@ type KeycloakRealm struct {
 }
 
 type KeycloakRealmSpec struct {
+	CreateOnly bool `json:"createOnly,omitempty"`
 	*KeycloakApiRealm
 }
 
@@ -96,7 +97,6 @@ type KeycloakApiRealm struct {
 	Realm             string                      `json:"realm,omitempty"`
 	Enabled           bool                        `json:"enabled"`
 	DisplayName       string                      `json:"displayName"`
-	CreateOnly        bool                        `json:"createOnly,omitempty"`
 	Users             []*KeycloakUser             `json:"users,omitempty"`
 	Clients           []*KeycloakClient           `json:"clients,omitempty"`
 	IdentityProviders []*KeycloakIdentityProvider `json:"identityProviders,omitempty"`

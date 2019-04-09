@@ -5,6 +5,7 @@
       "name": "arealm"
     },
     "spec": {
+        "createOnly": true,
         "id": "arealm",
         "realm": "arealm",
         "displayName": "arealm",

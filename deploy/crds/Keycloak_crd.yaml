@@ -30,4 +30,7 @@ spec:
               items:
                 description: Backup configuration
                 type: object
+            provision:
+              type: boolean
+
               

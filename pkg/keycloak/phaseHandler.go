@@ -90,6 +90,9 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 
 	kc.Spec.AdminCredentials = adminCredential.GetName()
 	kc.Status.Phase = v1alpha1.PhaseAwaitProvision
+	if sso.Spec.Provision {
+		kc.Status.Phase = v1alpha1.PhaseProvision
+	}
 	return kc, nil
 }
 

@@ -245,11 +245,15 @@ func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.
 								{
 									Name:    backup.Name + "-keycloak-backup",
 									Image:   backup.Image + ":" + backup.ImageTag,
-									Command: []string{"/opt/intly/tools/entrypoint.sh", "-c", "postgres", "-n", namespace, "-b", "s3", "-e", "gpg"},
+									Command: []string{"/opt/intly/tools/entrypoint.sh", "-c", "postgres", "-n", namespace, "-b", "s3", "-e", ""},
 									Env: []v1.EnvVar{
 										{
 											Name:  "BACKEND_SECRET_NAME",
 											Value: backup.AwsCredentialsSecretName,
+										},
+										{
+											Name:  "BACKEND_SECRET_NAMESPACE",
+											Value: backup.AwsCredentialsSecretNamespace,
 										},
 										{
 											Name:  "ENCRYPTION_SECRET_NAME",
@@ -258,6 +262,10 @@ func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.
 										{
 											Name:  "COMPONENT_SECRET_NAME",
 											Value: "db-credentials-" + sso.Name,
+										},
+										{
+											Name:  "COMPONENT_SECRET_NAMESPACE",
+											Value: sso.Namespace,
 										},
 										{
 											Name:  "PRODUCT_NAME",

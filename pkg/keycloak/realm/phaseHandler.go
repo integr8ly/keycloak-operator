@@ -120,8 +120,6 @@ func (ph *phaseHandler) Provision(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 	}
 
 	kcr.Status.Phase = v1alpha1.PhaseReconcile
-	kcr.Status.CreateOnly = kcr.Spec.CreateOnly
-
 	return kcr, nil
 }
 
@@ -238,6 +236,9 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 					return err
 				}
 			}
+		} else {
+			// Need to set the ID because specUser is used for queries
+			specUser.ID = kcUser.ID
 		}
 	}
 
@@ -474,10 +475,14 @@ func (ph *phaseHandler) reconcileIdentityProvider(kcIdentityProvider, specIdenti
 		}
 		return nil
 	}
-	//The API doesn't return the secret, so in order to stop in never being equal we just set it to the spec version
-	kcIdentityProvider.Config["clientSecret"] = specIdentityProvider.Config["clientSecret"]
-	//Ensure the internalID is set on the spec object, this is required for update requests to succeed
-	specIdentityProvider.InternalID = kcIdentityProvider.InternalID
+
+	if specIdentityProvider != nil {
+		//The API doesn't return the secret, so in order to stop in never being equal we just set it to the spec version
+		kcIdentityProvider.Config["clientSecret"] = specIdentityProvider.Config["clientSecret"]
+		//Ensure the internalID is set on the spec object, this is required for update requests to succeed
+		specIdentityProvider.InternalID = kcIdentityProvider.InternalID
+	}
+
 	if !createOnly && !resourcesEqual(kcIdentityProvider, specIdentityProvider) {
 		err := authenticatedClient.UpdateIdentityProvider(specIdentityProvider, realmName)
 		if err != nil {

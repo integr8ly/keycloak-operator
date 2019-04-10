@@ -225,6 +225,7 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		}
 
 	} else {
+		specUser.ID = kcUser.ID
 		if specUser.Password != nil {
 			specUser.Password = nil
 		}
@@ -236,9 +237,6 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 					return err
 				}
 			}
-		} else {
-			// Need to set the ID because specUser is used for queries
-			specUser.ID = kcUser.ID
 		}
 	}
 

@@ -278,34 +278,40 @@ func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser
 
 func (ph *phaseHandler) reconcileRolesForClient(roles []string, client *v1alpha1.KeycloakClient, user *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
 	availableRoles, err := authenticatedClient.ListAvailableUserClientRoles(realmName, client.ID, user.ID)
+	if err != nil {
+		return err
+	}
 	kcRoles, err := authenticatedClient.ListUserClientRoles(realmName, client.ID, user.ID)
 	if err != nil {
 		return err
 	}
-FindRole:
-	for i, role := range roles {
-		for j, kcRole := range kcRoles {
-			if kcRole.Name == role {
-				//this role is in both already so delete it from both
-				kcRoles = append(kcRoles[:j], kcRoles[j+1:]...)
-				roles = append(roles[:i], roles[i+1:]...)
-				break FindRole
-			}
+
+	kcRolesMap := map[string]*v1alpha1.KeycloakUserClientRole{}
+	for _, role := range kcRoles {
+		kcRolesMap[role.Name] = role
+	}
+
+	specRolesMap := map[string]string{}
+	for _, role := range roles {
+		specRolesMap[role] = role
+	}
+
+	createRoles := []string{}
+	deleteRoles := []*v1alpha1.KeycloakUserClientRole{}
+
+	for name := range specRolesMap {
+		if _, ok := kcRolesMap[name]; !ok {
+			createRoles = append(createRoles, name)
 		}
 	}
-FindKCRole:
-	for i, kcRole := range kcRoles {
-		for j, role := range roles {
-			if kcRole.Name == role {
-				//this role is in both already so delete it from both
-				kcRoles = append(kcRoles[:i], kcRoles[i+1:]...)
-				roles = append(roles[:j], roles[j+1:]...)
-				break FindKCRole
-			}
+
+	for name, role := range kcRolesMap {
+		if _, ok := specRolesMap[name]; !ok {
+			deleteRoles = append(deleteRoles, role)
 		}
 	}
-	//whatever is left in roles needs to be created
-	for _, createRoleName := range roles {
+
+	for _, createRoleName := range createRoles {
 		for _, createRole := range availableRoles {
 			if createRole.Name == createRoleName {
 				if err := authenticatedClient.CreateUserClientRole(createRole, realmName, client.ID, user.ID); err != nil {
@@ -315,9 +321,8 @@ FindKCRole:
 		}
 	}
 
-	//whatever is left in kcroles need to be deleted
 	if !createOnly {
-		for _, deleteRole := range kcRoles {
+		for _, deleteRole := range deleteRoles {
 			if err := authenticatedClient.DeleteUserClientRole(deleteRole, realmName, client.ID, user.ID); err != nil {
 				return errors.Wrap(err, "error deleting user client role")
 			}

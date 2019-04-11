@@ -1,0 +1,29 @@
+apiVersion: "aerogear.org/v1alpha1"
+kind: "KeycloakRealm"
+metadata:
+  name: "arealm"
+spec:
+  id: "arealm"
+  realm: "arealm"
+  displayName: "arealm"
+  enabled: true
+  users:
+    - username: "admin"
+      outputSecret: "admin-credentials"
+      password: "admin"
+      enabled: true
+      emailVerified: false
+      firstName: ""
+      lastName: ""
+      email: ""
+      realmRoles:
+        - "offline_access"
+        - "uma_authorization"
+      clientRoles:
+        account:
+        - manage-account
+        - view-profile
+        realm-management:
+        - manage-users
+        - manage-identity-providers
+        - view-realm

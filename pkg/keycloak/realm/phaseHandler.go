@@ -1,7 +1,6 @@
 package realm
 
 import (
-	"github.com/sirupsen/logrus"
 	"reflect"
 	"strings"
 
@@ -121,8 +120,6 @@ func (ph *phaseHandler) Provision(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 	}
 
 	kcr.Status.Phase = v1alpha1.PhaseReconcile
-	kcr.Status.CreateOnly = kcr.Spec.CreateOnly
-
 	return kcr, nil
 }
 
@@ -130,12 +127,6 @@ func (ph *phaseHandler) Reconcile(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 	kcClient, err := ph.getClient(kcr)
 	if err != nil {
 		return kcr, errors.Wrapf(err, "error reconciling keycloak realm: '%v'", kcr.Spec.Realm)
-	}
-
-	kcr.Status.CreateOnly = kcr.Spec.CreateOnly
-	if kcr.Status.CreateOnly {
-		logrus.Debugf("Skip reconcile of non-managed realm %s", kcr.Spec.DisplayName)
-		return kcr, nil
 	}
 
 	errors := util.NewMultiError()
@@ -180,12 +171,12 @@ func (ph *phaseHandler) reconcileUsers(kcClient keycloak.KeycloakInterface, real
 	}
 	errors := util.NewMultiError()
 	for i := range userPairsList {
-		errors.AddError(ph.reconcileUser(userPairsList[i].KcUser, userPairsList[i].SpecUser, realm.Spec.Realm, kcClient, ns))
+		errors.AddError(ph.reconcileUser(userPairsList[i].KcUser, userPairsList[i].SpecUser, realm.Spec.Realm, realm.Spec.CreateOnly, kcClient, ns))
 	}
 	return errors
 }
 
-func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient keycloak.KeycloakInterface, ns string) error {
+func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface, ns string) error {
 	if specUser == nil {
 		return nil
 	}
@@ -234,26 +225,29 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		}
 
 	} else {
+		specUser.ID = kcUser.ID
 		if specUser.Password != nil {
 			specUser.Password = nil
 		}
-		if !resourcesEqual(kcUser.KeycloakApiUser, specUser.KeycloakApiUser) {
-			specUser.ID = kcUser.ID
-			err := authenticatedClient.UpdateUser(specUser, realmName)
-			if err != nil {
-				return err
+		if !createOnly {
+			if !resourcesEqual(kcUser.KeycloakApiUser, specUser.KeycloakApiUser) {
+				specUser.ID = kcUser.ID
+				err := authenticatedClient.UpdateUser(specUser, realmName)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 
-	if err := ph.reconcileUserClientRoles(specUser, realmName, authenticatedClient); err != nil {
+	if err := ph.reconcileUserClientRoles(specUser, realmName, createOnly, authenticatedClient); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser, realmName string, authenticatedClient keycloak.KeycloakInterface) error {
+func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
 	clients, err := authenticatedClient.ListClients(realmName)
 	if err != nil {
 		return err
@@ -266,14 +260,14 @@ func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser
 			rolesCopy := make([]string, len(roles))
 			copy(rolesCopy, roles)
 			if clientName == client.ClientID {
-				me.AddError(ph.reconcileRolesForClient(rolesCopy, client, specUser, realmName, authenticatedClient))
+				me.AddError(ph.reconcileRolesForClient(rolesCopy, client, specUser, realmName, createOnly, authenticatedClient))
 				foundClient = true
 				break FindMatchingClient
 			}
 		}
-		if !foundClient {
+		if !foundClient && !createOnly {
 			// delete all roles, this client is deleted from this user in the CR
-			me.AddError(ph.reconcileRolesForClient([]string{}, client, specUser, realmName, authenticatedClient))
+			me.AddError(ph.reconcileRolesForClient([]string{}, client, specUser, realmName, createOnly, authenticatedClient))
 		}
 	}
 	if me.IsNil() {
@@ -282,7 +276,7 @@ func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser
 	return me
 }
 
-func (ph *phaseHandler) reconcileRolesForClient(roles []string, client *v1alpha1.KeycloakClient, user *v1alpha1.KeycloakUser, realmName string, authenticatedClient keycloak.KeycloakInterface) error {
+func (ph *phaseHandler) reconcileRolesForClient(roles []string, client *v1alpha1.KeycloakClient, user *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
 	availableRoles, err := authenticatedClient.ListAvailableUserClientRoles(realmName, client.ID, user.ID)
 	kcRoles, err := authenticatedClient.ListUserClientRoles(realmName, client.ID, user.ID)
 	if err != nil {
@@ -322,9 +316,11 @@ FindKCRole:
 	}
 
 	//whatever is left in kcroles need to be deleted
-	for _, deleteRole := range kcRoles {
-		if err := authenticatedClient.DeleteUserClientRole(deleteRole, realmName, client.ID, user.ID); err != nil {
-			return errors.Wrap(err, "error deleting user client role")
+	if !createOnly {
+		for _, deleteRole := range kcRoles {
+			if err := authenticatedClient.DeleteUserClientRole(deleteRole, realmName, client.ID, user.ID); err != nil {
+				return errors.Wrap(err, "error deleting user client role")
+			}
 		}
 	}
 	return nil
@@ -360,7 +356,7 @@ func (ph *phaseHandler) reconcileClients(kcClient keycloak.KeycloakInterface, re
 	}
 	errors := util.NewMultiError()
 	for i := range clientPairsList {
-		errors.AddError(ph.reconcileClient(clientPairsList[i].KcClient, clientPairsList[i].SpecClient, realm.Spec.Realm, kcClient, ns))
+		errors.AddError(ph.reconcileClient(clientPairsList[i].KcClient, clientPairsList[i].SpecClient, realm.Spec.Realm, realm.Spec.CreateOnly, kcClient, ns))
 	}
 	return errors
 }
@@ -370,8 +366,8 @@ func (ph *phaseHandler) isDefaultClient(client string) bool {
 	return ok
 }
 
-func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient, realmName string, authenticatedClient keycloak.KeycloakInterface, ns string) error {
-	if specClient == nil && !ph.isDefaultClient(kcClient.ClientID) {
+func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakClient, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface, ns string) error {
+	if specClient == nil && !ph.isDefaultClient(kcClient.ClientID) && !createOnly {
 		if err := authenticatedClient.DeleteClient(kcClient.ID, realmName); err != nil {
 			return err
 		}
@@ -379,7 +375,7 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 		if err := authenticatedClient.CreateClient(specClient, realmName); err != nil {
 			return err
 		}
-	} else {
+	} else if !createOnly {
 		if !resourcesEqual(kcClient, specClient) && !ph.isDefaultClient(kcClient.ClientID) {
 			specClient.ID = kcClient.ID
 			if err := authenticatedClient.UpdateClient(specClient, realmName); err != nil {
@@ -387,7 +383,7 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 			}
 		}
 	}
-	if specClient != nil && specClient.OutputSecret != nil {
+	if specClient != nil && specClient.OutputSecret != nil && !createOnly {
 		cs, err := authenticatedClient.GetClientSecret(specClient.ID, realmName)
 		if err != nil {
 			return err
@@ -459,14 +455,14 @@ func (ph *phaseHandler) reconcileIdentityProviders(kcClient keycloak.KeycloakInt
 
 	errors := util.NewMultiError()
 	for i := range identityProviderPairsList {
-		errors.AddError(ph.reconcileIdentityProvider(identityProviderPairsList[i].KcIdentityProvider, identityProviderPairsList[i].SpecIdentityProvider, realm.Spec.Realm, kcClient))
+		errors.AddError(ph.reconcileIdentityProvider(identityProviderPairsList[i].KcIdentityProvider, identityProviderPairsList[i].SpecIdentityProvider, realm.Spec.Realm, realm.Spec.CreateOnly, kcClient))
 	}
 
 	return errors
 }
 
-func (ph *phaseHandler) reconcileIdentityProvider(kcIdentityProvider, specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string, authenticatedClient keycloak.KeycloakInterface) error {
-	if specIdentityProvider == nil {
+func (ph *phaseHandler) reconcileIdentityProvider(kcIdentityProvider, specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
+	if specIdentityProvider == nil && !createOnly {
 		if err := authenticatedClient.DeleteIdentityProvider(kcIdentityProvider.Alias, realmName); err != nil {
 			return err
 		}
@@ -477,11 +473,15 @@ func (ph *phaseHandler) reconcileIdentityProvider(kcIdentityProvider, specIdenti
 		}
 		return nil
 	}
-	//The API doesn't return the secret, so in order to stop in never being equal we just set it to the spec version
-	kcIdentityProvider.Config["clientSecret"] = specIdentityProvider.Config["clientSecret"]
-	//Ensure the internalID is set on the spec object, this is required for update requests to succeed
-	specIdentityProvider.InternalID = kcIdentityProvider.InternalID
-	if !resourcesEqual(kcIdentityProvider, specIdentityProvider) {
+
+	if specIdentityProvider != nil {
+		//The API doesn't return the secret, so in order to stop in never being equal we just set it to the spec version
+		kcIdentityProvider.Config["clientSecret"] = specIdentityProvider.Config["clientSecret"]
+		//Ensure the internalID is set on the spec object, this is required for update requests to succeed
+		specIdentityProvider.InternalID = kcIdentityProvider.InternalID
+	}
+
+	if !createOnly && !resourcesEqual(kcIdentityProvider, specIdentityProvider) {
 		err := authenticatedClient.UpdateIdentityProvider(specIdentityProvider, realmName)
 		if err != nil {
 			return err

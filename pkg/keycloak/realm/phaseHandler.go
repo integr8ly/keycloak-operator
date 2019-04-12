@@ -388,12 +388,12 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 			}
 		}
 	}
-	if specClient != nil && specClient.OutputSecret != nil && !createOnly {
-		cs, err := authenticatedClient.GetClientSecret(specClient.ID, realmName)
+	if kcClient != nil && specClient != nil && specClient.OutputSecret != nil {
+		cs, err := authenticatedClient.GetClientSecret(kcClient.ID, realmName)
 		if err != nil {
 			return err
 		}
-		clientJSON, err := authenticatedClient.GetClientInstall(specClient.ID, realmName)
+		clientJSON, err := authenticatedClient.GetClientInstall(kcClient.ID, realmName)
 		if err != nil {
 			return err
 		}
@@ -416,8 +416,10 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 			if !strings.Contains(err.Error(), "already exists") {
 				return errors.Wrap(err, "failed to create client secret")
 			}
-			if _, err := ph.k8sClient.CoreV1().Secrets(ns).Update(clientSecret); err != nil {
-				return errors.Wrap(err, "failed to update client secret")
+			if !createOnly {
+				if _, err := ph.k8sClient.CoreV1().Secrets(ns).Update(clientSecret); err != nil {
+					return errors.Wrap(err, "failed to update client secret")
+				}
 			}
 
 			return nil

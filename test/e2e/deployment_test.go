@@ -35,7 +35,6 @@ func TestRealmCreation(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v1alpha1.KeycloakSpec{
-			Version:          "4.1.0",
 			AdminCredentials: "credential-keycloak-test",
 		},
 	}
@@ -50,12 +49,12 @@ func TestRealmCreation(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v1alpha1.KeycloakRealmSpec{
+			CreateOnly:  true,
 			KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
 				ID:          "openshift",
 				Realm:       "openshift",
 				DisplayName: "openshift",
 				Enabled:     true,
-				CreateOnly:  true,
 			},
 		},
 	}

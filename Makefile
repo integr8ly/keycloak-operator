@@ -4,11 +4,12 @@ CONSUMER_NAMESPACES=${NAMESPACE}
 PROJECT=keycloak-operator
 REG=quay.io
 SHELL=/bin/bash
-TAG=v1.3.4
+TAG=v1.3.5
 PKG=github.com/integr8ly/keycloak-operator
 TEST_DIRS?=$(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
 TEST_POD_NAME=keycloak-operator-test
 COMPILE_TARGET=./tmp/_output/bin/$(PROJECT)
+OPERATOR_SDK_BINARY=operator-sdk
 
 .PHONY: setup/dep
 setup/dep:
@@ -19,12 +20,12 @@ setup/dep:
 .PHONY: setup/travis
 setup/travis:
 	@echo Installing Operator SDK
-	@curl -Lo operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/v0.0.7/operator-sdk-v0.0.7-x86_64-linux-gnu && chmod +x operator-sdk && sudo mv operator-sdk /usr/local/bin/
+	@curl -Lo ${OPERATOR_SDK_BINARY} https://github.com/operator-framework/operator-sdk/releases/download/v0.0.7/operator-sdk-v0.0.7-x86_64-linux-gnu && chmod +x ${OPERATOR_SDK_BINARY} && sudo mv ${OPERATOR_SDK_BINARY} /usr/local/bin/
 
 .PHONY: code/run
 code/run:
 	export CONSUMER_NAMESPACES=${CONSUMER_NAMESPACES}
-	@operator-sdk up local --namespace=${NAMESPACE} --operator-flags="--resync=10"
+	@${OPERATOR_SDK_BINARY} up local --namespace=${NAMESPACE} --operator-flags="--resync=10"
 
 .PHONY: code/compile
 code/compile:
@@ -32,7 +33,7 @@ code/compile:
 
 .PHONY: code/gen
 code/gen:
-	operator-sdk generate k8s
+	${OPERATOR_SDK_BINARY} generate k8s
 	@go generate ./...
 
 .PHONY: code/check
@@ -45,7 +46,7 @@ code/fix:
 
 .PHONY: image/build
 image/build: code/compile
-	@operator-sdk build ${REG}/${ORG}/${PROJECT}:${TAG}
+	@${OPERATOR_SDK_BINARY} build ${REG}/${ORG}/${PROJECT}:${TAG}
 
 .PHONY: image/push
 image/push:
@@ -56,7 +57,7 @@ image/build/push: image/build image/push
 
 .PHONY: image/build/test
 image/build/test:
-	operator-sdk build --enable-tests docker.io/${ORG}/${PROJECT}:${TAG}
+	${OPERATOR_SDK_BINARY} build --enable-tests ${REG}/${ORG}/${PROJECT}:${TAG}
 
 .PHONY: test/unit
 test/unit:

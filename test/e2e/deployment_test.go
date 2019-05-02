@@ -49,7 +49,7 @@ func TestRealmCreation(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v1alpha1.KeycloakRealmSpec{
-			CreateOnly:  true,
+			CreateOnly: true,
 			KeycloakApiRealm: &v1alpha1.KeycloakApiRealm{
 				ID:          "openshift",
 				Realm:       "openshift",

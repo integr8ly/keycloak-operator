@@ -3,7 +3,6 @@ package keycloak
 import (
 	"fmt"
 	"github.com/integr8ly/keycloak-operator/pkg/util"
-	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/api/batch/v1beta1"
 	"strings"
@@ -391,7 +390,6 @@ func (ph *phaseHandler) reconcileMonitoringResource(sso *v1alpha1.Keycloak, reso
 		return true, nil
 	}
 
-	logrus.Warn(fmt.Sprintf("Cannot create monitoring resource '%s' at this time, retrying", resource))
 	return false, nil
 }
 

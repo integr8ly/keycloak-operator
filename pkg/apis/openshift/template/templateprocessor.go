@@ -23,9 +23,10 @@ func NewTemplateProcessor(namespace string) (*TemplateProcessor, error) {
 
 	config := rest.CopyConfig(inConfig)
 	config.GroupVersion = &schema.GroupVersion{
+		Group: "template.openshift.io",
 		Version: "v1",
 	}
-	config.APIPath = "/oapi"
+	config.APIPath = "/apis"
 	config.AcceptContentTypes = "application/json"
 	config.ContentType = "application/json"
 

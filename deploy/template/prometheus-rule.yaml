@@ -42,8 +42,7 @@ spec:
               in pod {{ $labels.pod }}, namespace {{ $labels.namespace }} exceeds 90%.
               This could indicate that the available heap memory is insufficient.
           expr: |
-            ((jvm_gc_collection_seconds_sum{gc="PS Scavenge",namespace="[[ .Namespace ]]"} / 60) * 100)
-              > 90
+            increase(jvm_gc_collection_seconds_sum{gc="PS Scavenge",namespace="[[ .Namespace ]]"}[1m]) > 1 * 60 * 0.9
           for: 1m
           labels:
             severity: critical
@@ -54,8 +53,7 @@ spec:
               in pod {{ $labels.pod }}, namespace {{ $labels.namespace }} exceeds 90%.
               This could indicate that the available heap memory is insufficient.
           expr: |
-            ((jvm_gc_collection_seconds_sum{gc="PS MarkSweep",namespace="[[ .Namespace ]]"} / 60) * 100)
-              > 90
+            increase(jvm_gc_collection_seconds_sum{gc="PS MarkSweep",namespace="[[ .Namespace ]]"}[1m]) > 1 * 60 * 0.9
           for: 1m
           labels:
             severity: critical

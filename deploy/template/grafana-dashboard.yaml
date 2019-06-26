@@ -3,6 +3,8 @@ kind: GrafanaDashboard
 metadata:
   name: keycloak
   namespace: [[ .Namespace ]]
+  labels:
+    monitoring-key: middleware
 spec:
   json: >
     {

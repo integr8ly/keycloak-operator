@@ -22,12 +22,12 @@ import (
 )
 
 const (
-	SSO_TEMPLATE_NAME         = "sso72-x509-postgresql-persistent.json"
+	SSO_TEMPLATE_NAME         = "sso73-x509-postgresql-persistent.json"
 	SSO_ROUTE_NAME            = "sso"
 	SSO_APPLICATION_NAME      = "sso"
 	SSO_TEMPLATE_PATH         = "deploy/template"
 	SSO_TEMPLATE_PATH_ENV_VAR = "TEMPLATE_DIR"
-	SSO_VERSION               = "v7.2.6.GA"
+	SSO_VERSION               = "v7.3.2.GA"
 )
 
 //go:generate moq -out sdkCruder_moq.go . SdkCruder

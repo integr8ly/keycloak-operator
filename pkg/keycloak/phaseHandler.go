@@ -91,7 +91,7 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 	kc.Spec.AdminCredentials = adminCredential.GetName()
 	kc.Status.Phase = v1alpha1.PhaseAwaitProvision
 	if sso.Spec.Provision {
-		kc.Status.Phase = v1alpha1.PhaseProvision
+		kc.Status.Phase = v1alpha1.PhaseProvisionDataLayer
 	}
 	return kc, nil
 }
@@ -199,7 +199,7 @@ func (ph *phaseHandler) Upgrade(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, err
 	return cpSSO, nil
 }
 
-func (ph *phaseHandler) Provision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+func (ph *phaseHandler) ProvisionDataLayer(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	// copy state and modify return state
 	kc := sso.DeepCopy()
 	secretName := "credential-" + kc.Name
@@ -223,14 +223,18 @@ func (ph *phaseHandler) Provision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 		return nil, errors.Wrap(err, "failed to get runtime objects during provision")
 	}
 	for _, o := range objects {
+		unstructObj, err := k8sutil.UnstructuredFromRuntimeObject(o)
+		// only create postgresql now
+		if !strings.Contains(unstructObj.GetName(), "postgresql") {
+			continue
+		}
+		logrus.Infof("Creating %v", unstructObj.GetName())
 		gvk := o.GetObjectKind().GroupVersionKind()
 		apiVersion, kind := gvk.ToAPIVersionAndKind()
 		resourceClient, _, err := ph.dynamicResourceClientFactory(apiVersion, kind, kc.Namespace)
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("failed to get resource client: %v", err))
 		}
-
-		unstructObj, err := k8sutil.UnstructuredFromRuntimeObject(o)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to turn runtime object "+o.GetObjectKind().GroupVersionKind().String()+" into unstructured object during provision")
 		}
@@ -240,25 +244,141 @@ func (ph *phaseHandler) Provision(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 		}
 	}
 
-	kc.Status.Phase = v1alpha1.PhaseWaitForPodsToRun
+	kc.Status.Phase = v1alpha1.PhaseWaitDataLayer
 	return kc, nil
 }
 
-func (ph *phaseHandler) WaitforPods(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+func (ph *phaseHandler) WaitForDataLayer(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	kc := sso.DeepCopy()
 	podList, err := ph.k8sClient.CoreV1().Pods(kc.Namespace).List(v12.ListOptions{
-		LabelSelector:        fmt.Sprintf("application=%v", SSO_APPLICATION_NAME),
+		LabelSelector:        fmt.Sprintf("deploymentConfig=%v", "sso-postgresql"),
 		IncludeUninitialized: false,
 	})
 
 	if err != nil || len(podList.Items) == 0 {
 		return kc, nil
 	}
-	//wait for all the SSO pods to be ready
+	//wait for all the pods to be ready
+	for _, pod := range podList.Items {
+		gotReady := false
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == "Ready" {
+				gotReady = true
+				logrus.Infof("pod: %v, %v state: %v", pod.Name, condition.Type, condition.Status)
+				if condition.Status != "True" {
+					logrus.Infof("not ready yet")
+					return kc, nil
+				}
+			}
+		}
+		if !gotReady {
+			return kc, nil
+		}
+	}
+
+	logrus.Infof("all data layer pods ready")
+	kc.Status.Phase = v1alpha1.PhaseProvisionApplication
+	kc.Status.Ready = true
+	return kc, nil
+}
+
+func (ph *phaseHandler) ProvisionApplication(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	// copy state and modify return state
+	kc := sso.DeepCopy()
+	secretName := "credential-" + kc.Name
+
+	adminCreds, err := ph.k8sClient.CoreV1().Secrets(kc.Namespace).Get(secretName, v12.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get the secret for the admin credentials")
+	}
+
+	//get DB Password
+	podList, err := ph.k8sClient.CoreV1().Pods(kc.Namespace).List(v12.ListOptions{
+		LabelSelector:        fmt.Sprintf("deploymentConfig=%v", "sso-postgresql"),
+		IncludeUninitialized: false,
+	})
+
+	if err != nil || len(podList.Items) == 0 {
+		return kc, nil
+	}
+	dbPassword := ""
+	dbUsername := ""
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			for _, envVar := range container.Env {
+				if envVar.Name == "POSTGRESQL_USER" {
+					dbUsername = envVar.Value
+				}
+				if envVar.Name == "POSTGRESQL_PASSWORD" {
+					dbPassword = envVar.Value
+				}
+			}
+		}
+		if dbPassword == "" || dbUsername == "" {
+			logrus.Infof("could not find Postgres username and password env vars")
+			return kc, nil
+		}
+	}
+
+	// List of plugins passed in the custom resource
+	plugins := sso.Spec.Plugins
+	decodedParams := map[string]string{
+		"SSO_PLUGINS": strings.Join(plugins, ","),
+		"DB_PASSWORD": dbPassword,
+		"DB_USERNAME": dbUsername,
+	}
+
+	for k, v := range adminCreds.Data {
+		decodedParams[k] = string(v)
+	}
+	objects, err := GetInstallResourcesAsRuntimeObjects(kc, decodedParams)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get runtime objects during provision")
+	}
+	for _, o := range objects {
+		unstructObj, err := k8sutil.UnstructuredFromRuntimeObject(o)
+		// dont create postgresql now
+		if strings.Contains(unstructObj.GetName(), "postgresql") {
+			continue
+		}
+		logrus.Infof("Creating %v", unstructObj.GetName())
+		gvk := o.GetObjectKind().GroupVersionKind()
+		apiVersion, kind := gvk.ToAPIVersionAndKind()
+		resourceClient, _, err := ph.dynamicResourceClientFactory(apiVersion, kind, kc.Namespace)
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("failed to get resource client: %v", err))
+		}
+
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to turn runtime object "+o.GetObjectKind().GroupVersionKind().String()+" into unstructured object during provision")
+		}
+		unstructObj, err = resourceClient.Create(unstructObj)
+		if err != nil && !errors2.IsAlreadyExists(err) {
+			return nil, errors.Wrap(err, "failed to create object during provision with kind "+o.GetObjectKind().GroupVersionKind().String())
+		}
+	}
+
+	kc.Status.Phase = v1alpha1.PhaseWaitApplication
+	return kc, nil
+}
+
+func (ph *phaseHandler) WaitForApplication(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
+	kc := sso.DeepCopy()
+	podList, err := ph.k8sClient.CoreV1().Pods(kc.Namespace).List(v12.ListOptions{
+		LabelSelector:        fmt.Sprintf("application=%v,deploymentConfig=%v", SSO_APPLICATION_NAME, "sso"),
+		IncludeUninitialized: false,
+	})
+
+	if err != nil || len(podList.Items) == 0 {
+		return kc, nil
+	}
+	//wait for all the pods to be ready
 	for _, pod := range podList.Items {
 		for _, condition := range pod.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status != "True" {
-				return kc, nil
+			if condition.Type == "Ready" {
+				if condition.Status != "True" {
+					return kc, nil
+				}
 			}
 		}
 	}
@@ -307,7 +427,6 @@ func (ph *phaseHandler) Reconcile(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, e
 	}
 
 	return sso, multiError
-
 }
 
 func (ph *phaseHandler) reconcileBackups(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {

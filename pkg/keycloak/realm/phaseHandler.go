@@ -77,12 +77,12 @@ func (ph *phaseHandler) Accepted(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keycloa
 
 	for _, kc := range list.Items {
 		if kc.Status.Phase == v1alpha1.PhaseAwaitProvision {
-			kc.Status.Phase = v1alpha1.PhaseProvision
+			kc.Status.Phase = v1alpha1.PhaseProvisionDataLayer
 			ph.sdk.Update(&kc)
 		}
 		if kc.Status.Phase == v1alpha1.PhaseReconcile {
 			kcr.Status.KeycloakName = kc.Name
-			kcr.Status.Phase = v1alpha1.PhaseProvision
+			kcr.Status.Phase = v1alpha1.PhaseProvisionDataLayer
 		}
 	}
 	return kcr, nil

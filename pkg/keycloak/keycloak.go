@@ -146,17 +146,28 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 			return errors.Wrap(err, "phase accepted failed")
 		}
 		return h.sdkCrud.Update(kcState)
-	case v1alpha1.PhaseProvision:
-
-		kcState, err := h.phaseHandler.Provision(kc)
+	case v1alpha1.PhaseProvisionDataLayer:
+		kcState, err := h.phaseHandler.ProvisionDataLayer(kc)
 		if err != nil {
-			return errors.Wrap(err, "phase provision failed")
+			return errors.Wrap(err, "phase provision data layer failed")
 		}
 		return h.sdkCrud.Update(kcState)
-	case v1alpha1.PhaseWaitForPodsToRun:
-		kcState, err := h.phaseHandler.WaitforPods(kc)
+	case v1alpha1.PhaseWaitDataLayer:
+		kcState, err := h.phaseHandler.WaitForDataLayer(kc)
 		if err != nil {
-			return errors.Wrap(err, "phase provisioned failed")
+			return errors.Wrap(err, "phase wait for data layer failed")
+		}
+		return h.sdkCrud.Update(kcState)
+	case v1alpha1.PhaseProvisionApplication:
+		kcState, err := h.phaseHandler.ProvisionApplication(kc)
+		if err != nil {
+			return errors.Wrap(err, "phase provision application failed")
+		}
+		return h.sdkCrud.Update(kcState)
+	case v1alpha1.PhaseWaitApplication:
+		kcState, err := h.phaseHandler.WaitForApplication(kc)
+		if err != nil {
+			return errors.Wrap(err, "phase wait for application failed")
 		}
 		return h.sdkCrud.Update(kcState)
 	case v1alpha1.PhaseReconcile:

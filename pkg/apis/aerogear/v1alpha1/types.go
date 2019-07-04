@@ -260,6 +260,10 @@ var (
 	PhaseAwaitProvision        StatusPhase = "awaitProvision"
 	PhaseUpgrading             StatusPhase = "upgrading"
 	PhaseProvision             StatusPhase = "provision"
+	PhaseProvisionDataLayer    StatusPhase = "provisionDataLayer"
+	PhaseWaitDataLayer         StatusPhase = "waitForDataLayer"
+	PhaseProvisionApplication  StatusPhase = "provisionApplication"
+	PhaseWaitApplication       StatusPhase = "waitForApplication"
 )
 
 func HasFinalizer(obj runtime.Object, finalizer string) (bool, error) {

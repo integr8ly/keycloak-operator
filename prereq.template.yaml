@@ -1,0 +1,121 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: integreatly-deploy
+objects:
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: ${INSTALLATION_NAMESPACE}
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: ${NAMESPACE_PREFIX}codeready-workspaces
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: integreatly-operator-rolebinding
+      namespace: ${NAMESPACE_PREFIX}codeready-workspaces
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: admin
+    subjects:
+      - namespace: ${INSTALLATION_NAMESPACE}
+        kind: ServiceAccount
+        name: integreatly-operator
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: ${NAMESPACE_PREFIX}amq-streams
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: integreatly-operator-rolebinding
+      namespace: ${NAMESPACE_PREFIX}amq-streams
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: admin
+    subjects:
+      - namespace: ${INSTALLATION_NAMESPACE}
+        kind: ServiceAccount
+        name: integreatly-operator
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: ${NAMESPACE_PREFIX}rhsso
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: integreatly-operator-rolebinding
+      namespace: ${NAMESPACE_PREFIX}rhsso
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: admin
+    subjects:
+      - namespace: ${INSTALLATION_NAMESPACE}
+        kind: ServiceAccount
+        name: integreatly-operator
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: ${NAMESPACE_PREFIX}3scale
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: integreatly-operator-rolebinding
+      namespace: ${NAMESPACE_PREFIX}3scale
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: admin
+    subjects:
+      - namespace: ${INSTALLATION_NAMESPACE}
+        kind: ServiceAccount
+        name: integreatly-operator
+  - apiVersion: integreatly.org/v1alpha1
+    kind: Installation
+    metadata:
+      name: ${NAMESPACE_PREFIX}integreatly-installation
+      namespace: ${INSTALLATION_NAMESPACE}
+    spec:
+      namespacePrefix: ${NAMESPACE_PREFIX}
+      type: workshop
+      routingSubdomain: ${ROUTING_SUBDOMAIN}
+      masterUrl: ${MASTER_URL}
+      createNamespaces: false
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: s3-credentials
+      namespace: ${NAMESPACE_PREFIX}3scale
+    stringData:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: 3scale-aws-bucket
+      namespace: ${NAMESPACE_PREFIX}3scale
+    stringData:
+      AWS_BUCKET: ${AWS_BUCKET}
+      AWS_REGION: ${AWS_REGION}
+parameters:
+  - name: INSTALLATION_NAMESPACE
+    value: integreatly-operator
+  - name: NAMESPACE_PREFIX
+    value: openshift-
+  - name: AWS_ACCESS_KEY_ID
+    required: true
+  - name: AWS_SECRET_ACCESS_KEY
+    required: true
+  - name: AWS_BUCKET
+    required: true
+  - name: AWS_REGION
+    required: true
+  - name: ROUTING_SUBDOMAIN
+    required: true
+  - name: MASTER_URL
+    required: true

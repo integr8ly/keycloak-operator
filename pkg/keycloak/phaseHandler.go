@@ -152,10 +152,17 @@ func (ph *phaseHandler) WaitforPods(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak,
 	}
 	//wait for all the SSO pods to be ready
 	for _, pod := range podList.Items {
+		gotReady := false
 		for _, condition := range pod.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status != "True" {
-				return kc, nil
+			if condition.Type == "Ready" {
+				gotReady = true
+				if condition.Status != "True" {
+					return kc, nil
+				}
 			}
+		}
+		if !gotReady {
+			return kc, nil
 		}
 	}
 	//get the route to keycloak admin

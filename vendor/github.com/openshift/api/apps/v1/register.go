@@ -5,6 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"fmt"
 )
 
 const (
@@ -29,6 +30,7 @@ func Resource(resource string) schema.GroupResource {
 
 // Adds the list of known types to api.Scheme.
 func addLegacyKnownTypes(scheme *runtime.Scheme) error {
+	fmt.Println("adding legacy scale ")
 	types := []runtime.Object{
 		&DeploymentConfig{},
 		&DeploymentConfigList{},

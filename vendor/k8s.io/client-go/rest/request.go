@@ -756,6 +756,7 @@ func (r *Request) Do() Result {
 	r.tryThrottle()
 
 	var result Result
+	//fmt.Println("calling url ", r.URL().String())
 	err := r.request(func(req *http.Request, resp *http.Response) {
 		result = r.transformResponse(resp, req)
 	})

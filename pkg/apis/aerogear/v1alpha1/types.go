@@ -238,7 +238,8 @@ type GenericStatus struct {
 
 type KeycloakStatus struct {
 	GenericStatus
-	MonitoringResourcesCreated bool `json:"monitoringResourcesCreated"`
+	MonitoringResourcesCreated bool  `json:"monitoringResourcesCreated"`
+	Replicas                   int32 `json:"replicas"`
 }
 
 type StatusPhase string
@@ -257,6 +258,7 @@ var (
 	PhaseDeprovisionFailed     StatusPhase = "deprovisionFailed"
 	PhaseCredentialsPending    StatusPhase = "credentialsPending"
 	PhaseAwaitProvision        StatusPhase = "awaitProvision"
+	PhaseUpgrading             StatusPhase = "upgrading"
 	PhaseProvision             StatusPhase = "provision"
 )
 

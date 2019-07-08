@@ -28,6 +28,7 @@ const (
 	SSO_TEMPLATE_PATH         = "deploy/template"
 	SSO_TEMPLATE_PATH_ENV_VAR = "TEMPLATE_DIR"
 	SSO_VERSION               = "v7.3.2.GA"
+	SSO_IMAGE_STREAM          = "redhat-sso73-openshift:1.0"
 )
 
 //go:generate moq -out sdkCruder_moq.go . SdkCruder
@@ -121,6 +122,16 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 		return h.sdkCrud.Update(kcState)
 	}
 
+	kcState, err := h.phaseHandler.Upgrade(kc)
+	if err != nil {
+		return errors.Wrap(err, "upgrading failed")
+	}
+	if kcState == nil {
+		return nil
+	}
+	if err := h.sdkCrud.Update(kcState); err != nil {
+		return errors.Wrap(err, "failed to update state")
+	}
 	switch kc.Status.Phase {
 	case v1alpha1.NoPhase:
 		kcState, err := h.phaseHandler.Initialise(kc)

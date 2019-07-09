@@ -100,14 +100,14 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 // Note we rely on imagestreams that the operator itself does not install (these are installed currently by the installer in the openshift ns )
 func (ph *phaseHandler) Upgrade(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	cpSSO := sso.DeepCopy()
-	dc, err := ph.ocDCClient.DeploymentConfigs(cpSSO.Namespace).Get(SSO_APPLICATION_NAME, v12.GetOptions{})
-	if err != nil {
-		return cpSSO, errors.Wrap(err, "failed to get current deploymentconfig for sso")
-	}
 	if !CanUpgrade(cpSSO.Status.Version) || (cpSSO.Status.Phase != v1alpha1.PhaseUpgrading && cpSSO.Status.Phase != v1alpha1.PhaseReconcile) {
 		logrus.Debug("not upgrading from version ", cpSSO.Status.Version, " in phase ", cpSSO.Status.Phase)
 		cpSSO.Status.Message = "not upgrading. Version is either current or there is no upgrade path."
 		return cpSSO, nil
+	}
+	dc, err := ph.ocDCClient.DeploymentConfigs(cpSSO.Namespace).Get(SSO_APPLICATION_NAME, v12.GetOptions{})
+	if err != nil {
+		return cpSSO, errors.Wrap(err, "failed to get current deploymentconfig for sso")
 	}
 	if cpSSO.Status.Phase == v1alpha1.PhaseReconcile {
 		logrus.Debug("marking for upgrade ", cpSSO.Status.Version, cpSSO.Status.Phase)

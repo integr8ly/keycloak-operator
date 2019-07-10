@@ -146,6 +146,11 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 			return errors.Wrap(err, "phase accepted failed")
 		}
 		return h.sdkCrud.Update(kcState)
+	case v1alpha1.PhaseAwaitProvision:
+		if kc.Spec.Provision {
+			kc.Status.Phase = v1alpha1.PhaseProvisionDataLayer
+		}
+		return h.sdkCrud.Update(kc)
 	case v1alpha1.PhaseProvisionDataLayer:
 		kcState, err := h.phaseHandler.ProvisionDataLayer(kc)
 		if err != nil {

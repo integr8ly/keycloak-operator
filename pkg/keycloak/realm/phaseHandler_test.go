@@ -84,7 +84,7 @@ func TestPhaseHandlerAccepted(t *testing.T) {
 					Phase: v1alpha1.PhaseAccepted,
 				},
 			},
-			ExpectedPhase: v1alpha1.PhaseProvisionDataLayer,
+			ExpectedPhase: v1alpha1.PhaseProvision,
 			FakeClient:    fake.NewSimpleClientset(),
 			FakeSDK: &keycloak.SdkCruderMock{
 				ListFunc: func(namespace string, into sdk.Object, opts ...sdk.ListOption) error {

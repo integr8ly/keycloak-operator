@@ -82,7 +82,7 @@ func (ph *phaseHandler) Accepted(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keycloa
 		}
 		if kc.Status.Phase == v1alpha1.PhaseReconcile {
 			kcr.Status.KeycloakName = kc.Name
-			kcr.Status.Phase = v1alpha1.PhaseProvisionDataLayer
+			kcr.Status.Phase = v1alpha1.PhaseProvision
 		}
 	}
 	return kcr, nil

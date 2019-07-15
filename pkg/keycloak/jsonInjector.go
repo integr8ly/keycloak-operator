@@ -35,7 +35,7 @@ func newJsonInjector() *JsonInjectorImpl {
 		PluginVolumeMount:  "/opt/eap/providers",
 		InitContainerName:  "sso-plugins-init",
 		InitContainerMount: "/opt/plugins",
-		InitContainerImage: "quay.io/integreatly/sso_plugins_init:0.0.1",
+		InitContainerImage: "quay.io/integreatly/sso_plugins_init:0.0.2",
 	}
 }
 

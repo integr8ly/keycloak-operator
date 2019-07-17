@@ -24,8 +24,6 @@ rules:
       - secrets
       - services
       - pods
-      - deployments
-      - deployments/finalizers
     verbs:
       - "*"
   - apiGroups:

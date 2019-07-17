@@ -1,6 +1,8 @@
 package realm
 
 import (
+	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
+	"os"
 	"testing"
 
 	"github.com/integr8ly/keycloak-operator/pkg/apis/aerogear/v1alpha1"
@@ -21,6 +23,7 @@ type SDKExpectation struct {
 }
 
 func TestPhaseHandlerInitialise(t *testing.T) {
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "test-namespace")
 	cases := []struct {
 		Name          string
 		Object        *v1alpha1.KeycloakRealm

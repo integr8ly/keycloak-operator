@@ -45,10 +45,15 @@ func (ph *phaseHandler) Initialise(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, 
 	if err := kcState.Validate(); err != nil {
 		return nil, errors.Wrap(err, "validation failed")
 	}
-
-	// set the finalizer
-	if err := v1alpha1.AddFinalizer(kcState, v1alpha1.KeycloakFinalizer); err != nil {
-		return nil, err
+	watchNS, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return kcState, err
+	}
+	if kcState.Namespace != watchNS {
+		// set the finalizer
+		if err := v1alpha1.AddFinalizer(kcState, v1alpha1.KeycloakFinalizer); err != nil {
+			return nil, err
+		}
 	}
 	// set the phase to accepted or set a message that it cannot be accepted
 	kcState.Status.Phase = v1alpha1.PhaseAccepted

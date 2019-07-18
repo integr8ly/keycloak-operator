@@ -1,6 +1,7 @@
 package realm
 
 import (
+	"github.com/operator-framework/operator-sdk/pkg/util/k8sutil"
 	"reflect"
 	"strings"
 
@@ -55,8 +56,14 @@ func (ph *phaseHandler) PreflightChecks(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.
 }
 
 func (ph *phaseHandler) Initialise(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.KeycloakRealm, error) {
-	if err := v1alpha1.AddFinalizer(kcr, v1alpha1.KeycloakFinalizer); err != nil {
-		return nil, err
+	watchNS, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return kcr, err
+	}
+	if kcr.Namespace != watchNS {
+		if err := v1alpha1.AddFinalizer(kcr, v1alpha1.KeycloakFinalizer); err != nil {
+			return nil, err
+		}
 	}
 	kcr.Status.Phase = v1alpha1.PhaseAccepted
 	return kcr, nil

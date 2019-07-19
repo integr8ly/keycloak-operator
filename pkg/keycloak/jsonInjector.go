@@ -11,17 +11,24 @@ import (
 type JsonInjector interface {
 	ParseTemplate(template []byte) (*gabs.Container, error)
 	InjectEnvVar(*gabs.Container) (*gabs.Container, error)
-	InjectVolume(template []byte) ([]byte, error)
-	InjectVolumeMount(template []byte) ([]byte, error)
+	InjectVolumes(template []byte) ([]byte, error)
+	InjectVolumeMounts(template []byte) ([]byte, error)
+	InjectPostStartCommand(template []byte) ([]byte, error)
 	InjectInitContainer(template []byte) ([]byte, error)
 	InjectAll(template []byte) ([]byte, error)
+}
+
+type VolumeInfo struct {
+	VolumeName      string
+	VolumeMount     string
+	InitVolumeMount string
 }
 
 // JsonInjectorImpl contains variables to be replaced by the injector
 type JsonInjectorImpl struct {
 	PluginsEnvVarName  string
-	PluginsVolumeName  string
-	PluginVolumeMount  string
+	PluginsVolumeInfo  VolumeInfo
+	ThemesVolumeInfo   VolumeInfo
 	InitContainerName  string
 	InitContainerMount string
 	InitContainerImage string
@@ -31,11 +38,10 @@ type JsonInjectorImpl struct {
 func newJsonInjector() *JsonInjectorImpl {
 	return &JsonInjectorImpl{
 		PluginsEnvVarName:  "SSO_PLUGINS",
-		PluginsVolumeName:  "sso-plugins",
-		PluginVolumeMount:  "/opt/eap/providers",
+		PluginsVolumeInfo:  VolumeInfo{VolumeName: "sso-plugins", VolumeMount: "/opt/eap/providers", InitVolumeMount: "/opt/plugins"},
+		ThemesVolumeInfo:   VolumeInfo{VolumeName: "sso-themes", VolumeMount: "/opt/themes", InitVolumeMount: "/opt/themes"},
 		InitContainerName:  "sso-plugins-init",
-		InitContainerMount: "/opt/plugins",
-		InitContainerImage: "quay.io/integreatly/sso_plugins_init:0.0.1",
+		InitContainerImage: "quay.io/integreatly/sso_plugins_init:1.0.0",
 	}
 }
 
@@ -52,17 +58,22 @@ func (j *JsonInjectorImpl) InjectAll(template []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	tpl, err = j.InjectVolume(tpl)
+	tpl, err = j.InjectVolumes(tpl)
 	if err != nil {
 		return nil, err
 	}
 
-	tpl, err = j.InjectVolumeMount(tpl)
+	tpl, err = j.InjectVolumeMounts(tpl)
 	if err != nil {
 		return nil, err
 	}
 
 	tpl, err = j.InjectInitContainer(tpl)
+	if err != nil {
+		return nil, err
+	}
+
+	tpl, err = j.InjectPostStartCommand(tpl)
 	if err != nil {
 		return nil, err
 	}
@@ -185,20 +196,22 @@ func (j *JsonInjectorImpl) InjectEnvVar(tpl *gabs.Container) (*gabs.Container, e
 
 // Injects a volume of type emptyDir into the RHSSO pod that is used to store the
 // installed plugins
-func (j *JsonInjectorImpl) InjectVolume(tpl *gabs.Container) (*gabs.Container, error) {
-	pluginsVolume := gabs.New()
-	pluginsVolume.Set(j.PluginsVolumeName, "name")
-	pluginsVolume.Set(gabs.New().Data(), "emptyDir")
-
+func (j *JsonInjectorImpl) InjectVolumes(tpl *gabs.Container) (*gabs.Container, error) {
 	// Path in the template is .objects[4].spec.template.spec.volumes
 	deploymentConfig, err := j.LookupDeploymentConfig(tpl)
 	if err != nil {
 		return nil, err
 	}
 
-	err = deploymentConfig.S("spec").S("template").S("spec").ArrayAppend(pluginsVolume.Data(), "volumes")
-	if err != nil {
-		return nil, err
+	for _, volume := range []VolumeInfo{j.PluginsVolumeInfo, j.ThemesVolumeInfo} {
+		pluginsVolume := gabs.New()
+		pluginsVolume.Set(volume.VolumeName, "name")
+		pluginsVolume.Set(gabs.New().Data(), "emptyDir")
+
+		err = deploymentConfig.S("spec").S("template").S("spec").ArrayAppend(pluginsVolume.Data(), "volumes")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return tpl, nil
@@ -206,12 +219,7 @@ func (j *JsonInjectorImpl) InjectVolume(tpl *gabs.Container) (*gabs.Container, e
 
 // Injects a volume mount into the RHSSO container that points to the installed
 // plugins. It has to be mounted at the path where keycloak loads plugins at startup
-func (j *JsonInjectorImpl) InjectVolumeMount(tpl *gabs.Container) (*gabs.Container, error) {
-	volumeMount := gabs.New()
-	volumeMount.Set(j.PluginVolumeMount, "mountPath")
-	volumeMount.Set(j.PluginsVolumeName, "name")
-	volumeMount.Set(false, "readonly")
-
+func (j *JsonInjectorImpl) InjectVolumeMounts(tpl *gabs.Container) (*gabs.Container, error) {
 	// Path in the template is .objects[4].spec.template.spec.containers[0].volumeMounts
 	deploymentConfig, err := j.LookupDeploymentConfig(tpl)
 	if err != nil {
@@ -223,10 +231,36 @@ func (j *JsonInjectorImpl) InjectVolumeMount(tpl *gabs.Container) (*gabs.Contain
 		return nil, err
 	}
 
-	container.ArrayAppend(volumeMount.Data(), "volumeMounts")
+	for _, volume := range []VolumeInfo{j.PluginsVolumeInfo, j.ThemesVolumeInfo} {
+		volumeMount := gabs.New()
+		volumeMount.Set(volume.VolumeMount, "mountPath")
+		volumeMount.Set(volume.VolumeName, "name")
+		volumeMount.Set(false, "readonly")
+
+		container.ArrayAppend(volumeMount.Data(), "volumeMounts")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tpl, nil
+}
+
+// Injects a lifecycle.postStart.exec.command that will copy theme files into SSO container
+func (j *JsonInjectorImpl) InjectPostStartCommand(tpl *gabs.Container) (*gabs.Container, error) {
+	// Path in the template is .objects[4].spec.template.spec.containers[0].volumeMounts
+	deploymentConfig, err := j.LookupDeploymentConfig(tpl)
 	if err != nil {
 		return nil, err
 	}
+
+	container, err := j.LookupContainer(deploymentConfig.S("spec").S("template").S("spec"))
+	if err != nil {
+		return nil, err
+	}
+
+	command := []string{"/bin/sh", "-c", "cp -RT /opt/themes /opt/eap/themes"}
+	container.Set(command, "lifecycle", "postStart", "exec", "command")
 
 	return tpl, nil
 }
@@ -241,15 +275,17 @@ func (j *JsonInjectorImpl) InjectInitContainer(tpl *gabs.Container) (*gabs.Conta
 	initContainerEnv := gabs.New()
 	initContainerEnv.Set(j.PluginsEnvVarName, "name")
 	initContainerEnv.Set(fmt.Sprintf("${%s}", j.PluginsEnvVarName), "value")
+	initContainer.ArrayAppend(initContainerEnv.Data(), "env")
 
 	// Init container volume mounts
-	initContainerMount := gabs.New()
-	initContainerMount.Set(j.InitContainerMount, "mountPath")
-	initContainerMount.Set(j.PluginsVolumeName, "name")
-	initContainerMount.Set(false, "readonly")
+	for _, volume := range []VolumeInfo{j.PluginsVolumeInfo, j.ThemesVolumeInfo} {
+		initContainerMount := gabs.New()
+		initContainerMount.Set(volume.InitVolumeMount, "mountPath")
+		initContainerMount.Set(volume.VolumeName, "name")
+		initContainerMount.Set(false, "readonly")
 
-	initContainer.ArrayAppend(initContainerEnv.Data(), "env")
-	initContainer.ArrayAppend(initContainerMount.Data(), "volumeMounts")
+		initContainer.ArrayAppend(initContainerMount.Data(), "volumeMounts")
+	}
 
 	// Init container name and image
 	initContainer.Set(j.InitContainerImage, "image")

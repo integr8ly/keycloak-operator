@@ -540,7 +540,7 @@ func (ph *phaseHandler) reconcileBrowserRedirector(browserRedirectorIdentityProv
 			Config: map[string]string{"defaultProvider": browserRedirectorIdentityProvider},
 		}
 		return authenticatedClient.CreateAuthenticatorConfig(config, realmName, redirectorExecutionID)
-	} else if !createOnly {
+	} else if !createOnly && authenticatorConfig != nil {
 		if browserRedirectorIdentityProvider != "" {
 			if authenticatorConfig.Config["defaultProvider"] != browserRedirectorIdentityProvider {
 				authenticatorConfig.Config["defaultProvider"] = browserRedirectorIdentityProvider

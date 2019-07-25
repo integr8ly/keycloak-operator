@@ -1,0 +1,12 @@
+{
+    "apiVersion": "oauth.openshift.io/v1",
+    "grantMethod": "auto",
+    "kind": "OAuthClient",
+    "metadata": {
+        "name": "keycloak-openshift-auth-client"
+    },
+    "redirectURIs": [
+        "https://{KEYCLOAK-ROUTE-CHANGE-ME}/auth/realms/openshift/broker/openshift-v4/endpoint"
+    ],
+    "secret": "from_oauthClient_OpenShift4_IDP"
+}

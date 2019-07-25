@@ -9,36 +9,41 @@ import (
 )
 
 var (
-	lockKeycloakInterfaceMockCreateClient                 sync.RWMutex
-	lockKeycloakInterfaceMockCreateIdentityProvider       sync.RWMutex
-	lockKeycloakInterfaceMockCreateRealm                  sync.RWMutex
-	lockKeycloakInterfaceMockCreateUser                   sync.RWMutex
-	lockKeycloakInterfaceMockCreateUserClientRole         sync.RWMutex
-	lockKeycloakInterfaceMockDeleteClient                 sync.RWMutex
-	lockKeycloakInterfaceMockDeleteIdentityProvider       sync.RWMutex
-	lockKeycloakInterfaceMockDeleteRealm                  sync.RWMutex
-	lockKeycloakInterfaceMockDeleteUser                   sync.RWMutex
-	lockKeycloakInterfaceMockDeleteUserClientRole         sync.RWMutex
-	lockKeycloakInterfaceMockFindUserByEmail              sync.RWMutex
-	lockKeycloakInterfaceMockFindUserByUsername           sync.RWMutex
-	lockKeycloakInterfaceMockGetClient                    sync.RWMutex
-	lockKeycloakInterfaceMockGetClientInstall             sync.RWMutex
-	lockKeycloakInterfaceMockGetClientSecret              sync.RWMutex
-	lockKeycloakInterfaceMockGetIdentityProvider          sync.RWMutex
-	lockKeycloakInterfaceMockGetRealm                     sync.RWMutex
-	lockKeycloakInterfaceMockGetUser                      sync.RWMutex
-	lockKeycloakInterfaceMockListAvailableUserClientRoles sync.RWMutex
-	lockKeycloakInterfaceMockListClients                  sync.RWMutex
-	lockKeycloakInterfaceMockListIdentityProviders        sync.RWMutex
-	lockKeycloakInterfaceMockListRealms                   sync.RWMutex
-	lockKeycloakInterfaceMockListUserClientRoles          sync.RWMutex
-	lockKeycloakInterfaceMockListUsers                    sync.RWMutex
-	lockKeycloakInterfaceMockPing                         sync.RWMutex
-	lockKeycloakInterfaceMockUpdateClient                 sync.RWMutex
-	lockKeycloakInterfaceMockUpdateIdentityProvider       sync.RWMutex
-	lockKeycloakInterfaceMockUpdatePassword               sync.RWMutex
-	lockKeycloakInterfaceMockUpdateRealm                  sync.RWMutex
-	lockKeycloakInterfaceMockUpdateUser                   sync.RWMutex
+	lockKeycloakInterfaceMockCreateAuthenticatorConfig           sync.RWMutex
+	lockKeycloakInterfaceMockCreateClient                        sync.RWMutex
+	lockKeycloakInterfaceMockCreateIdentityProvider              sync.RWMutex
+	lockKeycloakInterfaceMockCreateRealm                         sync.RWMutex
+	lockKeycloakInterfaceMockCreateUser                          sync.RWMutex
+	lockKeycloakInterfaceMockCreateUserClientRole                sync.RWMutex
+	lockKeycloakInterfaceMockDeleteAuthenticatorConfig           sync.RWMutex
+	lockKeycloakInterfaceMockDeleteClient                        sync.RWMutex
+	lockKeycloakInterfaceMockDeleteIdentityProvider              sync.RWMutex
+	lockKeycloakInterfaceMockDeleteRealm                         sync.RWMutex
+	lockKeycloakInterfaceMockDeleteUser                          sync.RWMutex
+	lockKeycloakInterfaceMockDeleteUserClientRole                sync.RWMutex
+	lockKeycloakInterfaceMockFindUserByEmail                     sync.RWMutex
+	lockKeycloakInterfaceMockFindUserByUsername                  sync.RWMutex
+	lockKeycloakInterfaceMockGetAuthenticatorConfig              sync.RWMutex
+	lockKeycloakInterfaceMockGetClient                           sync.RWMutex
+	lockKeycloakInterfaceMockGetClientInstall                    sync.RWMutex
+	lockKeycloakInterfaceMockGetClientSecret                     sync.RWMutex
+	lockKeycloakInterfaceMockGetIdentityProvider                 sync.RWMutex
+	lockKeycloakInterfaceMockGetRealm                            sync.RWMutex
+	lockKeycloakInterfaceMockGetUser                             sync.RWMutex
+	lockKeycloakInterfaceMockListAuthenticationExecutionsForFlow sync.RWMutex
+	lockKeycloakInterfaceMockListAvailableUserClientRoles        sync.RWMutex
+	lockKeycloakInterfaceMockListClients                         sync.RWMutex
+	lockKeycloakInterfaceMockListIdentityProviders               sync.RWMutex
+	lockKeycloakInterfaceMockListRealms                          sync.RWMutex
+	lockKeycloakInterfaceMockListUserClientRoles                 sync.RWMutex
+	lockKeycloakInterfaceMockListUsers                           sync.RWMutex
+	lockKeycloakInterfaceMockPing                                sync.RWMutex
+	lockKeycloakInterfaceMockUpdateAuthenticatorConfig           sync.RWMutex
+	lockKeycloakInterfaceMockUpdateClient                        sync.RWMutex
+	lockKeycloakInterfaceMockUpdateIdentityProvider              sync.RWMutex
+	lockKeycloakInterfaceMockUpdatePassword                      sync.RWMutex
+	lockKeycloakInterfaceMockUpdateRealm                         sync.RWMutex
+	lockKeycloakInterfaceMockUpdateUser                          sync.RWMutex
 )
 
 // Ensure, that KeycloakInterfaceMock does implement KeycloakInterface.
@@ -51,6 +56,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //
 //         // make and configure a mocked KeycloakInterface
 //         mockedKeycloakInterface := &KeycloakInterfaceMock{
+//             CreateAuthenticatorConfigFunc: func(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string, executionID string) error {
+// 	               panic("mock out the CreateAuthenticatorConfig method")
+//             },
 //             CreateClientFunc: func(client *v1alpha1.KeycloakClient, realmName string) error {
 // 	               panic("mock out the CreateClient method")
 //             },
@@ -65,6 +73,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             },
 //             CreateUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userId string) error {
 // 	               panic("mock out the CreateUserClientRole method")
+//             },
+//             DeleteAuthenticatorConfigFunc: func(configID string, realmName string) error {
+// 	               panic("mock out the DeleteAuthenticatorConfig method")
 //             },
 //             DeleteClientFunc: func(clientID string, realmName string) error {
 // 	               panic("mock out the DeleteClient method")
@@ -87,6 +98,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             FindUserByUsernameFunc: func(name string, realm string) (*v1alpha1.KeycloakApiUser, error) {
 // 	               panic("mock out the FindUserByUsername method")
 //             },
+//             GetAuthenticatorConfigFunc: func(configID string, realmName string) (*v1alpha1.AuthenticatorConfig, error) {
+// 	               panic("mock out the GetAuthenticatorConfig method")
+//             },
 //             GetClientFunc: func(clientID string, realmName string) (*v1alpha1.KeycloakClient, error) {
 // 	               panic("mock out the GetClient method")
 //             },
@@ -104,6 +118,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             },
 //             GetUserFunc: func(userID string, realmName string) (*v1alpha1.KeycloakUser, error) {
 // 	               panic("mock out the GetUser method")
+//             },
+//             ListAuthenticationExecutionsForFlowFunc: func(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error) {
+// 	               panic("mock out the ListAuthenticationExecutionsForFlow method")
 //             },
 //             ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
 // 	               panic("mock out the ListAvailableUserClientRoles method")
@@ -125,6 +142,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             },
 //             PingFunc: func() error {
 // 	               panic("mock out the Ping method")
+//             },
+//             UpdateAuthenticatorConfigFunc: func(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string) error {
+// 	               panic("mock out the UpdateAuthenticatorConfig method")
 //             },
 //             UpdateClientFunc: func(specClient *v1alpha1.KeycloakClient, realmName string) error {
 // 	               panic("mock out the UpdateClient method")
@@ -148,6 +168,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //
 //     }
 type KeycloakInterfaceMock struct {
+	// CreateAuthenticatorConfigFunc mocks the CreateAuthenticatorConfig method.
+	CreateAuthenticatorConfigFunc func(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string, executionID string) error
+
 	// CreateClientFunc mocks the CreateClient method.
 	CreateClientFunc func(client *v1alpha1.KeycloakClient, realmName string) error
 
@@ -162,6 +185,9 @@ type KeycloakInterfaceMock struct {
 
 	// CreateUserClientRoleFunc mocks the CreateUserClientRole method.
 	CreateUserClientRoleFunc func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userId string) error
+
+	// DeleteAuthenticatorConfigFunc mocks the DeleteAuthenticatorConfig method.
+	DeleteAuthenticatorConfigFunc func(configID string, realmName string) error
 
 	// DeleteClientFunc mocks the DeleteClient method.
 	DeleteClientFunc func(clientID string, realmName string) error
@@ -184,6 +210,9 @@ type KeycloakInterfaceMock struct {
 	// FindUserByUsernameFunc mocks the FindUserByUsername method.
 	FindUserByUsernameFunc func(name string, realm string) (*v1alpha1.KeycloakApiUser, error)
 
+	// GetAuthenticatorConfigFunc mocks the GetAuthenticatorConfig method.
+	GetAuthenticatorConfigFunc func(configID string, realmName string) (*v1alpha1.AuthenticatorConfig, error)
+
 	// GetClientFunc mocks the GetClient method.
 	GetClientFunc func(clientID string, realmName string) (*v1alpha1.KeycloakClient, error)
 
@@ -201,6 +230,9 @@ type KeycloakInterfaceMock struct {
 
 	// GetUserFunc mocks the GetUser method.
 	GetUserFunc func(userID string, realmName string) (*v1alpha1.KeycloakUser, error)
+
+	// ListAuthenticationExecutionsForFlowFunc mocks the ListAuthenticationExecutionsForFlow method.
+	ListAuthenticationExecutionsForFlowFunc func(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error)
 
 	// ListAvailableUserClientRolesFunc mocks the ListAvailableUserClientRoles method.
 	ListAvailableUserClientRolesFunc func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
@@ -223,6 +255,9 @@ type KeycloakInterfaceMock struct {
 	// PingFunc mocks the Ping method.
 	PingFunc func() error
 
+	// UpdateAuthenticatorConfigFunc mocks the UpdateAuthenticatorConfig method.
+	UpdateAuthenticatorConfigFunc func(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string) error
+
 	// UpdateClientFunc mocks the UpdateClient method.
 	UpdateClientFunc func(specClient *v1alpha1.KeycloakClient, realmName string) error
 
@@ -240,6 +275,15 @@ type KeycloakInterfaceMock struct {
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// CreateAuthenticatorConfig holds details about calls to the CreateAuthenticatorConfig method.
+		CreateAuthenticatorConfig []struct {
+			// AuthenticatorConfig is the authenticatorConfig argument value.
+			AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+			// RealmName is the realmName argument value.
+			RealmName string
+			// ExecutionID is the executionID argument value.
+			ExecutionID string
+		}
 		// CreateClient holds details about calls to the CreateClient method.
 		CreateClient []struct {
 			// Client is the client argument value.
@@ -276,6 +320,13 @@ type KeycloakInterfaceMock struct {
 			ClientID string
 			// UserId is the userId argument value.
 			UserId string
+		}
+		// DeleteAuthenticatorConfig holds details about calls to the DeleteAuthenticatorConfig method.
+		DeleteAuthenticatorConfig []struct {
+			// ConfigID is the configID argument value.
+			ConfigID string
+			// RealmName is the realmName argument value.
+			RealmName string
 		}
 		// DeleteClient holds details about calls to the DeleteClient method.
 		DeleteClient []struct {
@@ -328,6 +379,13 @@ type KeycloakInterfaceMock struct {
 			// Realm is the realm argument value.
 			Realm string
 		}
+		// GetAuthenticatorConfig holds details about calls to the GetAuthenticatorConfig method.
+		GetAuthenticatorConfig []struct {
+			// ConfigID is the configID argument value.
+			ConfigID string
+			// RealmName is the realmName argument value.
+			RealmName string
+		}
 		// GetClient holds details about calls to the GetClient method.
 		GetClient []struct {
 			// ClientID is the clientID argument value.
@@ -365,6 +423,13 @@ type KeycloakInterfaceMock struct {
 		GetUser []struct {
 			// UserID is the userID argument value.
 			UserID string
+			// RealmName is the realmName argument value.
+			RealmName string
+		}
+		// ListAuthenticationExecutionsForFlow holds details about calls to the ListAuthenticationExecutionsForFlow method.
+		ListAuthenticationExecutionsForFlow []struct {
+			// FlowAlias is the flowAlias argument value.
+			FlowAlias string
 			// RealmName is the realmName argument value.
 			RealmName string
 		}
@@ -407,6 +472,13 @@ type KeycloakInterfaceMock struct {
 		// Ping holds details about calls to the Ping method.
 		Ping []struct {
 		}
+		// UpdateAuthenticatorConfig holds details about calls to the UpdateAuthenticatorConfig method.
+		UpdateAuthenticatorConfig []struct {
+			// AuthenticatorConfig is the authenticatorConfig argument value.
+			AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+			// RealmName is the realmName argument value.
+			RealmName string
+		}
 		// UpdateClient holds details about calls to the UpdateClient method.
 		UpdateClient []struct {
 			// SpecClient is the specClient argument value.
@@ -443,6 +515,45 @@ type KeycloakInterfaceMock struct {
 			RealmName string
 		}
 	}
+}
+
+// CreateAuthenticatorConfig calls CreateAuthenticatorConfigFunc.
+func (mock *KeycloakInterfaceMock) CreateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string, executionID string) error {
+	if mock.CreateAuthenticatorConfigFunc == nil {
+		panic("KeycloakInterfaceMock.CreateAuthenticatorConfigFunc: method is nil but KeycloakInterface.CreateAuthenticatorConfig was just called")
+	}
+	callInfo := struct {
+		AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+		RealmName           string
+		ExecutionID         string
+	}{
+		AuthenticatorConfig: authenticatorConfig,
+		RealmName:           realmName,
+		ExecutionID:         executionID,
+	}
+	lockKeycloakInterfaceMockCreateAuthenticatorConfig.Lock()
+	mock.calls.CreateAuthenticatorConfig = append(mock.calls.CreateAuthenticatorConfig, callInfo)
+	lockKeycloakInterfaceMockCreateAuthenticatorConfig.Unlock()
+	return mock.CreateAuthenticatorConfigFunc(authenticatorConfig, realmName, executionID)
+}
+
+// CreateAuthenticatorConfigCalls gets all the calls that were made to CreateAuthenticatorConfig.
+// Check the length with:
+//     len(mockedKeycloakInterface.CreateAuthenticatorConfigCalls())
+func (mock *KeycloakInterfaceMock) CreateAuthenticatorConfigCalls() []struct {
+	AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+	RealmName           string
+	ExecutionID         string
+} {
+	var calls []struct {
+		AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+		RealmName           string
+		ExecutionID         string
+	}
+	lockKeycloakInterfaceMockCreateAuthenticatorConfig.RLock()
+	calls = mock.calls.CreateAuthenticatorConfig
+	lockKeycloakInterfaceMockCreateAuthenticatorConfig.RUnlock()
+	return calls
 }
 
 // CreateClient calls CreateClientFunc.
@@ -621,6 +732,41 @@ func (mock *KeycloakInterfaceMock) CreateUserClientRoleCalls() []struct {
 	lockKeycloakInterfaceMockCreateUserClientRole.RLock()
 	calls = mock.calls.CreateUserClientRole
 	lockKeycloakInterfaceMockCreateUserClientRole.RUnlock()
+	return calls
+}
+
+// DeleteAuthenticatorConfig calls DeleteAuthenticatorConfigFunc.
+func (mock *KeycloakInterfaceMock) DeleteAuthenticatorConfig(configID string, realmName string) error {
+	if mock.DeleteAuthenticatorConfigFunc == nil {
+		panic("KeycloakInterfaceMock.DeleteAuthenticatorConfigFunc: method is nil but KeycloakInterface.DeleteAuthenticatorConfig was just called")
+	}
+	callInfo := struct {
+		ConfigID  string
+		RealmName string
+	}{
+		ConfigID:  configID,
+		RealmName: realmName,
+	}
+	lockKeycloakInterfaceMockDeleteAuthenticatorConfig.Lock()
+	mock.calls.DeleteAuthenticatorConfig = append(mock.calls.DeleteAuthenticatorConfig, callInfo)
+	lockKeycloakInterfaceMockDeleteAuthenticatorConfig.Unlock()
+	return mock.DeleteAuthenticatorConfigFunc(configID, realmName)
+}
+
+// DeleteAuthenticatorConfigCalls gets all the calls that were made to DeleteAuthenticatorConfig.
+// Check the length with:
+//     len(mockedKeycloakInterface.DeleteAuthenticatorConfigCalls())
+func (mock *KeycloakInterfaceMock) DeleteAuthenticatorConfigCalls() []struct {
+	ConfigID  string
+	RealmName string
+} {
+	var calls []struct {
+		ConfigID  string
+		RealmName string
+	}
+	lockKeycloakInterfaceMockDeleteAuthenticatorConfig.RLock()
+	calls = mock.calls.DeleteAuthenticatorConfig
+	lockKeycloakInterfaceMockDeleteAuthenticatorConfig.RUnlock()
 	return calls
 }
 
@@ -873,6 +1019,41 @@ func (mock *KeycloakInterfaceMock) FindUserByUsernameCalls() []struct {
 	return calls
 }
 
+// GetAuthenticatorConfig calls GetAuthenticatorConfigFunc.
+func (mock *KeycloakInterfaceMock) GetAuthenticatorConfig(configID string, realmName string) (*v1alpha1.AuthenticatorConfig, error) {
+	if mock.GetAuthenticatorConfigFunc == nil {
+		panic("KeycloakInterfaceMock.GetAuthenticatorConfigFunc: method is nil but KeycloakInterface.GetAuthenticatorConfig was just called")
+	}
+	callInfo := struct {
+		ConfigID  string
+		RealmName string
+	}{
+		ConfigID:  configID,
+		RealmName: realmName,
+	}
+	lockKeycloakInterfaceMockGetAuthenticatorConfig.Lock()
+	mock.calls.GetAuthenticatorConfig = append(mock.calls.GetAuthenticatorConfig, callInfo)
+	lockKeycloakInterfaceMockGetAuthenticatorConfig.Unlock()
+	return mock.GetAuthenticatorConfigFunc(configID, realmName)
+}
+
+// GetAuthenticatorConfigCalls gets all the calls that were made to GetAuthenticatorConfig.
+// Check the length with:
+//     len(mockedKeycloakInterface.GetAuthenticatorConfigCalls())
+func (mock *KeycloakInterfaceMock) GetAuthenticatorConfigCalls() []struct {
+	ConfigID  string
+	RealmName string
+} {
+	var calls []struct {
+		ConfigID  string
+		RealmName string
+	}
+	lockKeycloakInterfaceMockGetAuthenticatorConfig.RLock()
+	calls = mock.calls.GetAuthenticatorConfig
+	lockKeycloakInterfaceMockGetAuthenticatorConfig.RUnlock()
+	return calls
+}
+
 // GetClient calls GetClientFunc.
 func (mock *KeycloakInterfaceMock) GetClient(clientID string, realmName string) (*v1alpha1.KeycloakClient, error) {
 	if mock.GetClientFunc == nil {
@@ -1076,6 +1257,41 @@ func (mock *KeycloakInterfaceMock) GetUserCalls() []struct {
 	lockKeycloakInterfaceMockGetUser.RLock()
 	calls = mock.calls.GetUser
 	lockKeycloakInterfaceMockGetUser.RUnlock()
+	return calls
+}
+
+// ListAuthenticationExecutionsForFlow calls ListAuthenticationExecutionsForFlowFunc.
+func (mock *KeycloakInterfaceMock) ListAuthenticationExecutionsForFlow(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error) {
+	if mock.ListAuthenticationExecutionsForFlowFunc == nil {
+		panic("KeycloakInterfaceMock.ListAuthenticationExecutionsForFlowFunc: method is nil but KeycloakInterface.ListAuthenticationExecutionsForFlow was just called")
+	}
+	callInfo := struct {
+		FlowAlias string
+		RealmName string
+	}{
+		FlowAlias: flowAlias,
+		RealmName: realmName,
+	}
+	lockKeycloakInterfaceMockListAuthenticationExecutionsForFlow.Lock()
+	mock.calls.ListAuthenticationExecutionsForFlow = append(mock.calls.ListAuthenticationExecutionsForFlow, callInfo)
+	lockKeycloakInterfaceMockListAuthenticationExecutionsForFlow.Unlock()
+	return mock.ListAuthenticationExecutionsForFlowFunc(flowAlias, realmName)
+}
+
+// ListAuthenticationExecutionsForFlowCalls gets all the calls that were made to ListAuthenticationExecutionsForFlow.
+// Check the length with:
+//     len(mockedKeycloakInterface.ListAuthenticationExecutionsForFlowCalls())
+func (mock *KeycloakInterfaceMock) ListAuthenticationExecutionsForFlowCalls() []struct {
+	FlowAlias string
+	RealmName string
+} {
+	var calls []struct {
+		FlowAlias string
+		RealmName string
+	}
+	lockKeycloakInterfaceMockListAuthenticationExecutionsForFlow.RLock()
+	calls = mock.calls.ListAuthenticationExecutionsForFlow
+	lockKeycloakInterfaceMockListAuthenticationExecutionsForFlow.RUnlock()
 	return calls
 }
 
@@ -1299,6 +1515,41 @@ func (mock *KeycloakInterfaceMock) PingCalls() []struct {
 	lockKeycloakInterfaceMockPing.RLock()
 	calls = mock.calls.Ping
 	lockKeycloakInterfaceMockPing.RUnlock()
+	return calls
+}
+
+// UpdateAuthenticatorConfig calls UpdateAuthenticatorConfigFunc.
+func (mock *KeycloakInterfaceMock) UpdateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string) error {
+	if mock.UpdateAuthenticatorConfigFunc == nil {
+		panic("KeycloakInterfaceMock.UpdateAuthenticatorConfigFunc: method is nil but KeycloakInterface.UpdateAuthenticatorConfig was just called")
+	}
+	callInfo := struct {
+		AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+		RealmName           string
+	}{
+		AuthenticatorConfig: authenticatorConfig,
+		RealmName:           realmName,
+	}
+	lockKeycloakInterfaceMockUpdateAuthenticatorConfig.Lock()
+	mock.calls.UpdateAuthenticatorConfig = append(mock.calls.UpdateAuthenticatorConfig, callInfo)
+	lockKeycloakInterfaceMockUpdateAuthenticatorConfig.Unlock()
+	return mock.UpdateAuthenticatorConfigFunc(authenticatorConfig, realmName)
+}
+
+// UpdateAuthenticatorConfigCalls gets all the calls that were made to UpdateAuthenticatorConfig.
+// Check the length with:
+//     len(mockedKeycloakInterface.UpdateAuthenticatorConfigCalls())
+func (mock *KeycloakInterfaceMock) UpdateAuthenticatorConfigCalls() []struct {
+	AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+	RealmName           string
+} {
+	var calls []struct {
+		AuthenticatorConfig *v1alpha1.AuthenticatorConfig
+		RealmName           string
+	}
+	lockKeycloakInterfaceMockUpdateAuthenticatorConfig.RLock()
+	calls = mock.calls.UpdateAuthenticatorConfig
+	lockKeycloakInterfaceMockUpdateAuthenticatorConfig.RUnlock()
 	return calls
 }
 

@@ -99,6 +99,10 @@ func (c *Client) CreateUserClientRole(role *v1alpha1.KeycloakUserClientRole, rea
 	)
 }
 
+func (c *Client) CreateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName, executionID string) error {
+	return c.create(authenticatorConfig, fmt.Sprintf("realms/%s/authentication/executions/%s/config", realmName, executionID), "AuthenticatorConfig")
+}
+
 func (c *Client) DeleteUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error {
 	err := c.delete(
 		fmt.Sprintf("realms/%s/users/%s/role-mappings/clients/%s", realmName, userId, clientID),
@@ -285,6 +289,15 @@ func (c *Client) GetIdentityProvider(alias string, realmName string) (*v1alpha1.
 	return result.(*v1alpha1.KeycloakIdentityProvider), err
 }
 
+func (c *Client) GetAuthenticatorConfig(configID, realmName string) (*v1alpha1.AuthenticatorConfig, error) {
+	result, err := c.get(fmt.Sprintf("realms/%s/authentication/config/%s", realmName, configID), "AuthenticatorConfig", func(body []byte) (T, error) {
+		authenticatorConfig := &v1alpha1.AuthenticatorConfig{}
+		err := json.Unmarshal(body, authenticatorConfig)
+		return authenticatorConfig, err
+	})
+	return result.(*v1alpha1.AuthenticatorConfig), err
+}
+
 // Generic put function for updating Keycloak resources
 func (c *Client) update(obj T, resourcePath, resourceName string) error {
 	jsonValue, err := json.Marshal(obj)
@@ -332,6 +345,10 @@ func (c *Client) UpdateUser(specUser *v1alpha1.KeycloakUser, realmName string) e
 
 func (c *Client) UpdateIdentityProvider(specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
 	return c.update(specIdentityProvider, fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, specIdentityProvider.Alias), "identity provider")
+}
+
+func (c *Client) UpdateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string) error {
+	return c.update(authenticatorConfig, fmt.Sprintf("realms/%s/authentication/config/%s", realmName, authenticatorConfig.ID), "AuthenticatorConfig")
 }
 
 // Generic delete function for deleting Keycloak resources
@@ -391,6 +408,11 @@ func (c *Client) DeleteUser(userID, realmName string) error {
 
 func (c *Client) DeleteIdentityProvider(alias string, realmName string) error {
 	err := c.delete(fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, alias), "identity provider", nil)
+	return err
+}
+
+func (c *Client) DeleteAuthenticatorConfig(configID, realmName string) error {
+	err := c.delete(fmt.Sprintf("realms/%s/authentication/config/%s", realmName, configID), "AuthenticatorConfig", nil)
 	return err
 }
 
@@ -514,6 +536,18 @@ func (c *Client) ListAvailableUserClientRoles(realmName, clientID, userID string
 	return objects.([]*v1alpha1.KeycloakUserClientRole), err
 }
 
+func (c *Client) ListAuthenticationExecutionsForFlow(flowAlias, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error) {
+	result, err := c.list(fmt.Sprintf("realms/%s/authentication/flows/%s/executions", realmName, flowAlias), "AuthenticationExecution", func(body []byte) (T, error) {
+		var authenticationExecutions []*v1alpha1.AuthenticationExecutionInfo
+		err := json.Unmarshal(body, &authenticationExecutions)
+		return authenticationExecutions, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]*v1alpha1.AuthenticationExecutionInfo), err
+}
+
 func (c *Client) Ping() error {
 	u := c.URL + "/auth/"
 	req, err := http.NewRequest("GET", u, nil)
@@ -630,6 +664,13 @@ type KeycloakInterface interface {
 	ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
 	ListAvailableUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
 	DeleteUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userID string) error
+
+	ListAuthenticationExecutionsForFlow(flowAlias, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error)
+
+	CreateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName, executionID string) error
+	GetAuthenticatorConfig(configID, realmName string) (*v1alpha1.AuthenticatorConfig, error)
+	UpdateAuthenticatorConfig(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string) error
+	DeleteAuthenticatorConfig(configID, realmName string) error
 }
 
 //go:generate moq -out keycloakClientFactory_moq.go . KeycloakClientFactory

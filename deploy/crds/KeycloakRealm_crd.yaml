@@ -26,6 +26,8 @@ spec:
               type: string
             createOnly:
               type: boolean
+            browserRedirectorIdentityProvider:
+              type: string
             identityProviders:
               type: array
               items:

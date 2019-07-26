@@ -260,10 +260,13 @@ func (c *Client) GetClientInstall(clientId, realmName string) ([]byte, error) {
 
 func (c *Client) GetUser(userID, realmName string) (*v1alpha1.KeycloakUser, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s/users/%s", realmName, userID), "user", func(body []byte) (T, error) {
-		var user *v1alpha1.KeycloakApiUser
+		user := &v1alpha1.KeycloakApiUser{}
 		err := json.Unmarshal(body, user)
 		return user, err
 	})
+	if err != nil {
+		return nil, err
+	}
 	ret := &v1alpha1.KeycloakUser{
 		KeycloakApiUser: result.(*v1alpha1.KeycloakApiUser),
 	}
@@ -272,10 +275,13 @@ func (c *Client) GetUser(userID, realmName string) (*v1alpha1.KeycloakUser, erro
 
 func (c *Client) GetIdentityProvider(alias string, realmName string) (*v1alpha1.KeycloakIdentityProvider, error) {
 	result, err := c.get(fmt.Sprintf("realms/%s/identity-provider/instances/%s", realmName, alias), "identity provider", func(body []byte) (T, error) {
-		var provider *v1alpha1.KeycloakIdentityProvider
+		provider := &v1alpha1.KeycloakIdentityProvider{}
 		err := json.Unmarshal(body, provider)
 		return provider, err
 	})
+	if err != nil {
+		return nil, err
+	}
 	return result.(*v1alpha1.KeycloakIdentityProvider), err
 }
 

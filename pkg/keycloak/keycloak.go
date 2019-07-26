@@ -90,7 +90,6 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 	}
 
 	//TODO use the ctx to allow us to cancel any ongoing requests especially when the resource is deleted
-	kcCopy := kc.DeepCopy()
 	logrus.Infof("Keycloak: %v, Phase: %v", kc.Name, kc.Status.Phase)
 	if kc.GetDeletionTimestamp() != nil {
 		//update reliant realms
@@ -114,7 +113,7 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 				}
 			}
 		}
-		kcState, err := h.phaseHandler.Deprovision(kcCopy)
+		kcState, err := h.phaseHandler.Deprovision(kc)
 		if err != nil {
 			return errors.Wrap(err, "failed to deprovision")
 		}
@@ -129,49 +128,47 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 	if kcState == nil {
 		return nil
 	}
-	if err := h.sdkCrud.Update(kcState); err != nil {
-		return errors.Wrap(err, "failed to update state")
-	}
-	switch kc.Status.Phase {
+
+	switch kcState.Status.Phase {
 	case v1alpha1.NoPhase:
-		kcState, err := h.phaseHandler.Initialise(kc)
+		kcState, err := h.phaseHandler.Initialise(kcState)
 		if err != nil {
 			return errors.Wrap(err, "failed to init resource")
 		}
 		return h.sdkCrud.Update(kcState)
 
 	case v1alpha1.PhaseAccepted:
-		kcState, err := h.phaseHandler.Accepted(kc)
+		kcState, err := h.phaseHandler.Accepted(kcState)
 		if err != nil {
 			return errors.Wrap(err, "phase accepted failed")
 		}
 		return h.sdkCrud.Update(kcState)
 	case v1alpha1.PhaseProvisionDataLayer:
-		kcState, err := h.phaseHandler.ProvisionDataLayer(kc)
+		kcState, err := h.phaseHandler.ProvisionDataLayer(kcState)
 		if err != nil {
 			return errors.Wrap(err, "phase provision data layer failed")
 		}
 		return h.sdkCrud.Update(kcState)
 	case v1alpha1.PhaseWaitDataLayer:
-		kcState, err := h.phaseHandler.WaitForDataLayer(kc)
+		kcState, err := h.phaseHandler.WaitForDataLayer(kcState)
 		if err != nil {
 			return errors.Wrap(err, "phase wait for data layer failed")
 		}
 		return h.sdkCrud.Update(kcState)
 	case v1alpha1.PhaseProvisionApplication:
-		kcState, err := h.phaseHandler.ProvisionApplication(kc)
+		kcState, err := h.phaseHandler.ProvisionApplication(kcState)
 		if err != nil {
 			return errors.Wrap(err, "phase provision application failed")
 		}
 		return h.sdkCrud.Update(kcState)
 	case v1alpha1.PhaseWaitApplication:
-		kcState, err := h.phaseHandler.WaitForApplication(kc)
+		kcState, err := h.phaseHandler.WaitForApplication(kcState)
 		if err != nil {
 			return errors.Wrap(err, "phase wait for application failed")
 		}
 		return h.sdkCrud.Update(kcState)
 	case v1alpha1.PhaseReconcile:
-		kcState, err := h.phaseHandler.Reconcile(kc)
+		kcState, err := h.phaseHandler.Reconcile(kcState)
 		if err != nil {
 			return errors.Wrap(err, "reconciling failed")
 		}

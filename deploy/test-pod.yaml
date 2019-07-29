@@ -6,7 +6,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: keycloak-operator-test
-    image: quay.io/integreatly/keycloak-operator:v1.7.3
+    image: quay.io/integreatly/keycloak-operator:v1.7.4
     imagePullPolicy: Always
     command: ["/go-test.sh"]
     env:

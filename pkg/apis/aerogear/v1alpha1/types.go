@@ -75,6 +75,8 @@ type KeycloakRealm struct {
 
 type KeycloakRealmSpec struct {
 	CreateOnly bool `json:"createOnly,omitempty"`
+	// Alias of the Identity Provider that will be used to setup "Identity Provider Redirector" for browser based authentication
+	BrowserRedirectorIdentityProvider string `json:"browserRedirectorIdentityProvider,omitempty"`
 	*KeycloakApiRealm
 }
 
@@ -169,6 +171,27 @@ type KeycloakProtocolMapper struct {
 	ConsentRequired bool              `json:"consentRequired,omitempty"`
 	ConsentText     string            `json:"consentText"`
 	Config          map[string]string `json:"config"`
+}
+
+type AuthenticationExecutionInfo struct {
+	Alias                string   `json:"alias,omitempty"`
+	AuthenticationConfig string   `json:"authenticationConfig,omitempty"`
+	AuthenticationFlow   bool     `json:"authenticationFlow,omitempty"`
+	Configurable         bool     `json:"configurable,omitempty"`
+	DisplayName          string   `json:"displayName,omitempty"`
+	FlowID               string   `json:"flowId,omitempty"`
+	ID                   string   `json:"id,omitempty"`
+	Index                int32    `json:"index,omitempty"`
+	Level                int32    `json:"level,omitempty"`
+	ProviderID           string   `json:"providerId,omitempty"`
+	Requirement          string   `json:"requirement,omitempty"`
+	RequirementChoices   []string `json:"requirementChoices,omitempty"`
+}
+
+type AuthenticatorConfig struct {
+	Alias  string            `json:"alias,omitempty"`
+	Config map[string]string `json:"config,omitempty"`
+	ID     string            `json:"id,omitempty"`
 }
 
 type KeycloakClient struct {

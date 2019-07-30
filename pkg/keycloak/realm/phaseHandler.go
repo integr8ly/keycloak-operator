@@ -140,6 +140,7 @@ func (ph *phaseHandler) Reconcile(kcr *v1alpha1.KeycloakRealm) (*v1alpha1.Keyclo
 	errors.AppendMultiErrorer(ph.reconcileUsers(kcClient, kcr, kcr.ObjectMeta.Namespace))
 	errors.AppendMultiErrorer(ph.reconcileClients(kcClient, kcr, kcr.ObjectMeta.Namespace))
 	errors.AppendMultiErrorer(ph.reconcileIdentityProviders(kcClient, kcr))
+	errors.AddError(ph.reconcileBrowserRedirector(kcr.Spec.BrowserRedirectorIdentityProvider, kcr.Spec.Realm, kcr.Spec.CreateOnly, kcClient))
 
 	if !errors.IsNil() {
 		return kcr, errors
@@ -499,6 +500,54 @@ func (ph *phaseHandler) reconcileIdentityProvider(kcIdentityProvider, specIdenti
 		err := authenticatedClient.UpdateIdentityProvider(specIdentityProvider, realmName)
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (ph *phaseHandler) reconcileBrowserRedirector(browserRedirectorIdentityProvider string, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
+	const authenticationConfigAlias string = "keycloak-operator-browser-redirector"
+
+	authenticationExecutionInfo, err := authenticatedClient.ListAuthenticationExecutionsForFlow("browser", realmName)
+	if err != nil {
+		return err
+	}
+
+	authenticationConfigID := ""
+	redirectorExecutionID := ""
+	for _, execution := range authenticationExecutionInfo {
+		if execution.ProviderID == "identity-provider-redirector" {
+			authenticationConfigID = execution.AuthenticationConfig
+			redirectorExecutionID = execution.ID
+		}
+	}
+	if redirectorExecutionID == "" {
+		return errors.New("'identity-provider-redirector' was not found in the list of executions of the 'browser' flow")
+	}
+
+	var authenticatorConfig *v1alpha1.AuthenticatorConfig
+	if authenticationConfigID != "" {
+		authenticatorConfig, err = authenticatedClient.GetAuthenticatorConfig(authenticationConfigID, realmName)
+		if err != nil {
+			return err
+		}
+	}
+
+	if authenticatorConfig == nil && browserRedirectorIdentityProvider != "" {
+		config := &v1alpha1.AuthenticatorConfig{
+			Alias:  authenticationConfigAlias,
+			Config: map[string]string{"defaultProvider": browserRedirectorIdentityProvider},
+		}
+		return authenticatedClient.CreateAuthenticatorConfig(config, realmName, redirectorExecutionID)
+	} else if !createOnly && authenticatorConfig != nil {
+		if browserRedirectorIdentityProvider != "" {
+			if authenticatorConfig.Config["defaultProvider"] != browserRedirectorIdentityProvider {
+				authenticatorConfig.Config["defaultProvider"] = browserRedirectorIdentityProvider
+				return authenticatedClient.UpdateAuthenticatorConfig(authenticatorConfig, realmName)
+			}
+		} else {
+			return authenticatedClient.DeleteAuthenticatorConfig(authenticationConfigID, realmName)
 		}
 	}
 

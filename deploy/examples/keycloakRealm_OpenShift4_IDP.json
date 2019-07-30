@@ -1,0 +1,102 @@
+{
+    "apiVersion": "aerogear.org/v1alpha1",
+    "kind": "KeycloakRealm",
+    "metadata": {
+      "name": "arealm"
+    },
+    "spec": {
+        "createOnly": true,
+        "id": "arealm",
+        "realm": "arealm",
+        "displayName": "arealm",
+        "enabled": true,
+        "eventsListeners": ["metrics-listener"],
+        "users": [
+            {
+                "username": "admin",
+                "outputSecret": "admin-credentials",
+                "password": "admin",
+                "enabled": true,
+                "emailVerified": false,
+                "firstName": "",
+                "lastName": "",
+                "email": "",
+                "realmRoles": [
+                    "offline_access",
+                    "uma_authorization"
+                ],
+                "clientRoles": {
+                    "account": [
+                        "manage-account",
+                        "view-profile"
+                    ],
+                    "realm-management": [
+                        "manage-users"
+                    ]
+                }
+            },
+            {
+                "username": "test",
+                "outputSecret": "test-credentials",
+                "enabled": true,
+                "realmRoles": [
+                    "offline_access",
+                    "uma_authorization"
+                ],
+                "clientRoles": {
+                    "account": [
+                        "manage-account",
+                        "view-profile"
+                    ]
+                }
+                
+            }
+        ],
+        "clients": [
+            {
+                "name": "mobile",
+                "clientId": "mobile-test",
+                "publicClient": true,
+                "outputSecret": "mobile-client",
+                "webOrigins": [
+                    "http://localhost:8100",
+                    "*"
+                ],
+                "redirectUris": [
+                    "http://localhost:*"
+                ],
+                "standardFlowEnabled": true,
+                "enabled": true
+            },
+            {
+                "name": "server",
+                "outputSecret": "server-client",
+                "clientId": "server-test",
+                "bearerOnly": true,
+                "baseURL": "https://keycloak.com",
+                "standardFlowEnabled": true,
+                "enabled": true
+            }
+        ],
+        "identityProviders": [
+            {
+                "alias": "openshift-v4",
+                "providerId": "openshift-v4",
+                "enabled": true,
+                "trustEmail": false,
+                "storeToken": true,
+                "addReadTokenRoleOnCreate": true,
+                "firstBrokerLoginFlowAlias": "first broker login",
+                "config": {
+                    "baseUrl": "https://openshift.default.svc.cluster.local",
+                    "clientId": "keycloak-openshift-auth-client",
+                    "clientSecret": "from_oauthClient_OpenShift4_IDP",
+                    "useJwksUrl": "true",
+                    "disableUserInfo": "",
+                    "hideOnLoginPage": "",
+                    "defaultScope": "user:full"
+                }
+            }
+        ]
+    }
+  }

@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	SSO_TEMPLATE_NAME         = "sso72-x509-postgresql-persistent.json"
+	SSO_TEMPLATE_NAME         = "sso73-x509-postgresql-persistent.json"
 	SSO_ROUTE_NAME            = "sso"
 	SSO_APPLICATION_NAME      = "sso"
 	SSO_TEMPLATE_PATH         = "deploy/template"

@@ -186,6 +186,10 @@ func (ph *phaseHandler) reconcileUsers(kcClient keycloak.KeycloakInterface, real
 
 func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface, ns string) error {
 	if specUser == nil {
+		if !createOnly {
+			return authenticatedClient.DeleteUser(kcUser.ID, realmName)
+		}
+
 		return nil
 	}
 	if kcUser == nil {

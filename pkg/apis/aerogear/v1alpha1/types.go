@@ -131,8 +131,9 @@ type KeycloakIdentityProviderPair struct {
 
 type KeycloakUser struct {
 	*KeycloakApiUser
-	OutputSecret *string `json:"outputSecret, omitempty"`
-	Password     *string `json:"password, omitempty"`
+	OutputSecret        *string             `json:"outputSecret, omitempty"`
+	Password            *string             `json:"password, omitempty"`
+	FederatedIdentities []FederatedIdentity `json:"federatedIdentities,omitempty"`
 }
 
 type KeycloakApiUser struct {
@@ -147,6 +148,12 @@ type KeycloakApiUser struct {
 	ClientRoles     map[string][]string `json:"clientRoles"`
 	RequiredActions []string            `json:"requiredActions,omitempty"`
 	Groups          []string            `json:"groups,omitempty"`
+}
+
+type FederatedIdentity struct {
+	IdentityProvider string `json:"identityProvider,omitempty"`
+	UserId           string `json:"userId,omitempty"`
+	UserName         string `json:"userName,omitempty"`
 }
 
 type KeycloakUserPair struct {

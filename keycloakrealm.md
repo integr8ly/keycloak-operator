@@ -12,7 +12,7 @@ Some values in this CRD are used to inform the operator how to behave, and most 
 
 The values used to inform the operator and listed and documented below. 
 
-For more information on the values used by the Keycloak API, please see their [API documentation](https://www.keycloak.org/docs-api/2.5/rest-api/).
+For more information on the values used by the Keycloak API, please see their [API documentation](https://www.keycloak.org/docs-api/4.8/rest-api/index.html).
 
 ### Index of Operator Values
 

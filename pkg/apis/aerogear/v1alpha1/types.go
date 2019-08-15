@@ -122,7 +122,6 @@ type KeycloakIdentityProvider struct {
 	AddReadTokenRoleOnCreate  bool              `json:"addReadTokenRoleOnCreate"`
 	FirstBrokerLoginFlowAlias string            `json:"firstBrokerLoginFlowAlias"`
 	PostBrokerLoginFlowAlias  string            `json:"postBrokerLoginFlowAlias"`
-	AuthenticateByDefault     bool              `json:"authenticateByDefault"`
 	LinkOnly                  bool              `json:"linkOnly"`
 	Config                    map[string]string `json:"config"`
 }

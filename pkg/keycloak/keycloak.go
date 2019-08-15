@@ -127,6 +127,8 @@ func (h *Reconciler) Handle(ctx context.Context, object interface{}, deleted boo
 	}
 	if kcState == nil {
 		return nil
+	} else if kcState.Status.Phase == v1alpha1.PhaseUpgrading {
+		return h.sdkCrud.Update(kcState)
 	}
 
 	switch kcState.Status.Phase {

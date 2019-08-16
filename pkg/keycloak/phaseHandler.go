@@ -106,16 +106,16 @@ func (ph *phaseHandler) Accepted(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, er
 func (ph *phaseHandler) Upgrade(sso *v1alpha1.Keycloak) (*v1alpha1.Keycloak, error) {
 	cpSSO := sso.DeepCopy()
 	if !CanUpgrade(cpSSO.Status.Version) || (cpSSO.Status.Phase != v1alpha1.PhaseUpgrading && cpSSO.Status.Phase != v1alpha1.PhaseReconcile) {
-		logrus.Debug("not upgrading from version ", cpSSO.Status.Version, " in phase ", cpSSO.Status.Phase)
 		cpSSO.Status.Message = "not upgrading. Version is either current or there is no upgrade path."
 		return cpSSO, nil
 	}
+	logrus.Info("Can upgrade")
 	dc, err := ph.ocDCClient.DeploymentConfigs(cpSSO.Namespace).Get(SSO_APPLICATION_NAME, v12.GetOptions{})
 	if err != nil {
 		return cpSSO, errors.Wrap(err, "failed to get current deploymentconfig for sso")
 	}
 	if cpSSO.Status.Phase == v1alpha1.PhaseReconcile {
-		logrus.Debug("marking for upgrade ", cpSSO.Status.Version, cpSSO.Status.Phase)
+		logrus.Infof("marking for upgrade %s %s", cpSSO.Status.Version, cpSSO.Status.Phase)
 		cpSSO.Status.Phase = v1alpha1.PhaseUpgrading
 		cpSSO.Status.Replicas = dc.Spec.Replicas
 		return cpSSO, nil

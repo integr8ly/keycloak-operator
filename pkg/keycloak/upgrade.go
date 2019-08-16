@@ -85,6 +85,12 @@ func ServiceUpgraded(service *cv1.Service) bool {
 }
 
 func UpgradeDeploymentConfig(dc *v1.DeploymentConfig) *v1.DeploymentConfig {
+	for i, _ := range dc.Spec.Template.Spec.InitContainers {
+		if dc.Spec.Template.Spec.InitContainers[i].Name == "sso-plugins-init" {
+			logrus.Infof("updated init container image")
+			dc.Spec.Template.Spec.InitContainers[i].Image = "quay.io/integreatly/sso_plugins_init:0.0.3"
+		}
+	}
 	for _, t := range dc.Spec.Triggers {
 		if t.Type == v1.DeploymentTriggerOnImageChange {
 			t.ImageChangeParams.From.Name = SSO_IMAGE_STREAM

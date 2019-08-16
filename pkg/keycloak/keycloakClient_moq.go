@@ -11,6 +11,7 @@ import (
 var (
 	lockKeycloakInterfaceMockCreateAuthenticatorConfig           sync.RWMutex
 	lockKeycloakInterfaceMockCreateClient                        sync.RWMutex
+	lockKeycloakInterfaceMockCreateFederatedIdentity             sync.RWMutex
 	lockKeycloakInterfaceMockCreateIdentityProvider              sync.RWMutex
 	lockKeycloakInterfaceMockCreateRealm                         sync.RWMutex
 	lockKeycloakInterfaceMockCreateUser                          sync.RWMutex
@@ -30,6 +31,7 @@ var (
 	lockKeycloakInterfaceMockGetIdentityProvider                 sync.RWMutex
 	lockKeycloakInterfaceMockGetRealm                            sync.RWMutex
 	lockKeycloakInterfaceMockGetUser                             sync.RWMutex
+	lockKeycloakInterfaceMockGetUserFederatedIdentities          sync.RWMutex
 	lockKeycloakInterfaceMockListAuthenticationExecutionsForFlow sync.RWMutex
 	lockKeycloakInterfaceMockListAvailableUserClientRoles        sync.RWMutex
 	lockKeycloakInterfaceMockListClients                         sync.RWMutex
@@ -38,6 +40,7 @@ var (
 	lockKeycloakInterfaceMockListUserClientRoles                 sync.RWMutex
 	lockKeycloakInterfaceMockListUsers                           sync.RWMutex
 	lockKeycloakInterfaceMockPing                                sync.RWMutex
+	lockKeycloakInterfaceMockRemoveFederatedIdentity             sync.RWMutex
 	lockKeycloakInterfaceMockUpdateAuthenticatorConfig           sync.RWMutex
 	lockKeycloakInterfaceMockUpdateClient                        sync.RWMutex
 	lockKeycloakInterfaceMockUpdateIdentityProvider              sync.RWMutex
@@ -61,6 +64,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             },
 //             CreateClientFunc: func(client *v1alpha1.KeycloakClient, realmName string) error {
 // 	               panic("mock out the CreateClient method")
+//             },
+//             CreateFederatedIdentityFunc: func(fid v1alpha1.FederatedIdentity, userId string, realmName string) error {
+// 	               panic("mock out the CreateFederatedIdentity method")
 //             },
 //             CreateIdentityProviderFunc: func(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
 // 	               panic("mock out the CreateIdentityProvider method")
@@ -119,6 +125,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             GetUserFunc: func(userID string, realmName string) (*v1alpha1.KeycloakUser, error) {
 // 	               panic("mock out the GetUser method")
 //             },
+//             GetUserFederatedIdentitiesFunc: func(userName string, realmName string) ([]v1alpha1.FederatedIdentity, error) {
+// 	               panic("mock out the GetUserFederatedIdentities method")
+//             },
 //             ListAuthenticationExecutionsForFlowFunc: func(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error) {
 // 	               panic("mock out the ListAuthenticationExecutionsForFlow method")
 //             },
@@ -142,6 +151,9 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             },
 //             PingFunc: func() error {
 // 	               panic("mock out the Ping method")
+//             },
+//             RemoveFederatedIdentityFunc: func(fid v1alpha1.FederatedIdentity, userId string, realmName string) error {
+// 	               panic("mock out the RemoveFederatedIdentity method")
 //             },
 //             UpdateAuthenticatorConfigFunc: func(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string) error {
 // 	               panic("mock out the UpdateAuthenticatorConfig method")
@@ -173,6 +185,9 @@ type KeycloakInterfaceMock struct {
 
 	// CreateClientFunc mocks the CreateClient method.
 	CreateClientFunc func(client *v1alpha1.KeycloakClient, realmName string) error
+
+	// CreateFederatedIdentityFunc mocks the CreateFederatedIdentity method.
+	CreateFederatedIdentityFunc func(fid v1alpha1.FederatedIdentity, userId string, realmName string) error
 
 	// CreateIdentityProviderFunc mocks the CreateIdentityProvider method.
 	CreateIdentityProviderFunc func(identityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error
@@ -231,6 +246,9 @@ type KeycloakInterfaceMock struct {
 	// GetUserFunc mocks the GetUser method.
 	GetUserFunc func(userID string, realmName string) (*v1alpha1.KeycloakUser, error)
 
+	// GetUserFederatedIdentitiesFunc mocks the GetUserFederatedIdentities method.
+	GetUserFederatedIdentitiesFunc func(userName string, realmName string) ([]v1alpha1.FederatedIdentity, error)
+
 	// ListAuthenticationExecutionsForFlowFunc mocks the ListAuthenticationExecutionsForFlow method.
 	ListAuthenticationExecutionsForFlowFunc func(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error)
 
@@ -254,6 +272,9 @@ type KeycloakInterfaceMock struct {
 
 	// PingFunc mocks the Ping method.
 	PingFunc func() error
+
+	// RemoveFederatedIdentityFunc mocks the RemoveFederatedIdentity method.
+	RemoveFederatedIdentityFunc func(fid v1alpha1.FederatedIdentity, userId string, realmName string) error
 
 	// UpdateAuthenticatorConfigFunc mocks the UpdateAuthenticatorConfig method.
 	UpdateAuthenticatorConfigFunc func(authenticatorConfig *v1alpha1.AuthenticatorConfig, realmName string) error
@@ -288,6 +309,15 @@ type KeycloakInterfaceMock struct {
 		CreateClient []struct {
 			// Client is the client argument value.
 			Client *v1alpha1.KeycloakClient
+			// RealmName is the realmName argument value.
+			RealmName string
+		}
+		// CreateFederatedIdentity holds details about calls to the CreateFederatedIdentity method.
+		CreateFederatedIdentity []struct {
+			// Fid is the fid argument value.
+			Fid v1alpha1.FederatedIdentity
+			// UserId is the userId argument value.
+			UserId string
 			// RealmName is the realmName argument value.
 			RealmName string
 		}
@@ -426,6 +456,13 @@ type KeycloakInterfaceMock struct {
 			// RealmName is the realmName argument value.
 			RealmName string
 		}
+		// GetUserFederatedIdentities holds details about calls to the GetUserFederatedIdentities method.
+		GetUserFederatedIdentities []struct {
+			// UserName is the userName argument value.
+			UserName string
+			// RealmName is the realmName argument value.
+			RealmName string
+		}
 		// ListAuthenticationExecutionsForFlow holds details about calls to the ListAuthenticationExecutionsForFlow method.
 		ListAuthenticationExecutionsForFlow []struct {
 			// FlowAlias is the flowAlias argument value.
@@ -471,6 +508,15 @@ type KeycloakInterfaceMock struct {
 		}
 		// Ping holds details about calls to the Ping method.
 		Ping []struct {
+		}
+		// RemoveFederatedIdentity holds details about calls to the RemoveFederatedIdentity method.
+		RemoveFederatedIdentity []struct {
+			// Fid is the fid argument value.
+			Fid v1alpha1.FederatedIdentity
+			// UserId is the userId argument value.
+			UserId string
+			// RealmName is the realmName argument value.
+			RealmName string
 		}
 		// UpdateAuthenticatorConfig holds details about calls to the UpdateAuthenticatorConfig method.
 		UpdateAuthenticatorConfig []struct {
@@ -588,6 +634,45 @@ func (mock *KeycloakInterfaceMock) CreateClientCalls() []struct {
 	lockKeycloakInterfaceMockCreateClient.RLock()
 	calls = mock.calls.CreateClient
 	lockKeycloakInterfaceMockCreateClient.RUnlock()
+	return calls
+}
+
+// CreateFederatedIdentity calls CreateFederatedIdentityFunc.
+func (mock *KeycloakInterfaceMock) CreateFederatedIdentity(fid v1alpha1.FederatedIdentity, userId string, realmName string) error {
+	if mock.CreateFederatedIdentityFunc == nil {
+		panic("KeycloakInterfaceMock.CreateFederatedIdentityFunc: method is nil but KeycloakInterface.CreateFederatedIdentity was just called")
+	}
+	callInfo := struct {
+		Fid       v1alpha1.FederatedIdentity
+		UserId    string
+		RealmName string
+	}{
+		Fid:       fid,
+		UserId:    userId,
+		RealmName: realmName,
+	}
+	lockKeycloakInterfaceMockCreateFederatedIdentity.Lock()
+	mock.calls.CreateFederatedIdentity = append(mock.calls.CreateFederatedIdentity, callInfo)
+	lockKeycloakInterfaceMockCreateFederatedIdentity.Unlock()
+	return mock.CreateFederatedIdentityFunc(fid, userId, realmName)
+}
+
+// CreateFederatedIdentityCalls gets all the calls that were made to CreateFederatedIdentity.
+// Check the length with:
+//     len(mockedKeycloakInterface.CreateFederatedIdentityCalls())
+func (mock *KeycloakInterfaceMock) CreateFederatedIdentityCalls() []struct {
+	Fid       v1alpha1.FederatedIdentity
+	UserId    string
+	RealmName string
+} {
+	var calls []struct {
+		Fid       v1alpha1.FederatedIdentity
+		UserId    string
+		RealmName string
+	}
+	lockKeycloakInterfaceMockCreateFederatedIdentity.RLock()
+	calls = mock.calls.CreateFederatedIdentity
+	lockKeycloakInterfaceMockCreateFederatedIdentity.RUnlock()
 	return calls
 }
 
@@ -1260,6 +1345,41 @@ func (mock *KeycloakInterfaceMock) GetUserCalls() []struct {
 	return calls
 }
 
+// GetUserFederatedIdentities calls GetUserFederatedIdentitiesFunc.
+func (mock *KeycloakInterfaceMock) GetUserFederatedIdentities(userName string, realmName string) ([]v1alpha1.FederatedIdentity, error) {
+	if mock.GetUserFederatedIdentitiesFunc == nil {
+		panic("KeycloakInterfaceMock.GetUserFederatedIdentitiesFunc: method is nil but KeycloakInterface.GetUserFederatedIdentities was just called")
+	}
+	callInfo := struct {
+		UserName  string
+		RealmName string
+	}{
+		UserName:  userName,
+		RealmName: realmName,
+	}
+	lockKeycloakInterfaceMockGetUserFederatedIdentities.Lock()
+	mock.calls.GetUserFederatedIdentities = append(mock.calls.GetUserFederatedIdentities, callInfo)
+	lockKeycloakInterfaceMockGetUserFederatedIdentities.Unlock()
+	return mock.GetUserFederatedIdentitiesFunc(userName, realmName)
+}
+
+// GetUserFederatedIdentitiesCalls gets all the calls that were made to GetUserFederatedIdentities.
+// Check the length with:
+//     len(mockedKeycloakInterface.GetUserFederatedIdentitiesCalls())
+func (mock *KeycloakInterfaceMock) GetUserFederatedIdentitiesCalls() []struct {
+	UserName  string
+	RealmName string
+} {
+	var calls []struct {
+		UserName  string
+		RealmName string
+	}
+	lockKeycloakInterfaceMockGetUserFederatedIdentities.RLock()
+	calls = mock.calls.GetUserFederatedIdentities
+	lockKeycloakInterfaceMockGetUserFederatedIdentities.RUnlock()
+	return calls
+}
+
 // ListAuthenticationExecutionsForFlow calls ListAuthenticationExecutionsForFlowFunc.
 func (mock *KeycloakInterfaceMock) ListAuthenticationExecutionsForFlow(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error) {
 	if mock.ListAuthenticationExecutionsForFlowFunc == nil {
@@ -1515,6 +1635,45 @@ func (mock *KeycloakInterfaceMock) PingCalls() []struct {
 	lockKeycloakInterfaceMockPing.RLock()
 	calls = mock.calls.Ping
 	lockKeycloakInterfaceMockPing.RUnlock()
+	return calls
+}
+
+// RemoveFederatedIdentity calls RemoveFederatedIdentityFunc.
+func (mock *KeycloakInterfaceMock) RemoveFederatedIdentity(fid v1alpha1.FederatedIdentity, userId string, realmName string) error {
+	if mock.RemoveFederatedIdentityFunc == nil {
+		panic("KeycloakInterfaceMock.RemoveFederatedIdentityFunc: method is nil but KeycloakInterface.RemoveFederatedIdentity was just called")
+	}
+	callInfo := struct {
+		Fid       v1alpha1.FederatedIdentity
+		UserId    string
+		RealmName string
+	}{
+		Fid:       fid,
+		UserId:    userId,
+		RealmName: realmName,
+	}
+	lockKeycloakInterfaceMockRemoveFederatedIdentity.Lock()
+	mock.calls.RemoveFederatedIdentity = append(mock.calls.RemoveFederatedIdentity, callInfo)
+	lockKeycloakInterfaceMockRemoveFederatedIdentity.Unlock()
+	return mock.RemoveFederatedIdentityFunc(fid, userId, realmName)
+}
+
+// RemoveFederatedIdentityCalls gets all the calls that were made to RemoveFederatedIdentity.
+// Check the length with:
+//     len(mockedKeycloakInterface.RemoveFederatedIdentityCalls())
+func (mock *KeycloakInterfaceMock) RemoveFederatedIdentityCalls() []struct {
+	Fid       v1alpha1.FederatedIdentity
+	UserId    string
+	RealmName string
+} {
+	var calls []struct {
+		Fid       v1alpha1.FederatedIdentity
+		UserId    string
+		RealmName string
+	}
+	lockKeycloakInterfaceMockRemoveFederatedIdentity.RLock()
+	calls = mock.calls.RemoveFederatedIdentity
+	lockKeycloakInterfaceMockRemoveFederatedIdentity.RUnlock()
 	return calls
 }
 

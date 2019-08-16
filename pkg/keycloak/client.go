@@ -91,6 +91,26 @@ func (c *Client) CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
 	return c.create(user.KeycloakApiUser, fmt.Sprintf("realms/%s/users", realmName), "user")
 }
 
+func (c *Client) CreateFederatedIdentity(fid v1alpha1.FederatedIdentity, userId string, realmName string) error {
+	return c.create(fid, fmt.Sprintf("realms/%s/users/%s/federated-identity/%s", realmName, userId, fid.IdentityProvider), "federated-identity")
+}
+
+func (c *Client) RemoveFederatedIdentity(fid v1alpha1.FederatedIdentity, userId string, realmName string) error {
+	return c.delete(fmt.Sprintf("realms/%s/users/%s/federated-identity/%s", realmName, userId, fid.IdentityProvider), "federated-identity", fid)
+}
+
+func (c *Client) GetUserFederatedIdentities(userID string, realmName string) ([]v1alpha1.FederatedIdentity, error) {
+	result, err := c.get(fmt.Sprintf("realms/%s/users/%s/federated-identity", realmName, userID), "federated-identity", func(body []byte) (T, error) {
+		var fids []v1alpha1.FederatedIdentity
+		err := json.Unmarshal(body, &fids)
+		return fids, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]v1alpha1.FederatedIdentity), err
+}
+
 func (c *Client) CreateUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error {
 	return c.create(
 		[]*v1alpha1.KeycloakUserClientRole{role},
@@ -646,6 +666,9 @@ type KeycloakInterface interface {
 	ListClients(realmName string) ([]*v1alpha1.KeycloakClient, error)
 
 	CreateUser(user *v1alpha1.KeycloakUser, realmName string) error
+	CreateFederatedIdentity(fid v1alpha1.FederatedIdentity, userId string, realmName string) error
+	RemoveFederatedIdentity(fid v1alpha1.FederatedIdentity, userId string, realmName string) error
+	GetUserFederatedIdentities(userName string, realmName string) ([]v1alpha1.FederatedIdentity, error)
 	UpdatePassword(user *v1alpha1.KeycloakApiUser, realmName, newPass string) error
 	FindUserByEmail(email, realm string) (*v1alpha1.KeycloakApiUser, error)
 	FindUserByUsername(name, realm string) (*v1alpha1.KeycloakApiUser, error)

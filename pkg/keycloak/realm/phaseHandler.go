@@ -186,6 +186,10 @@ func (ph *phaseHandler) reconcileUsers(kcClient keycloak.KeycloakInterface, real
 
 func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface, ns string) error {
 	if specUser == nil {
+		if !createOnly {
+			return authenticatedClient.DeleteUser(kcUser.ID, realmName)
+		}
+
 		return nil
 	}
 	if kcUser == nil {
@@ -252,6 +256,10 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		return err
 	}
 
+	if err := ph.reconcileUserFederatedIdentities(specUser, realmName, createOnly, authenticatedClient); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -276,6 +284,45 @@ func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser
 		if !foundClient && !createOnly {
 			// delete all roles, this client is deleted from this user in the CR
 			me.AddError(ph.reconcileRolesForClient([]string{}, client, specUser, realmName, createOnly, authenticatedClient))
+		}
+	}
+	if me.IsNil() {
+		return nil
+	}
+	return me
+}
+
+func (ph *phaseHandler) reconcileUserFederatedIdentities(specUser *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
+	user, err := authenticatedClient.FindUserByUsername(specUser.UserName, realmName)
+	if err != nil {
+		return err
+	}
+
+	currentFids, err := authenticatedClient.GetUserFederatedIdentities(user.ID, realmName)
+	if err != nil {
+		return err
+	}
+
+	containsFi := func(fidList []v1alpha1.FederatedIdentity, targetFid v1alpha1.FederatedIdentity) bool {
+		for _, fid := range fidList {
+			if reflect.DeepEqual(fid, targetFid) {
+				return true
+			}
+		}
+
+		return false
+	}
+	me := util.NewMultiError()
+	if !createOnly {
+		for _, currentFid := range currentFids {
+			if !containsFi(specUser.FederatedIdentities, currentFid) {
+				me.AddError(authenticatedClient.RemoveFederatedIdentity(currentFid, user.ID, realmName))
+			}
+		}
+	}
+	for _, specFid := range specUser.FederatedIdentities {
+		if !containsFi(currentFids, specFid) {
+			me.AddError(authenticatedClient.CreateFederatedIdentity(specFid, user.ID, realmName))
 		}
 	}
 	if me.IsNil() {

@@ -333,6 +333,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						ListIdentityProvidersFunc: func(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error) {
 							return nil, nil
 						},
+						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
+							return &v1alpha1.KeycloakApiUser{}, nil
+						},
+						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
+							return []v1alpha1.FederatedIdentity{}, nil
+						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil
 				},
@@ -430,6 +436,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						},
 						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
 							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						},
+						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
+							return &v1alpha1.KeycloakApiUser{}, nil
+						},
+						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
+							return []v1alpha1.FederatedIdentity{}, nil
 						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil
@@ -538,6 +550,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
 							return []*v1alpha1.KeycloakUserClientRole{}, nil
 						},
+						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
+							return &v1alpha1.KeycloakApiUser{}, nil
+						},
+						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
+							return []v1alpha1.FederatedIdentity{}, nil
+						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil
 				},
@@ -629,6 +647,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						UpdateIdentityProviderFunc: func(specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
 							return nil
 						},
+						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
+							return &v1alpha1.KeycloakApiUser{}, nil
+						},
+						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
+							return []v1alpha1.FederatedIdentity{}, nil
+						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil
 				},
@@ -680,6 +704,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 									Config: map[string]string{},
 								},
 							}, nil
+						},
+						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
+							return &v1alpha1.KeycloakApiUser{}, nil
+						},
+						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
+							return []v1alpha1.FederatedIdentity{}, nil
 						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil
@@ -883,6 +913,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						DeleteUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userID string) error {
 							return nil
 						},
+						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
+							return &v1alpha1.KeycloakApiUser{}, nil
+						},
+						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
+							return []v1alpha1.FederatedIdentity{}, nil
+						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil
 				},
@@ -978,6 +1014,12 @@ func TestProvisionDeletesPassword(t *testing.T) {
 						},
 						ListIdentityProvidersFunc: func(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error) {
 							return []*v1alpha1.KeycloakIdentityProvider{}, nil
+						},
+						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
+							return &v1alpha1.KeycloakApiUser{}, nil
+						},
+						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
+							return []v1alpha1.FederatedIdentity{}, nil
 						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil

@@ -4,12 +4,12 @@ CONSUMER_NAMESPACES=${NAMESPACE}
 PROJECT=keycloak-operator
 REG=quay.io
 SHELL=/bin/bash
-TAG=v1.8.2
+TAG=v1.8.3
 PKG=github.com/integr8ly/keycloak-operator
 TEST_DIRS?=$(shell sh -c "find $(TOP_SRC_DIRS) -name \\*_test.go -exec dirname {} \\; | sort | uniq")
 TEST_POD_NAME=keycloak-operator-test
 COMPILE_TARGET=./tmp/_output/bin/$(PROJECT)
-OPERATOR_SDK_BINARY=./operator-sdk-v0.0.7-x86_64-apple-darwin
+OPERATOR_SDK_BINARY=operator-sdk
 
 .PHONY: setup/dep
 setup/dep:

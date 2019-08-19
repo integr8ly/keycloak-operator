@@ -53,6 +53,8 @@ spec:
                     type: string
                   postBrokerLoginFlowAlias:
                     type: string
+                  linkOnly:
+                    type: boolean              
                   config:
                     type: object
             users:

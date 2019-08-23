@@ -80,3 +80,51 @@ spec:
           for: 5m
           labels:
             severity: warning
+        - alert: KeycloakInstanceNotAvailable
+          annotations:
+            message: >-
+              Keycloak instance in namespace {{ $labels.namespace }} has not
+              been available for the last 5 minutes.
+          expr: >
+            (1 - absent(kube_pod_status_ready{namespace="sso", condition="true"}
+            * on (pod) group_left (label_deploymentConfig)
+            kube_pod_labels{label_deploymentConfig="sso"})) == 0 or
+            probe_success{service="rhsso-ui"} == 0 
+          for: 5m
+          labels:
+            severity: critical
+        - alert: KeycloakAPIRequestDuration90PercThresholdExceeded
+          annotations:
+            message: >-
+              Less than 90% of the RH SSO API endpoints in namespace {{ $labels.namespace }} are taking longer than 1s for the last 5 minutes.
+          expr: >
+            (sum(rate(keycloak_request_duration_bucket{le="1000.0"}[5m])) by (job) 
+            /
+            sum(rate(keycloak_request_duration_count[5m])) by (job)) < 0.90
+          for: 5m
+          labels:
+            severity: critical
+        - alert: KeycloakAPIRequestDuration99PercThresholdExceeded
+          annotations:
+            message: >-
+              Less than 99.5% of the RH SSO API endpoints in namespace {{ $labels.namespace }} are taking longer than 10s for the last 5 minutes.
+          expr: >
+            (sum(rate(keycloak_request_duration_bucket{le="10000.0"}[5m])) by (job) 
+            /
+            sum(rate(keycloak_request_duration_count[5m])) by (job)) < 0.995
+          for: 5m
+          labels:
+            severity: critical
+        - alert: KeycloakDatabaseNotAvailable
+          annotations:
+            message: >-
+              RH SSO database in namespace {{ $labels.namespace }} is not
+              available for the last 5 minutes.
+          expr: >
+            (1 - absent(kube_pod_status_ready{namespace="sso", condition="true"}
+            * on (pod) group_left (label_deploymentConfig)
+            kube_pod_labels{label_deploymentConfig="sso-postgresql"})) == 0 
+          for: 5m
+          labels:
+            severity: critical
+

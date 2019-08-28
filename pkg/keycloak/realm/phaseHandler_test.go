@@ -431,11 +431,11 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						UpdateIdentityProviderFunc: func(specIdentityProvider *v1alpha1.KeycloakIdentityProvider, realmName string) error {
 							return nil
 						},
-						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
-							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
-						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
-							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
 						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
 							return &v1alpha1.KeycloakApiUser{}, nil
@@ -544,11 +544,11 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 								},
 							}, nil
 						},
-						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
-							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
-						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
-							return []*v1alpha1.KeycloakUserClientRole{}, nil
+						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
 						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
 							return &v1alpha1.KeycloakApiUser{}, nil
@@ -893,24 +893,24 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						ListIdentityProvidersFunc: func(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error) {
 							return []*v1alpha1.KeycloakIdentityProvider{}, nil
 						},
-						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
-							return []*v1alpha1.KeycloakUserClientRole{
+						ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{
 								{
 									Name: "manage-accounts",
 								},
 							}, nil
 						},
-						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserClientRole, e error) {
-							return []*v1alpha1.KeycloakUserClientRole{
+						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{
 								{
 									Name: "delete-this-role",
 								},
 							}, nil
 						},
-						CreateUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userId string) error {
+						CreateUserClientRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userId string) error {
 							return nil
 						},
-						DeleteUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userID string) error {
+						DeleteUserClientRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userID string) error {
 							return nil
 						},
 						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {

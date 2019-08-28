@@ -437,6 +437,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
 							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
+						ListAvailableUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
+						},
+						ListUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
+						},
 						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
 							return &v1alpha1.KeycloakApiUser{}, nil
 						},
@@ -550,6 +556,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						ListUserClientRolesFunc: func(realmName string, clientID string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
 							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
+						ListAvailableUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
+						},
+						ListUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
+						},
 						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
 							return &v1alpha1.KeycloakApiUser{}, nil
 						},
@@ -652,6 +664,12 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 						},
 						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
 							return []v1alpha1.FederatedIdentity{}, nil
+						},
+						ListAvailableUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
+						},
+						ListUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil
@@ -907,10 +925,27 @@ func TestPhaseHandlerReconcile(t *testing.T) {
 								},
 							}, nil
 						},
+						ListAvailableUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{
+								{
+									Name: "create-realms",
+								},
+							}, nil
+						},
+						ListUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{
+								{
+									Name: "delete-this-role",
+								},
+							}, nil
+						},
 						CreateUserClientRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userId string) error {
 							return nil
 						},
 						DeleteUserClientRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userID string) error {
+							return nil
+						},
+						DeleteUserRealmRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, userID string) error {
 							return nil
 						},
 						FindUserByUsernameFunc: func(name string, realm string) (user *v1alpha1.KeycloakApiUser, e error) {
@@ -1020,6 +1055,12 @@ func TestProvisionDeletesPassword(t *testing.T) {
 						},
 						GetUserFederatedIdentitiesFunc: func(userName string, realmName string) (identities []v1alpha1.FederatedIdentity, e error) {
 							return []v1alpha1.FederatedIdentity{}, nil
+						},
+						ListAvailableUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
+						},
+						ListUserRealmRolesFunc: func(realmName string, userID string) (roles []*v1alpha1.KeycloakUserRole, e error) {
+							return []*v1alpha1.KeycloakUserRole{}, nil
 						},
 						ListAuthenticationExecutionsForFlowFunc: listAuthenticationExecutionsForFlowFunc,
 					}, nil

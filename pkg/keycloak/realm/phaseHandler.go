@@ -205,6 +205,8 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		if u == nil {
 			return errors.New("failed to find user " + specUser.Email)
 		}
+		specUser.ID = u.ID
+
 		var newPass string
 		if specUser.Password != nil {
 			newPass = *specUser.Password
@@ -243,7 +245,6 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 		}
 		if !createOnly {
 			if !resourcesEqual(kcUser.KeycloakApiUser, specUser.KeycloakApiUser) {
-				specUser.ID = kcUser.ID
 				err := authenticatedClient.UpdateUser(specUser, realmName)
 				if err != nil {
 					return err
@@ -253,6 +254,10 @@ func (ph *phaseHandler) reconcileUser(kcUser, specUser *v1alpha1.KeycloakUser, r
 	}
 
 	if err := ph.reconcileUserClientRoles(specUser, realmName, createOnly, authenticatedClient); err != nil {
+		return err
+	}
+
+	if err := ph.reconcileUserRealmRoles(specUser, realmName, createOnly, authenticatedClient); err != nil {
 		return err
 	}
 
@@ -290,6 +295,65 @@ func (ph *phaseHandler) reconcileUserClientRoles(specUser *v1alpha1.KeycloakUser
 		return nil
 	}
 	return me
+}
+
+func (ph *phaseHandler) reconcileUserRealmRoles(user *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
+	availableRoles, err := authenticatedClient.ListAvailableUserRealmRoles(realmName, user.ID)
+	if err != nil {
+		return err
+	}
+	kcRoles, err := authenticatedClient.ListUserRealmRoles(realmName, user.ID)
+	if err != nil {
+		return err
+	}
+
+	createRoles := []string{}
+	deleteRoles := []*v1alpha1.KeycloakUserRole{}
+
+	for _, name := range user.RealmRoles {
+		foundRole := false
+		for _, kcRole := range kcRoles {
+			if kcRole.Name == name {
+				foundRole = true
+				break
+			}
+		}
+		if !foundRole {
+			createRoles = append(createRoles, name)
+		}
+	}
+
+	for _, kcRole := range kcRoles {
+		foundRole := false
+		for _, name := range user.RealmRoles {
+			if kcRole.Name == name {
+				foundRole = true
+				break
+			}
+		}
+		if !foundRole {
+			deleteRoles = append(deleteRoles, kcRole)
+		}
+	}
+
+	for _, createRoleName := range createRoles {
+		for _, createRole := range availableRoles {
+			if createRole.Name == createRoleName {
+				if err := authenticatedClient.CreateUserRealmRole(createRole, realmName, user.ID); err != nil {
+					return errors.Wrap(err, "error creating user realm role")
+				}
+			}
+		}
+	}
+
+	if !createOnly {
+		for _, deleteRole := range deleteRoles {
+			if err := authenticatedClient.DeleteUserRealmRole(deleteRole, realmName, user.ID); err != nil {
+				return errors.Wrap(err, "error deleting user realm role")
+			}
+		}
+	}
+	return nil
 }
 
 func (ph *phaseHandler) reconcileUserFederatedIdentities(specUser *v1alpha1.KeycloakUser, realmName string, createOnly bool, authenticatedClient keycloak.KeycloakInterface) error {
@@ -341,7 +405,7 @@ func (ph *phaseHandler) reconcileRolesForClient(roles []string, client *v1alpha1
 		return err
 	}
 
-	kcRolesMap := map[string]*v1alpha1.KeycloakUserClientRole{}
+	kcRolesMap := map[string]*v1alpha1.KeycloakUserRole{}
 	for _, role := range kcRoles {
 		kcRolesMap[role.Name] = role
 	}
@@ -352,7 +416,7 @@ func (ph *phaseHandler) reconcileRolesForClient(roles []string, client *v1alpha1
 	}
 
 	createRoles := []string{}
-	deleteRoles := []*v1alpha1.KeycloakUserClientRole{}
+	deleteRoles := []*v1alpha1.KeycloakUserRole{}
 
 	for name := range specRolesMap {
 		if _, ok := kcRolesMap[name]; !ok {

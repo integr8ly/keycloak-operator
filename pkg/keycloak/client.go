@@ -111,11 +111,18 @@ func (c *Client) GetUserFederatedIdentities(userID string, realmName string) ([]
 	return result.([]v1alpha1.FederatedIdentity), err
 }
 
-func (c *Client) CreateUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error {
+func (c *Client) CreateUserClientRole(role *v1alpha1.KeycloakUserRole, realmName, clientID, userId string) error {
 	return c.create(
-		[]*v1alpha1.KeycloakUserClientRole{role},
+		[]*v1alpha1.KeycloakUserRole{role},
 		fmt.Sprintf("realms/%s/users/%s/role-mappings/clients/%s", realmName, userId, clientID),
 		"user-client-role",
+	)
+}
+func (c *Client) CreateUserRealmRole(role *v1alpha1.KeycloakUserRole, realmName, userId string) error {
+	return c.create(
+		[]*v1alpha1.KeycloakUserRole{role},
+		fmt.Sprintf("realms/%s/users/%s/role-mappings/realm", realmName, userId),
+		"user-realm-role",
 	)
 }
 
@@ -123,11 +130,20 @@ func (c *Client) CreateAuthenticatorConfig(authenticatorConfig *v1alpha1.Authent
 	return c.create(authenticatorConfig, fmt.Sprintf("realms/%s/authentication/executions/%s/config", realmName, executionID), "AuthenticatorConfig")
 }
 
-func (c *Client) DeleteUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error {
+func (c *Client) DeleteUserClientRole(role *v1alpha1.KeycloakUserRole, realmName, clientID, userId string) error {
 	err := c.delete(
 		fmt.Sprintf("realms/%s/users/%s/role-mappings/clients/%s", realmName, userId, clientID),
 		"user-client-role",
-		[]*v1alpha1.KeycloakUserClientRole{role},
+		[]*v1alpha1.KeycloakUserRole{role},
+	)
+	return err
+}
+
+func (c *Client) DeleteUserRealmRole(role *v1alpha1.KeycloakUserRole, realmName, userId string) error {
+	err := c.delete(
+		fmt.Sprintf("realms/%s/users/%s/role-mappings/realm", realmName, userId),
+		"user-realm-role",
+		[]*v1alpha1.KeycloakUserRole{role},
 	)
 	return err
 }
@@ -532,28 +548,52 @@ func (c *Client) ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakId
 	return result.([]*v1alpha1.KeycloakIdentityProvider), err
 }
 
-func (c *Client) ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+func (c *Client) ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
 	objects, err := c.list("realms/"+realmName+"/users/"+userID+"/role-mappings/clients/"+clientID, "userClientRoles", func(body []byte) (t T, e error) {
-		var userClientRoles []*v1alpha1.KeycloakUserClientRole
+		var userClientRoles []*v1alpha1.KeycloakUserRole
 		err := json.Unmarshal(body, &userClientRoles)
 		return userClientRoles, err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return objects.([]*v1alpha1.KeycloakUserClientRole), err
+	return objects.([]*v1alpha1.KeycloakUserRole), err
 }
 
-func (c *Client) ListAvailableUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+func (c *Client) ListAvailableUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
 	objects, err := c.list("realms/"+realmName+"/users/"+userID+"/role-mappings/clients/"+clientID+"/available", "userClientRoles", func(body []byte) (t T, e error) {
-		var userClientRoles []*v1alpha1.KeycloakUserClientRole
+		var userClientRoles []*v1alpha1.KeycloakUserRole
 		err := json.Unmarshal(body, &userClientRoles)
 		return userClientRoles, err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return objects.([]*v1alpha1.KeycloakUserClientRole), err
+	return objects.([]*v1alpha1.KeycloakUserRole), err
+}
+
+func (c *Client) ListUserRealmRoles(realmName, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
+	objects, err := c.list("realms/"+realmName+"/users/"+userID+"/role-mappings/realm", "userRealmRoles", func(body []byte) (t T, e error) {
+		var userRealmRoles []*v1alpha1.KeycloakUserRole
+		err := json.Unmarshal(body, &userRealmRoles)
+		return userRealmRoles, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return objects.([]*v1alpha1.KeycloakUserRole), err
+}
+
+func (c *Client) ListAvailableUserRealmRoles(realmName, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
+	objects, err := c.list("realms/"+realmName+"/users/"+userID+"/role-mappings/realm/available", "userClientRoles", func(body []byte) (t T, e error) {
+		var userRealmRoles []*v1alpha1.KeycloakUserRole
+		err := json.Unmarshal(body, &userRealmRoles)
+		return userRealmRoles, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return objects.([]*v1alpha1.KeycloakUserRole), err
 }
 
 func (c *Client) ListAuthenticationExecutionsForFlow(flowAlias, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error) {
@@ -683,10 +723,15 @@ type KeycloakInterface interface {
 	DeleteIdentityProvider(alias, realmName string) error
 	ListIdentityProviders(realmName string) ([]*v1alpha1.KeycloakIdentityProvider, error)
 
-	CreateUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userId string) error
-	ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
-	ListAvailableUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
-	DeleteUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName, clientID, userID string) error
+	CreateUserClientRole(role *v1alpha1.KeycloakUserRole, realmName, clientID, userId string) error
+	ListUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserRole, error)
+	ListAvailableUserClientRoles(realmName, clientID, userID string) ([]*v1alpha1.KeycloakUserRole, error)
+	DeleteUserClientRole(role *v1alpha1.KeycloakUserRole, realmName, clientID, userID string) error
+
+	CreateUserRealmRole(role *v1alpha1.KeycloakUserRole, realmName, userId string) error
+	ListUserRealmRoles(realmName, userID string) ([]*v1alpha1.KeycloakUserRole, error)
+	ListAvailableUserRealmRoles(realmName, userID string) ([]*v1alpha1.KeycloakUserRole, error)
+	DeleteUserRealmRole(role *v1alpha1.KeycloakUserRole, realmName, userID string) error
 
 	ListAuthenticationExecutionsForFlow(flowAlias, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error)
 

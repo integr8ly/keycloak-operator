@@ -15,12 +15,14 @@ var (
 	lockKeycloakInterfaceMockCreateRealm                         sync.RWMutex
 	lockKeycloakInterfaceMockCreateUser                          sync.RWMutex
 	lockKeycloakInterfaceMockCreateUserClientRole                sync.RWMutex
+	lockKeycloakInterfaceMockCreateUserRealmRole                 sync.RWMutex
 	lockKeycloakInterfaceMockDeleteAuthenticatorConfig           sync.RWMutex
 	lockKeycloakInterfaceMockDeleteClient                        sync.RWMutex
 	lockKeycloakInterfaceMockDeleteIdentityProvider              sync.RWMutex
 	lockKeycloakInterfaceMockDeleteRealm                         sync.RWMutex
 	lockKeycloakInterfaceMockDeleteUser                          sync.RWMutex
 	lockKeycloakInterfaceMockDeleteUserClientRole                sync.RWMutex
+	lockKeycloakInterfaceMockDeleteUserRealmRole                 sync.RWMutex
 	lockKeycloakInterfaceMockFindUserByEmail                     sync.RWMutex
 	lockKeycloakInterfaceMockFindUserByUsername                  sync.RWMutex
 	lockKeycloakInterfaceMockGetAuthenticatorConfig              sync.RWMutex
@@ -32,10 +34,12 @@ var (
 	lockKeycloakInterfaceMockGetUser                             sync.RWMutex
 	lockKeycloakInterfaceMockListAuthenticationExecutionsForFlow sync.RWMutex
 	lockKeycloakInterfaceMockListAvailableUserClientRoles        sync.RWMutex
+	lockKeycloakInterfaceMockListAvailableUserRealmRoles         sync.RWMutex
 	lockKeycloakInterfaceMockListClients                         sync.RWMutex
 	lockKeycloakInterfaceMockListIdentityProviders               sync.RWMutex
 	lockKeycloakInterfaceMockListRealms                          sync.RWMutex
 	lockKeycloakInterfaceMockListUserClientRoles                 sync.RWMutex
+	lockKeycloakInterfaceMockListUserRealmRoles                  sync.RWMutex
 	lockKeycloakInterfaceMockListUsers                           sync.RWMutex
 	lockKeycloakInterfaceMockPing                                sync.RWMutex
 	lockKeycloakInterfaceMockUpdateAuthenticatorConfig           sync.RWMutex
@@ -71,8 +75,11 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             CreateUserFunc: func(user *v1alpha1.KeycloakUser, realmName string) error {
 // 	               panic("mock out the CreateUser method")
 //             },
-//             CreateUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userId string) error {
+//             CreateUserClientRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userId string) error {
 // 	               panic("mock out the CreateUserClientRole method")
+//             },
+//             CreateUserRealmRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, userId string) error {
+// 	               panic("mock out the CreateUserRealmRole method")
 //             },
 //             DeleteAuthenticatorConfigFunc: func(configID string, realmName string) error {
 // 	               panic("mock out the DeleteAuthenticatorConfig method")
@@ -89,8 +96,11 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             DeleteUserFunc: func(userID string, realmName string) error {
 // 	               panic("mock out the DeleteUser method")
 //             },
-//             DeleteUserClientRoleFunc: func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userID string) error {
+//             DeleteUserClientRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userID string) error {
 // 	               panic("mock out the DeleteUserClientRole method")
+//             },
+//             DeleteUserRealmRoleFunc: func(role *v1alpha1.KeycloakUserRole, realmName string, userID string) error {
+// 	               panic("mock out the DeleteUserRealmRole method")
 //             },
 //             FindUserByEmailFunc: func(email string, realm string) (*v1alpha1.KeycloakApiUser, error) {
 // 	               panic("mock out the FindUserByEmail method")
@@ -122,8 +132,11 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             ListAuthenticationExecutionsForFlowFunc: func(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error) {
 // 	               panic("mock out the ListAuthenticationExecutionsForFlow method")
 //             },
-//             ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+//             ListAvailableUserClientRolesFunc: func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
 // 	               panic("mock out the ListAvailableUserClientRoles method")
+//             },
+//             ListAvailableUserRealmRolesFunc: func(realmName string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
+// 	               panic("mock out the ListAvailableUserRealmRoles method")
 //             },
 //             ListClientsFunc: func(realmName string) ([]*v1alpha1.KeycloakClient, error) {
 // 	               panic("mock out the ListClients method")
@@ -134,8 +147,11 @@ var _ KeycloakInterface = &KeycloakInterfaceMock{}
 //             ListRealmsFunc: func() ([]*v1alpha1.KeycloakRealm, error) {
 // 	               panic("mock out the ListRealms method")
 //             },
-//             ListUserClientRolesFunc: func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+//             ListUserClientRolesFunc: func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
 // 	               panic("mock out the ListUserClientRoles method")
+//             },
+//             ListUserRealmRolesFunc: func(realmName string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
+// 	               panic("mock out the ListUserRealmRoles method")
 //             },
 //             ListUsersFunc: func(realmName string) ([]*v1alpha1.KeycloakUser, error) {
 // 	               panic("mock out the ListUsers method")
@@ -184,7 +200,10 @@ type KeycloakInterfaceMock struct {
 	CreateUserFunc func(user *v1alpha1.KeycloakUser, realmName string) error
 
 	// CreateUserClientRoleFunc mocks the CreateUserClientRole method.
-	CreateUserClientRoleFunc func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userId string) error
+	CreateUserClientRoleFunc func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userId string) error
+
+	// CreateUserRealmRoleFunc mocks the CreateUserRealmRole method.
+	CreateUserRealmRoleFunc func(role *v1alpha1.KeycloakUserRole, realmName string, userId string) error
 
 	// DeleteAuthenticatorConfigFunc mocks the DeleteAuthenticatorConfig method.
 	DeleteAuthenticatorConfigFunc func(configID string, realmName string) error
@@ -202,7 +221,10 @@ type KeycloakInterfaceMock struct {
 	DeleteUserFunc func(userID string, realmName string) error
 
 	// DeleteUserClientRoleFunc mocks the DeleteUserClientRole method.
-	DeleteUserClientRoleFunc func(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userID string) error
+	DeleteUserClientRoleFunc func(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userID string) error
+
+	// DeleteUserRealmRoleFunc mocks the DeleteUserRealmRole method.
+	DeleteUserRealmRoleFunc func(role *v1alpha1.KeycloakUserRole, realmName string, userID string) error
 
 	// FindUserByEmailFunc mocks the FindUserByEmail method.
 	FindUserByEmailFunc func(email string, realm string) (*v1alpha1.KeycloakApiUser, error)
@@ -235,7 +257,10 @@ type KeycloakInterfaceMock struct {
 	ListAuthenticationExecutionsForFlowFunc func(flowAlias string, realmName string) ([]*v1alpha1.AuthenticationExecutionInfo, error)
 
 	// ListAvailableUserClientRolesFunc mocks the ListAvailableUserClientRoles method.
-	ListAvailableUserClientRolesFunc func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
+	ListAvailableUserClientRolesFunc func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserRole, error)
+
+	// ListAvailableUserRealmRolesFunc mocks the ListAvailableUserRealmRoles method.
+	ListAvailableUserRealmRolesFunc func(realmName string, userID string) ([]*v1alpha1.KeycloakUserRole, error)
 
 	// ListClientsFunc mocks the ListClients method.
 	ListClientsFunc func(realmName string) ([]*v1alpha1.KeycloakClient, error)
@@ -247,7 +272,10 @@ type KeycloakInterfaceMock struct {
 	ListRealmsFunc func() ([]*v1alpha1.KeycloakRealm, error)
 
 	// ListUserClientRolesFunc mocks the ListUserClientRoles method.
-	ListUserClientRolesFunc func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error)
+	ListUserClientRolesFunc func(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserRole, error)
+
+	// ListUserRealmRolesFunc mocks the ListUserRealmRoles method.
+	ListUserRealmRolesFunc func(realmName string, userID string) ([]*v1alpha1.KeycloakUserRole, error)
 
 	// ListUsersFunc mocks the ListUsers method.
 	ListUsersFunc func(realmName string) ([]*v1alpha1.KeycloakUser, error)
@@ -313,11 +341,20 @@ type KeycloakInterfaceMock struct {
 		// CreateUserClientRole holds details about calls to the CreateUserClientRole method.
 		CreateUserClientRole []struct {
 			// Role is the role argument value.
-			Role *v1alpha1.KeycloakUserClientRole
+			Role *v1alpha1.KeycloakUserRole
 			// RealmName is the realmName argument value.
 			RealmName string
 			// ClientID is the clientID argument value.
 			ClientID string
+			// UserId is the userId argument value.
+			UserId string
+		}
+		// CreateUserRealmRole holds details about calls to the CreateUserRealmRole method.
+		CreateUserRealmRole []struct {
+			// Role is the role argument value.
+			Role *v1alpha1.KeycloakUserRole
+			// RealmName is the realmName argument value.
+			RealmName string
 			// UserId is the userId argument value.
 			UserId string
 		}
@@ -357,11 +394,20 @@ type KeycloakInterfaceMock struct {
 		// DeleteUserClientRole holds details about calls to the DeleteUserClientRole method.
 		DeleteUserClientRole []struct {
 			// Role is the role argument value.
-			Role *v1alpha1.KeycloakUserClientRole
+			Role *v1alpha1.KeycloakUserRole
 			// RealmName is the realmName argument value.
 			RealmName string
 			// ClientID is the clientID argument value.
 			ClientID string
+			// UserID is the userID argument value.
+			UserID string
+		}
+		// DeleteUserRealmRole holds details about calls to the DeleteUserRealmRole method.
+		DeleteUserRealmRole []struct {
+			// Role is the role argument value.
+			Role *v1alpha1.KeycloakUserRole
+			// RealmName is the realmName argument value.
+			RealmName string
 			// UserID is the userID argument value.
 			UserID string
 		}
@@ -442,6 +488,13 @@ type KeycloakInterfaceMock struct {
 			// UserID is the userID argument value.
 			UserID string
 		}
+		// ListAvailableUserRealmRoles holds details about calls to the ListAvailableUserRealmRoles method.
+		ListAvailableUserRealmRoles []struct {
+			// RealmName is the realmName argument value.
+			RealmName string
+			// UserID is the userID argument value.
+			UserID string
+		}
 		// ListClients holds details about calls to the ListClients method.
 		ListClients []struct {
 			// RealmName is the realmName argument value.
@@ -461,6 +514,13 @@ type KeycloakInterfaceMock struct {
 			RealmName string
 			// ClientID is the clientID argument value.
 			ClientID string
+			// UserID is the userID argument value.
+			UserID string
+		}
+		// ListUserRealmRoles holds details about calls to the ListUserRealmRoles method.
+		ListUserRealmRoles []struct {
+			// RealmName is the realmName argument value.
+			RealmName string
 			// UserID is the userID argument value.
 			UserID string
 		}
@@ -693,12 +753,12 @@ func (mock *KeycloakInterfaceMock) CreateUserCalls() []struct {
 }
 
 // CreateUserClientRole calls CreateUserClientRoleFunc.
-func (mock *KeycloakInterfaceMock) CreateUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userId string) error {
+func (mock *KeycloakInterfaceMock) CreateUserClientRole(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userId string) error {
 	if mock.CreateUserClientRoleFunc == nil {
 		panic("KeycloakInterfaceMock.CreateUserClientRoleFunc: method is nil but KeycloakInterface.CreateUserClientRole was just called")
 	}
 	callInfo := struct {
-		Role      *v1alpha1.KeycloakUserClientRole
+		Role      *v1alpha1.KeycloakUserRole
 		RealmName string
 		ClientID  string
 		UserId    string
@@ -718,13 +778,13 @@ func (mock *KeycloakInterfaceMock) CreateUserClientRole(role *v1alpha1.KeycloakU
 // Check the length with:
 //     len(mockedKeycloakInterface.CreateUserClientRoleCalls())
 func (mock *KeycloakInterfaceMock) CreateUserClientRoleCalls() []struct {
-	Role      *v1alpha1.KeycloakUserClientRole
+	Role      *v1alpha1.KeycloakUserRole
 	RealmName string
 	ClientID  string
 	UserId    string
 } {
 	var calls []struct {
-		Role      *v1alpha1.KeycloakUserClientRole
+		Role      *v1alpha1.KeycloakUserRole
 		RealmName string
 		ClientID  string
 		UserId    string
@@ -732,6 +792,45 @@ func (mock *KeycloakInterfaceMock) CreateUserClientRoleCalls() []struct {
 	lockKeycloakInterfaceMockCreateUserClientRole.RLock()
 	calls = mock.calls.CreateUserClientRole
 	lockKeycloakInterfaceMockCreateUserClientRole.RUnlock()
+	return calls
+}
+
+// CreateUserRealmRole calls CreateUserRealmRoleFunc.
+func (mock *KeycloakInterfaceMock) CreateUserRealmRole(role *v1alpha1.KeycloakUserRole, realmName string, userId string) error {
+	if mock.CreateUserRealmRoleFunc == nil {
+		panic("KeycloakInterfaceMock.CreateUserRealmRoleFunc: method is nil but KeycloakInterface.CreateUserRealmRole was just called")
+	}
+	callInfo := struct {
+		Role      *v1alpha1.KeycloakUserRole
+		RealmName string
+		UserId    string
+	}{
+		Role:      role,
+		RealmName: realmName,
+		UserId:    userId,
+	}
+	lockKeycloakInterfaceMockCreateUserRealmRole.Lock()
+	mock.calls.CreateUserRealmRole = append(mock.calls.CreateUserRealmRole, callInfo)
+	lockKeycloakInterfaceMockCreateUserRealmRole.Unlock()
+	return mock.CreateUserRealmRoleFunc(role, realmName, userId)
+}
+
+// CreateUserRealmRoleCalls gets all the calls that were made to CreateUserRealmRole.
+// Check the length with:
+//     len(mockedKeycloakInterface.CreateUserRealmRoleCalls())
+func (mock *KeycloakInterfaceMock) CreateUserRealmRoleCalls() []struct {
+	Role      *v1alpha1.KeycloakUserRole
+	RealmName string
+	UserId    string
+} {
+	var calls []struct {
+		Role      *v1alpha1.KeycloakUserRole
+		RealmName string
+		UserId    string
+	}
+	lockKeycloakInterfaceMockCreateUserRealmRole.RLock()
+	calls = mock.calls.CreateUserRealmRole
+	lockKeycloakInterfaceMockCreateUserRealmRole.RUnlock()
 	return calls
 }
 
@@ -907,12 +1006,12 @@ func (mock *KeycloakInterfaceMock) DeleteUserCalls() []struct {
 }
 
 // DeleteUserClientRole calls DeleteUserClientRoleFunc.
-func (mock *KeycloakInterfaceMock) DeleteUserClientRole(role *v1alpha1.KeycloakUserClientRole, realmName string, clientID string, userID string) error {
+func (mock *KeycloakInterfaceMock) DeleteUserClientRole(role *v1alpha1.KeycloakUserRole, realmName string, clientID string, userID string) error {
 	if mock.DeleteUserClientRoleFunc == nil {
 		panic("KeycloakInterfaceMock.DeleteUserClientRoleFunc: method is nil but KeycloakInterface.DeleteUserClientRole was just called")
 	}
 	callInfo := struct {
-		Role      *v1alpha1.KeycloakUserClientRole
+		Role      *v1alpha1.KeycloakUserRole
 		RealmName string
 		ClientID  string
 		UserID    string
@@ -932,13 +1031,13 @@ func (mock *KeycloakInterfaceMock) DeleteUserClientRole(role *v1alpha1.KeycloakU
 // Check the length with:
 //     len(mockedKeycloakInterface.DeleteUserClientRoleCalls())
 func (mock *KeycloakInterfaceMock) DeleteUserClientRoleCalls() []struct {
-	Role      *v1alpha1.KeycloakUserClientRole
+	Role      *v1alpha1.KeycloakUserRole
 	RealmName string
 	ClientID  string
 	UserID    string
 } {
 	var calls []struct {
-		Role      *v1alpha1.KeycloakUserClientRole
+		Role      *v1alpha1.KeycloakUserRole
 		RealmName string
 		ClientID  string
 		UserID    string
@@ -946,6 +1045,45 @@ func (mock *KeycloakInterfaceMock) DeleteUserClientRoleCalls() []struct {
 	lockKeycloakInterfaceMockDeleteUserClientRole.RLock()
 	calls = mock.calls.DeleteUserClientRole
 	lockKeycloakInterfaceMockDeleteUserClientRole.RUnlock()
+	return calls
+}
+
+// DeleteUserRealmRole calls DeleteUserRealmRoleFunc.
+func (mock *KeycloakInterfaceMock) DeleteUserRealmRole(role *v1alpha1.KeycloakUserRole, realmName string, userID string) error {
+	if mock.DeleteUserRealmRoleFunc == nil {
+		panic("KeycloakInterfaceMock.DeleteUserRealmRoleFunc: method is nil but KeycloakInterface.DeleteUserRealmRole was just called")
+	}
+	callInfo := struct {
+		Role      *v1alpha1.KeycloakUserRole
+		RealmName string
+		UserID    string
+	}{
+		Role:      role,
+		RealmName: realmName,
+		UserID:    userID,
+	}
+	lockKeycloakInterfaceMockDeleteUserRealmRole.Lock()
+	mock.calls.DeleteUserRealmRole = append(mock.calls.DeleteUserRealmRole, callInfo)
+	lockKeycloakInterfaceMockDeleteUserRealmRole.Unlock()
+	return mock.DeleteUserRealmRoleFunc(role, realmName, userID)
+}
+
+// DeleteUserRealmRoleCalls gets all the calls that were made to DeleteUserRealmRole.
+// Check the length with:
+//     len(mockedKeycloakInterface.DeleteUserRealmRoleCalls())
+func (mock *KeycloakInterfaceMock) DeleteUserRealmRoleCalls() []struct {
+	Role      *v1alpha1.KeycloakUserRole
+	RealmName string
+	UserID    string
+} {
+	var calls []struct {
+		Role      *v1alpha1.KeycloakUserRole
+		RealmName string
+		UserID    string
+	}
+	lockKeycloakInterfaceMockDeleteUserRealmRole.RLock()
+	calls = mock.calls.DeleteUserRealmRole
+	lockKeycloakInterfaceMockDeleteUserRealmRole.RUnlock()
 	return calls
 }
 
@@ -1296,7 +1434,7 @@ func (mock *KeycloakInterfaceMock) ListAuthenticationExecutionsForFlowCalls() []
 }
 
 // ListAvailableUserClientRoles calls ListAvailableUserClientRolesFunc.
-func (mock *KeycloakInterfaceMock) ListAvailableUserClientRoles(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+func (mock *KeycloakInterfaceMock) ListAvailableUserClientRoles(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
 	if mock.ListAvailableUserClientRolesFunc == nil {
 		panic("KeycloakInterfaceMock.ListAvailableUserClientRolesFunc: method is nil but KeycloakInterface.ListAvailableUserClientRoles was just called")
 	}
@@ -1331,6 +1469,41 @@ func (mock *KeycloakInterfaceMock) ListAvailableUserClientRolesCalls() []struct 
 	lockKeycloakInterfaceMockListAvailableUserClientRoles.RLock()
 	calls = mock.calls.ListAvailableUserClientRoles
 	lockKeycloakInterfaceMockListAvailableUserClientRoles.RUnlock()
+	return calls
+}
+
+// ListAvailableUserRealmRoles calls ListAvailableUserRealmRolesFunc.
+func (mock *KeycloakInterfaceMock) ListAvailableUserRealmRoles(realmName string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
+	if mock.ListAvailableUserRealmRolesFunc == nil {
+		panic("KeycloakInterfaceMock.ListAvailableUserRealmRolesFunc: method is nil but KeycloakInterface.ListAvailableUserRealmRoles was just called")
+	}
+	callInfo := struct {
+		RealmName string
+		UserID    string
+	}{
+		RealmName: realmName,
+		UserID:    userID,
+	}
+	lockKeycloakInterfaceMockListAvailableUserRealmRoles.Lock()
+	mock.calls.ListAvailableUserRealmRoles = append(mock.calls.ListAvailableUserRealmRoles, callInfo)
+	lockKeycloakInterfaceMockListAvailableUserRealmRoles.Unlock()
+	return mock.ListAvailableUserRealmRolesFunc(realmName, userID)
+}
+
+// ListAvailableUserRealmRolesCalls gets all the calls that were made to ListAvailableUserRealmRoles.
+// Check the length with:
+//     len(mockedKeycloakInterface.ListAvailableUserRealmRolesCalls())
+func (mock *KeycloakInterfaceMock) ListAvailableUserRealmRolesCalls() []struct {
+	RealmName string
+	UserID    string
+} {
+	var calls []struct {
+		RealmName string
+		UserID    string
+	}
+	lockKeycloakInterfaceMockListAvailableUserRealmRoles.RLock()
+	calls = mock.calls.ListAvailableUserRealmRoles
+	lockKeycloakInterfaceMockListAvailableUserRealmRoles.RUnlock()
 	return calls
 }
 
@@ -1423,7 +1596,7 @@ func (mock *KeycloakInterfaceMock) ListRealmsCalls() []struct {
 }
 
 // ListUserClientRoles calls ListUserClientRolesFunc.
-func (mock *KeycloakInterfaceMock) ListUserClientRoles(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserClientRole, error) {
+func (mock *KeycloakInterfaceMock) ListUserClientRoles(realmName string, clientID string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
 	if mock.ListUserClientRolesFunc == nil {
 		panic("KeycloakInterfaceMock.ListUserClientRolesFunc: method is nil but KeycloakInterface.ListUserClientRoles was just called")
 	}
@@ -1458,6 +1631,41 @@ func (mock *KeycloakInterfaceMock) ListUserClientRolesCalls() []struct {
 	lockKeycloakInterfaceMockListUserClientRoles.RLock()
 	calls = mock.calls.ListUserClientRoles
 	lockKeycloakInterfaceMockListUserClientRoles.RUnlock()
+	return calls
+}
+
+// ListUserRealmRoles calls ListUserRealmRolesFunc.
+func (mock *KeycloakInterfaceMock) ListUserRealmRoles(realmName string, userID string) ([]*v1alpha1.KeycloakUserRole, error) {
+	if mock.ListUserRealmRolesFunc == nil {
+		panic("KeycloakInterfaceMock.ListUserRealmRolesFunc: method is nil but KeycloakInterface.ListUserRealmRoles was just called")
+	}
+	callInfo := struct {
+		RealmName string
+		UserID    string
+	}{
+		RealmName: realmName,
+		UserID:    userID,
+	}
+	lockKeycloakInterfaceMockListUserRealmRoles.Lock()
+	mock.calls.ListUserRealmRoles = append(mock.calls.ListUserRealmRoles, callInfo)
+	lockKeycloakInterfaceMockListUserRealmRoles.Unlock()
+	return mock.ListUserRealmRolesFunc(realmName, userID)
+}
+
+// ListUserRealmRolesCalls gets all the calls that were made to ListUserRealmRoles.
+// Check the length with:
+//     len(mockedKeycloakInterface.ListUserRealmRolesCalls())
+func (mock *KeycloakInterfaceMock) ListUserRealmRolesCalls() []struct {
+	RealmName string
+	UserID    string
+} {
+	var calls []struct {
+		RealmName string
+		UserID    string
+	}
+	lockKeycloakInterfaceMockListUserRealmRoles.RLock()
+	calls = mock.calls.ListUserRealmRoles
+	lockKeycloakInterfaceMockListUserRealmRoles.RUnlock()
 	return calls
 }
 

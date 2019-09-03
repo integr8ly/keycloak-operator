@@ -88,8 +88,7 @@ spec:
           expr: >
             (1 - absent(kube_pod_status_ready{namespace="[[ .Namespace ]]", condition="true"}
             * on (pod) group_left (label_deploymentConfig)
-            kube_pod_labels{label_deploymentConfig="sso"})) == 0 or
-            probe_success{service="rhsso-ui"} == 0 
+            kube_pod_labels{label_deploymentConfig="sso"})) == 0
           for: 5m
           labels:
             severity: critical

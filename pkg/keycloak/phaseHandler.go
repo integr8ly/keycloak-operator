@@ -504,7 +504,7 @@ func (ph *phaseHandler) reconcileBackup(sso *v1alpha1.Keycloak, backup v1alpha1.
 									},
 								},
 							},
-							RestartPolicy: v1.RestartPolicyOnFailure,
+							RestartPolicy: v1.RestartPolicyNever,
 						},
 					},
 				},

@@ -507,7 +507,7 @@ func (ph *phaseHandler) reconcileClient(kcClient, specClient *v1alpha1.KeycloakC
 			}
 		}
 	}
-	if kcClient != nil && specClient != nil && specClient.OutputSecret != nil {
+	if kcClient != nil && specClient != nil && specClient.OutputSecret != nil && *specClient.OutputSecret != "" {
 		cs, err := authenticatedClient.GetClientSecret(kcClient.ID, realmName)
 		if err != nil {
 			return err

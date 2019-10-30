@@ -1,6 +1,6 @@
 # Keycloak Operator
 
-A Kubernetes Operator based on the Operator SDK for syncing resources in Keycloak.
+An OpenShift Operator based on the Operator SDK for syncing resources in Keycloak.
 
 ## Current status
 
@@ -27,7 +27,7 @@ For more information read [more info on keycloak realms](keycloakrealm.md).
 
 ## Test it locally
 
-*Note*: You will need a running Kubernetes or OpenShift cluster to use the Operator
+*Note*: You will need a running OpenShift cluster to use the Operator
 
 - clone this repo to `$GOPATH/src/github.com/integr8ly/keycloak-operator`
 - run `make setup/dep cluster/prepare code/run`

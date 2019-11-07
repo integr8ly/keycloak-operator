@@ -29,6 +29,7 @@ const (
 	SSO_TEMPLATE_PATH_ENV_VAR = "TEMPLATE_DIR"
 	SSO_VERSION               = "v7.3.2.GA"
 	SSO_IMAGE_STREAM          = "redhat-sso73-openshift:1.0"
+	SSO_POSTGRES_VERSION      = "9.6"
 )
 
 //go:generate moq -out sdkCruder_moq.go . SdkCruder

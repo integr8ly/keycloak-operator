@@ -2,6 +2,7 @@ package keycloak
 
 import (
 	"fmt"
+
 	"github.com/Jeffail/gabs"
 	"github.com/pkg/errors"
 )
@@ -78,6 +79,11 @@ func (j *JsonInjectorImpl) InjectAll(template []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	tpl, err = j.InjectPostgresImageStreamTag(tpl)
+	if err != nil {
+		return nil, err
+	}
+
 	tpl, err = j.NamePort(tpl)
 	if err != nil {
 		return nil, err
@@ -86,7 +92,6 @@ func (j *JsonInjectorImpl) InjectAll(template []byte) ([]byte, error) {
 	return tpl.Bytes(), nil
 }
 
-// Parse the string template to a mutable JSON object
 func (j *JsonInjectorImpl) ParseTemplate(template []byte) (*gabs.Container, error) {
 	parsed, err := gabs.ParseJSON(template)
 	if err != nil {
@@ -187,6 +192,38 @@ func (j *JsonInjectorImpl) InjectEnvVar(tpl *gabs.Container) (*gabs.Container, e
 	// Path in the template is .parameters
 	err := tpl.ArrayAppend(ssoPlugins.Data(), "parameters")
 
+	if err != nil {
+		return nil, err
+	}
+
+	return tpl, nil
+}
+
+// Injects a new value to a specified parameter
+func (j *JsonInjectorImpl) InjectParameter(tpl *gabs.Container, name string, value string) (*gabs.Container, error) {
+	parameters, err := tpl.S("parameters").Children()
+	if err != nil {
+		return nil, err
+	}
+
+	for i, parameter := range parameters {
+		if parameter.S("name").Data().(string) == name {
+
+			_, err = tpl.S("parameters").Index(i).Set(value, "value")
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to set parameter %s value to %s", name, value)
+			}
+
+			return tpl, nil
+		}
+	}
+
+	return tpl, errors.Errorf("parameter %s not found in template", name)
+}
+
+// Points the postgresql image to the tag specified in the constant SSO_POSTGRES_VERSION
+func (j *JsonInjectorImpl) InjectPostgresImageStreamTag(tpl *gabs.Container) (*gabs.Container, error) {
+	tpl, err := j.InjectParameter(tpl, "POSTGRESQL_IMAGE_STREAM_TAG", SSO_POSTGRES_VERSION)
 	if err != nil {
 		return nil, err
 	}

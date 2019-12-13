@@ -1,10 +1,9 @@
+# Current status
+This operator is no longer maintained. Please see https://github.com/keycloak/keycloak-operator 
+
 # Keycloak Operator
 
 An OpenShift Operator based on the Operator SDK for syncing resources in Keycloak.
-
-## Current status
-
-This is a PoC / alpha version. Most functionality is there but it is higly likely there are bugs and improvements needed
 
 ## Supported Custom Resources
 

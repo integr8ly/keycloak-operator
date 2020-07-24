@@ -8,8 +8,8 @@ import (
 )
 
 func CanUpgrade(version string) bool {
-	// we will handle upgrade for any 7.2.x version
-	r := regexp.MustCompile("^v7.2.*.GA$")
+	// we will handle upgrade for any 7.3.x version
+	r := regexp.MustCompile("^v7.3.*.GA$")
 	return r.MatchString(version)
 }
 

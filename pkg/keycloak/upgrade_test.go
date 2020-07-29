@@ -17,12 +17,12 @@ func TestCanUpgrade(t *testing.T) {
 	}{
 		{
 			Name:     "Test Should upgrade",
-			Versions: []string{"v7.2.11.GA", "v7.2.1.GA"},
+			Versions: []string{"v7.3.11.GA", "v7.3.1.GA"},
 			Expected: true,
 		},
 		{
 			Name:     "Test Should Not upgrade",
-			Versions: []string{"v7.3.2.GA", "v7.3.1.GA", "v7.3.0.GA", "v7.2.0-ALPHA"},
+			Versions: []string{"v7.4.2.GA", "v7.4.1.GA", "v7.4.0.GA", "v7.3.0-ALPHA"},
 			Expected: false,
 		},
 	}

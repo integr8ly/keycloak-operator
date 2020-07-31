@@ -364,7 +364,9 @@
                                             "/opt/eap/bin/livenessProbe.sh"
                                         ]
                                     },
-                                    "initialDelaySeconds": 60
+                                    "initialDelaySeconds": 60,
+                                    "periodSeconds": 30,
+                                    "timeoutSeconds": 22
                                 },
                                 "readinessProbe": {
                                     "exec": {
@@ -373,7 +375,10 @@
                                             "-c",
                                             "/opt/eap/bin/readinessProbe.sh"
                                         ]
-                                    }
+                                    },
+                                    "initialDelaySeconds": 40,
+                                    "periodSeconds": 30,
+                                    "timeoutSeconds": 22
                                 },
                                 "ports": [
                                     {

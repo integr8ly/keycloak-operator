@@ -22,7 +22,7 @@ spec:
               > 90
           for: 1m
           labels:
-            severity: critical
+            severity: warning
         - alert: KeycloakJavaNonHeapThresholdExceeded
           annotations:
             message: >-
@@ -34,7 +34,7 @@ spec:
               > 90
           for: 1m
           labels:
-            severity: critical
+            severity: warning
         - alert: KeycloakJavaGCTimePerMinuteScavenge
           annotations:
             message: >-
@@ -45,7 +45,7 @@ spec:
             increase(jvm_gc_collection_seconds_sum{gc="PS Scavenge",namespace="[[ .Namespace ]]"}[1m]) > 1 * 60 * 0.9
           for: 1m
           labels:
-            severity: critical
+            severity: warning
         - alert: KeycloakJavaGCTimePerMinuteMarkSweep
           annotations:
             message: >-
@@ -56,7 +56,7 @@ spec:
             increase(jvm_gc_collection_seconds_sum{gc="PS MarkSweep",namespace="[[ .Namespace ]]"}[1m]) > 1 * 60 * 0.9
           for: 1m
           labels:
-            severity: critical
+            severity: warning
         - alert: KeycloakJavaDeadlockedThreads
           annotations:
             message: >-
@@ -91,7 +91,7 @@ spec:
             kube_pod_labels{label_deploymentConfig="sso"})) == 0
           for: 5m
           labels:
-            severity: critical
+            severity: warning
         - alert: KeycloakAPIRequestDuration90PercThresholdExceeded
           annotations:
             message: >-
@@ -102,7 +102,7 @@ spec:
             sum(rate(keycloak_request_duration_count[5m])) by (job)) < 0.90
           for: 5m
           labels:
-            severity: critical
+            severity: warning
         - alert: KeycloakAPIRequestDuration99PercThresholdExceeded
           annotations:
             message: >-
@@ -113,7 +113,7 @@ spec:
             sum(rate(keycloak_request_duration_count[5m])) by (job)) < 0.995
           for: 5m
           labels:
-            severity: critical
+            severity: warning
         - alert: KeycloakDatabaseNotAvailable
           annotations:
             message: >-
@@ -125,5 +125,5 @@ spec:
             kube_pod_labels{label_deploymentConfig="sso-postgresql"})) == 0 
           for: 5m
           labels:
-            severity: critical
+            severity: warning
 

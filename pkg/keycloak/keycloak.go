@@ -27,7 +27,7 @@ const (
 	SSO_APPLICATION_NAME      = "sso"
 	SSO_TEMPLATE_PATH         = "deploy/template"
 	SSO_TEMPLATE_PATH_ENV_VAR = "TEMPLATE_DIR"
-	SSO_VERSION               = "v7.4.1.GA"
+	SSO_VERSION               = "v7.4.2.GA"
 	SSO_IMAGE_STREAM          = "redhat-sso74-openshift:1.0"
 	SSO_POSTGRES_VERSION      = "9.6"
 )

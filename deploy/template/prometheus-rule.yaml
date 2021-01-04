@@ -95,7 +95,7 @@ spec:
         - alert: KeycloakAPIRequestDuration90PercThresholdExceeded
           annotations:
             message: >-
-              Less than 90% of the RH SSO API endpoints in namespace {{ $labels.namespace }} are taking longer than 1s for the last 5 minutes.
+              90% of requests are not served within 10 seconds for the last 5 minutes for the RH SSO API in the {{ $labels.namespace }} namespace
           expr: >
             (sum(rate(keycloak_request_duration_bucket{le="1000.0"}[5m])) by (job) 
             /
@@ -106,7 +106,7 @@ spec:
         - alert: KeycloakAPIRequestDuration99PercThresholdExceeded
           annotations:
             message: >-
-              Less than 99.5% of the RH SSO API endpoints in namespace {{ $labels.namespace }} are taking longer than 10s for the last 5 minutes.
+              99.5% of requests are not served within 10 seconds for the last 5 minutes for the RH SSO API in the {{ $labels.namespace }} namespace
           expr: >
             (sum(rate(keycloak_request_duration_bucket{le="10000.0"}[5m])) by (job) 
             /
